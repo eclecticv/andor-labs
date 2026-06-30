@@ -1,0 +1,15 @@
+/* ============================================================
+   And/or Labs — Font faces
+   - Departure Mono : the character voice (labels, captions, diagrams, UI chrome)
+   - Newsreader     : the editorial serif (body/display), loaded via <link> in <head>
+     (see Base.astro) for a faster, non-render-blocking path.
+   ============================================================ */
+
+@font-face {
+  font-family: "Departure Mono";
+  src: url("/fonts/DepartureMono-Regular.woff2") format("woff2"),
+       url("/fonts/DepartureMono-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}

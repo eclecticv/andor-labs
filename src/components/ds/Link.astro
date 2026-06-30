@@ -1,0 +1,15 @@
+---
+interface Props {
+  variant?: "default" | "plain" | "quiet";
+  arrow?: boolean;
+  href?: string;
+  class?: string;
+  [key: string]: any;
+}
+const { variant = "default", arrow = false, href = "#", class: className, ...rest } = Astro.props;
+const cls = ["aol-link", variant !== "default" && `aol-link--${variant}`, className].filter(Boolean).join(" ");
+---
+<a class={cls} href={href} {...rest}>
+  <slot />
+  {arrow && <span class="aol-link__arrow" aria-hidden="true">→</span>}
+</a>

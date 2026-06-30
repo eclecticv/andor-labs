@@ -1,0 +1,80 @@
+/* ============================================================
+   And/or Labs — Base element styles & resets
+   Sets the paper background, serif reading defaults, mono chrome,
+   and the signature wavy-blue link.
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--text-body);
+  font-family: var(--font-serif);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  font-feature-settings: "liga" 1, "kern" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---- Headings: serif display ---- */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  color: var(--text-strong);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  margin: 0 0 0.5em;
+  text-wrap: balance;
+}
+h1 { font-size: var(--text-3xl); }
+h2 { font-size: var(--text-2xl); }
+h3 { font-size: var(--text-xl); }
+h4 { font-size: var(--text-lg); letter-spacing: var(--tracking-normal); }
+
+p { margin: 0 0 1em; text-wrap: pretty; }
+
+/* ---- The signature link: blue ink with a hand-drawn wavy underline ---- */
+a {
+  color: var(--text-link);
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: var(--blue-400);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-skip-ink: none;
+  transition: text-decoration-color var(--dur-base) var(--ease-out),
+              color var(--dur-base) var(--ease-out);
+}
+a:hover { text-decoration-color: var(--blue-600); color: var(--signal-hover); }
+
+/* ---- Mono chrome elements ---- */
+code, kbd, samp, pre {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+small { font-size: var(--text-xs); }
+
+hr {
+  border: none;
+  border-top: var(--border-hairline-width) solid var(--border-hairline);
+  margin: var(--space-8) 0;
+}
+
+::selection { background: var(--blue-100); color: var(--ink-900); }
+
+:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-xs); }
+
+img { max-width: 100%; display: block; }
+
+/* Respect reduced motion globally */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

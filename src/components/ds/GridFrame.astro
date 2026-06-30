@@ -1,0 +1,44 @@
+---
+interface Props {
+  label?: string;
+  dim?: string;
+  blue?: boolean;
+  bordered?: boolean;
+  ruler?: boolean;
+  registration?: boolean;
+  crosshair?: boolean;
+  class?: string;
+  [key: string]: any;
+}
+const {
+  label,
+  dim,
+  blue = false,
+  bordered = true,
+  ruler = false,
+  registration = true,
+  crosshair = false,
+  class: className,
+  ...rest
+} = Astro.props;
+const cls = [
+  "aol-gridframe",
+  blue && "aol-gridframe--blue",
+  bordered && "aol-gridframe--bordered",
+  className,
+].filter(Boolean).join(" ");
+---
+<div class={cls} {...rest}>
+  {ruler && <span class="aol-gridframe__ruler aol-gridframe__ruler--t" />}
+  {ruler && <span class="aol-gridframe__ruler aol-gridframe__ruler--l" />}
+  <span class="aol-gridframe__tick aol-gridframe__tick--tl" />
+  <span class="aol-gridframe__tick aol-gridframe__tick--tr" />
+  <span class="aol-gridframe__tick aol-gridframe__tick--bl" />
+  <span class="aol-gridframe__tick aol-gridframe__tick--br" />
+  {registration && <span class="aol-gridframe__reg aol-gridframe__reg--tl" />}
+  {registration && <span class="aol-gridframe__reg aol-gridframe__reg--br" />}
+  {label && <span class="aol-gridframe__label">{label}</span>}
+  {dim && <span class="aol-gridframe__dim">{dim}</span>}
+  {crosshair && <span class="aol-gridframe__cross" />}
+  <slot />
+</div>

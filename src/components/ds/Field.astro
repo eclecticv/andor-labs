@@ -1,0 +1,14 @@
+---
+interface Props { label?: string; hint?: string; required?: boolean; htmlFor?: string; class?: string; [key: string]: any; }
+const { label, hint, required = false, htmlFor, class: className, ...rest } = Astro.props;
+---
+<div class={["aol-field", className].filter(Boolean).join(" ")} {...rest}>
+  {label && (
+    <label class="aol-field__label" for={htmlFor}>
+      {label}
+      {required && <span class="aol-field__req">*</span>}
+    </label>
+  )}
+  <slot />
+  {hint && <span class="aol-field__hint">{hint}</span>}
+</div>

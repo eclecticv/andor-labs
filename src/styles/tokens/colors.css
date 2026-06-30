@@ -1,0 +1,77 @@
+/* ============================================================
+   And/or Labs — Color tokens
+   System: high-contrast black-on-WHITE, one signal color (technical blue).
+   Like the makingsoftware source: pure-white page, near-black neutral ink, blue line-art.
+   The neutral grey ramp leans very slightly cool so it sits cleanly under the electric blue.
+   ============================================================ */
+
+:root {
+  /* ---- Neutral ink ramp (near-black → white) ---- */
+  --ink-900: #14151A;  /* primary text, strong borders */
+  --ink-800: #25272E;
+  --ink-700: #393C44;
+  --ink-600: #52555F;
+  --ink-500: #6D717B;  /* muted text */
+  --ink-400: #9398A1;  /* faint text, captions */
+  --ink-300: #B9BDC5;
+  --ink-200: #D8DAE0;  /* hairline borders */
+  --ink-100: #E9EBEF;  /* subtle fills */
+  --ink-050: #F4F5F7;  /* sunken surface */
+
+  --paper:      #FFFFFF;  /* page background — pure white, like the source */
+  --paper-pure: #FFFFFF;  /* inputs, full-bleed surfaces */
+  --surface-card: #F7F9FB; /* card fill — a hair cooler than the page */
+
+  /* ---- Signal: technical blue ---- */
+  --blue-700: #0A2EBF;  /* active / pressed */
+  --blue-600: #123CE0;  /* hover */
+  --blue-500: #1B4DFF;  /* primary signal */
+  --blue-400: #5377FF;
+  --blue-200: #BBC8FF;
+  --blue-100: #DCE4FF;  /* tint fill */
+  --blue-050: #EEF1FF;  /* faint tint background */
+
+  /* ---- Status (used sparingly; system stays monotone) ---- */
+  --green-600: #1B6E45;
+  --green-100: #DCEEE2;
+  --amber-600: #9A6400;
+  --amber-100: #F5E9CC;
+  --red-600:   #C23121;
+  --red-100:   #F6DAD3;
+
+  /* ---- Semantic surfaces ---- */
+  --color-bg:             var(--paper);
+  --color-surface:        var(--paper-pure);
+  --color-surface-sunken: var(--ink-050);
+  --color-surface-inverse:var(--ink-900);
+
+  /* ---- Semantic text ---- */
+  --text-strong:  var(--ink-900);
+  --text-body:    var(--ink-800);
+  --text-muted:   var(--ink-500);
+  --text-faint:   var(--ink-400);
+  --text-inverse: var(--paper);
+  --text-link:    var(--blue-500);
+
+  /* ---- Semantic lines ---- */
+  --border-hairline: var(--ink-200);
+  --border-default:  var(--ink-300);
+  --border-strong:   var(--ink-900);
+
+  /* ---- Signal aliases ---- */
+  --signal:        var(--blue-500);
+  --signal-hover:  var(--blue-600);
+  --signal-active: var(--blue-700);
+  --signal-tint:   var(--blue-050);
+  --signal-fill:   var(--blue-100);
+
+  /* ---- The faint engineering grid (the make-or-break motif) ---- */
+  --grid-line:        rgba(20, 21, 26, 0.045);
+  --grid-line-strong: rgba(20, 21, 26, 0.08);
+  --grid-blue:        rgba(40, 96, 255, 0.085);
+
+  /* ---- Status semantics ---- */
+  --color-positive: var(--green-600);
+  --color-warning:  var(--amber-600);
+  --color-danger:   var(--red-600);
+}

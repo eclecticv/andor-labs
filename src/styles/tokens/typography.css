@@ -1,0 +1,87 @@
+/* ============================================================
+   And/or Labs — Typography tokens
+   Two voices only:
+   - SERIF (Newsreader): everything you read. Headlines, body, quotes.
+   - MONO  (Departure Mono): everything that labels, measures, or annotates.
+     Captions, eyebrows, UI chrome, diagram callouts, metadata, code.
+   No sans. The tension between literary serif and pixel mono IS the brand.
+   ============================================================ */
+
+:root {
+  /* ---- Families ---- */
+  --font-serif: "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --font-mono:  "Departure Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  /* Display alias — same family, used at large sizes with tight tracking */
+  --font-display: var(--font-serif);
+
+  /* ---- Size scale ----
+     Mono sizes favour multiples of 11px for Departure Mono's pixel-perfect grid. */
+  --text-2xs:  11px;  /* micro mono labels, tick marks */
+  --text-xs:   13px;  /* mono captions, metadata */
+  --text-sm:   14px;  /* small UI text */
+  --text-base: 17px;  /* serif reading body */
+  --text-md:   19px;  /* lead paragraphs */
+  --text-lg:   22px;
+  --text-xl:   28px;  /* h3 */
+  --text-2xl:  36px;  /* h2 */
+  --text-3xl:  48px;  /* h1 */
+  --text-4xl:  64px;  /* display */
+  --text-5xl:  88px;  /* hero display */
+
+  /* ---- Weights (Newsreader range; Departure Mono is 400 only) ---- */
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  /* ---- Line heights ---- */
+  --leading-none:    1;
+  --leading-tight:   1.08;  /* display headlines */
+  --leading-snug:    1.25;
+  --leading-normal:  1.4;   /* UI */
+  --leading-relaxed: 1.62;  /* serif reading column */
+
+  /* ---- Letter spacing ---- */
+  --tracking-tight:  -0.015em;  /* large serif display */
+  --tracking-normal: 0;
+  --tracking-mono:    0.02em;   /* mono body */
+  --tracking-label:   0.08em;   /* uppercase mono eyebrows */
+  --tracking-tick:    0.14em;   /* widely-spaced micro labels */
+}
+
+/* ---- Convenience text-style classes (optional helpers) ---- */
+.aol-eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.aol-display {
+  font-family: var(--font-display);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+/* Mono display voice — the deliberate "title-card" treatment for hero and
+   major SECTION headers (not in-content headings, which stay serif). Departure
+   Mono is single-weight, so kill faux-bold synthesis and lean on size for impact. */
+.aol-display-mono {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-regular);
+  font-synthesis: none;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.aol-body {
+  font-family: var(--font-serif);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  color: var(--text-body);
+}
+.aol-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-mono);
+}

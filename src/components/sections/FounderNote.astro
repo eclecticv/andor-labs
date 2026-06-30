@@ -1,0 +1,71 @@
+---
+import Photo from "../ds/Photo.astro";
+import StatusMark from "../ds/StatusMark.astro";
+import Quote from "../ds/Quote.astro";
+
+const label = "a note from the founder";
+const sames = ["“Optimize your ad revenue…”", "“Maximize your ad revenue…”", "“Supercharge your ad revenue…”"];
+const beforeItems = ["Blends into the category", "Buyers can't tell you apart", "Leaky funnel, long sales cycles"];
+const afterItems = ["A distinct, defensible position", "Buyers instantly get why you", "A tight funnel, end to end"];
+const quotes: [string, string, string][] = [
+  ["I'd recommend him to anyone looking for a marketing leader who thrives in early-stage chaos.", "Marty Kratky-Katz", "Exited tech founder"],
+  ["His calm demeanour and internal drive made working with him a delight every day.", "Trevor Thomas", "ex-OpenX revenue executive"],
+  ["He has the great ability to keep his head cool and bring a solutions-first mindset.", "Goswijn Thijssen", "ex-Google/Microsoft marketing exec"],
+];
+const beforeRow = "display:flex;gap:9px;align-items:flex-start;font-family:var(--font-mono);font-size:12.5px;line-height:1.4;color:var(--ink-500)";
+const afterRow = "display:flex;gap:9px;align-items:flex-start;font-family:var(--font-mono);font-size:12.5px;line-height:1.4;color:var(--ink-800)";
+---
+<section style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
+  <div style="max-width:760px;margin:0 auto;padding:64px 28px">
+    <div class="aol-grid" style="position:relative;border:1.5px solid var(--ink-900);border-radius:var(--radius-md);box-shadow:var(--shadow-hard);background:var(--surface-card);padding:34px 36px 30px">
+      <span style="position:absolute;top:0;left:24px;transform:translateY(-50%);background:var(--paper);padding:0 10px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--blue-600)">{label}</span>
+      <h2 style="font-family:var(--font-serif);font-size:27px;line-height:1.24;margin:4px 0 18px;max-width:30ch;color:var(--ink-900)">Most adtech startups look the same, sound the same, go to the same events.</h2>
+      <p style="font-family:var(--font-serif);font-size:17px;line-height:1.62;color:var(--ink-800);margin:0 0 22px">
+        {sames.map((q, i) => <>{q}{i < 2 && <br />}</>)}<br /><br />Sounds familiar?
+      </p>
+      <div style="font-family:var(--font-serif);font-size:17px;line-height:1.62;color:var(--ink-800)">
+        <p style="margin:0 0 14px">By positioning your startup the same way as everybody else in your category, you're failing to give buyers any compelling reason to choose you.</p>
+        <p style="margin:0 0 14px">When buyers are on the fence about you, it leads to fewer conversions, longer sales cycles, and higher churn rates. Every step of your revenue process is leaky.</p>
+        <p style="margin:0;color:var(--ink-900)">After leading marketing, content strategy, and sales ops for startups that sold for &gt;$100M, I now help adtech teams make their solution the obvious category pick.</p>
+      </div>
+      <div style="margin-top:24px;display:flex;align-items:center;justify-content:flex-end;gap:14px">
+        <div style="text-align:right">
+          <div style="font-family:var(--font-serif);font-size:17px;font-weight:600;color:var(--ink-900)">Vishveshwar Jatain</div>
+          <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--blue-600);margin-top:2px">Founder, And/or Labs</div>
+        </div>
+        <Photo src="/founder.png" alt="Vishveshwar Jatain" width={52} height={52} pixel={0.5} shape="circle" style="flex:none" />
+      </div>
+      <div style="margin-top:20px;border-top:1px solid var(--ink-200)"></div>
+
+      <div style="margin-top:24px;background:var(--paper-pure);border:1px solid var(--ink-200);border-radius:var(--radius-md);padding:24px 26px;display:grid;grid-template-columns:1fr 1fr;gap:30px">
+        <div>
+          <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-400);margin-bottom:13px">Before</div>
+          <div style="display:grid;gap:10px">
+            {beforeItems.map((s) => (
+              <div style={beforeRow}>
+                <span style="flex:none;position:relative;top:1px"><StatusMark kind="no" size={16} /></span>{s}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--blue-600);margin-bottom:13px">After</div>
+          <div style="display:grid;gap:10px">
+            {afterItems.map((s) => (
+              <div style={afterRow}>
+                <span style="flex:none;position:relative;top:1px"><StatusMark kind="yes" size={16} /></span>{s}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1200px;margin:0 auto;padding:0 28px 64px">
+    <div class="aol-grid-3" style="display:grid;gap:16px">
+      {quotes.map(([quote, name, role], i) => (
+        <Quote size="sm" label={`Wall of love / 0${i + 1}`} quote={quote} name={name} role={role} />
+      ))}
+    </div>
+  </div>
+</section>

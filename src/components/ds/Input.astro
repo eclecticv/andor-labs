@@ -1,0 +1,6 @@
+---
+interface Props { size?: "sm" | "md" | "lg"; error?: boolean; class?: string; [key: string]: any; }
+const { size = "md", error = false, class: className, ...rest } = Astro.props;
+const cls = ["aol-control", size !== "md" && `aol-control--${size}`, error && "aol-control--error", className].filter(Boolean).join(" ");
+---
+<input class={cls} {...rest} />

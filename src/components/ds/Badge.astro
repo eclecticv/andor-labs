@@ -1,0 +1,14 @@
+---
+interface Props {
+  variant?: "solid" | "blue" | "outline" | "tint" | "positive" | "warning" | "danger";
+  dot?: boolean;
+  class?: string;
+  [key: string]: any;
+}
+const { variant = "solid", dot = false, class: className, ...rest } = Astro.props;
+const cls = ["aol-badge", `aol-badge--${variant}`, className].filter(Boolean).join(" ");
+---
+<span class={cls} {...rest}>
+  {dot && <span class="aol-badge__dot" />}
+  <slot />
+</span>

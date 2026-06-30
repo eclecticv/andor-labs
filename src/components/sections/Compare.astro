@@ -1,0 +1,43 @@
+---
+import Button from "../ds/Button.astro";
+import ComparisonTable from "../ds/ComparisonTable.astro";
+
+const sub = "display:block;font-weight:400;font-size:13px;color:var(--ink-400);margin-top:2px";
+const columns = [
+  { name: "And/or Labs", note: "operator-led, end to end", featured: true },
+  { name: "Full-service agency", note: "broad, generic" },
+  { name: "Specialist consultant", note: "one slice only" },
+];
+const rows = [
+  {
+    label: `<strong>Go-to-market scope</strong><span style="${sub}">How much of the GTM stack is covered</span>`,
+    cells: [{ mark: "yes", text: "Positioning → site → content" }, { mark: "partial", text: "Broad but generic" }, { mark: "no", text: "Positioning only" }],
+  },
+  {
+    label: `<strong>Adtech operator experience</strong><span style="${sub}">Hands-on category knowledge</span>`,
+    cells: [{ mark: "yes", text: "Exited operator" }, { mark: "no", text: "Generalists" }, { mark: "partial", text: "Varies" }],
+  },
+  {
+    label: `<strong>Builds &amp; ships the work</strong><span style="${sub}">Execution, not just advice</span>`,
+    cells: [{ mark: "yes", text: "Done-for-you" }, { mark: "yes", text: "Done-for-you" }, { mark: "no", text: "Advice only" }],
+  },
+  {
+    label: `<strong>Speed to value</strong><span style="${sub}">Time to first deliverable</span>`,
+    cells: [{ mark: "yes", text: "Weeks" }, { mark: "no", text: "Months" }, { mark: "partial", text: "Weeks, but narrow" }],
+  },
+  {
+    label: `<strong>Typical cost</strong><span style="${sub}">Relative investment level</span>`,
+    cells: [{ mark: "yes", text: "$$" }, { mark: "no", text: "$$$$" }, { mark: "partial", text: "$$$" }],
+  },
+];
+---
+<section id="compare" style="border-bottom:1px solid var(--ink-200)">
+  <div style="max-width:1000px;margin:0 auto;padding:84px 28px">
+    <div class="aol-eyebrow" style="margin-bottom:14px">the alternatives</div>
+    <h2 class="aol-display-mono" style="font-size:clamp(30px, 5vw, 40px);margin:0 0 40px;max-width:22ch">One partner instead of three half-fits.</h2>
+    <ComparisonTable columns={columns} rows={rows} />
+    <div style="display:flex;justify-content:flex-end;margin-top:24px">
+      <Button variant="primary" arrow data-open-contact>Start with a GTM audit</Button>
+    </div>
+  </div>
+</section>

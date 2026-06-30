@@ -1,0 +1,18 @@
+---
+interface Props { kind?: "yes" | "no" | "partial"; size?: number; class?: string; [key: string]: any; }
+const { kind = "yes", size = 18, class: className, ...rest } = Astro.props;
+const cls = ["aol-statusmark", `aol-statusmark--${kind}`, className].filter(Boolean).join(" ");
+---
+<span class={cls} {...rest}>
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" role="img" aria-label={kind}>
+    {kind === "yes" && (
+      <path d="M7 16.5L13.5 23L25 9.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+    )}
+    {kind === "no" && (
+      <path d="M10 10L22 22M22 10L10 22" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" fill="none" />
+    )}
+    {kind === "partial" && (
+      <line x1="9" y1="16" x2="23" y2="16" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" />
+    )}
+  </svg>
+</span>

@@ -1,0 +1,108 @@
+---
+// Photo — the house dithered-duotone treatment. Renders a <canvas> that an
+// inline client script fills with a Bayer-dithered blue duotone of the source
+// image. A <noscript> img keeps the headshot visible without JS.
+interface Props {
+  src: string;
+  alt?: string;
+  width?: number;
+  height?: number;
+  pixel?: number;
+  shape?: "rect" | "rounded" | "circle";
+  shadow?: string;
+  highlight?: string;
+  contrast?: number;
+  class?: string;
+  style?: string;
+}
+const {
+  src,
+  alt = "",
+  width = 220,
+  height,
+  pixel = 2,
+  shape = "rounded",
+  shadow = "#0A2EBF",
+  highlight = "#EEF1FF",
+  contrast = 1.06,
+  class: className,
+  style = "",
+} = Astro.props;
+const boxStyle = `width:${width}px;height:${(height ?? width)}px;${style}`;
+const radius = shape === "circle" ? "50%" : shape === "rounded" ? "var(--radius-md)" : "0";
+---
+<span class={["aol-photo", `aol-photo--${shape}`, className].filter(Boolean).join(" ")} style={boxStyle}>
+  <canvas
+    class="aol-photo__canvas"
+    role="img"
+    aria-label={alt}
+    data-dither-src={src}
+    data-pixel={pixel}
+    data-w={width}
+    data-h={height ?? width}
+    data-shadow={shadow}
+    data-highlight={highlight}
+    data-contrast={contrast}
+    style={`image-rendering:${pixel < 1 ? "auto" : "pixelated"}`}
+  ></canvas>
+  <noscript>
+    <img src={src} alt={alt} style={`width:${width}px;height:${(height ?? width)}px;object-fit:cover;border-radius:${radius}`} />
+  </noscript>
+</span>
+
+<script>
+  const BAYER = [
+    [0, 8, 2, 10],
+    [12, 4, 14, 6],
+    [3, 11, 1, 9],
+    [15, 7, 13, 5],
+  ];
+  const hexToRgb = (h: string): [number, number, number] => {
+    const m = h.replace("#", "");
+    return [parseInt(m.slice(0, 2), 16), parseInt(m.slice(2, 4), 16), parseInt(m.slice(4, 6), 16)];
+  };
+  document.querySelectorAll<HTMLCanvasElement>("canvas[data-dither-src]").forEach((canvas) => {
+    const d = canvas.dataset;
+    const src = d.ditherSrc!;
+    const pixel = parseFloat(d.pixel || "2");
+    const width = parseFloat(d.w || "220");
+    const height = d.h ? parseFloat(d.h) : null;
+    const contrast = parseFloat(d.contrast || "1.06");
+    const sRGB = hexToRgb(d.shadow || "#0A2EBF");
+    const hRGB = hexToRgb(d.highlight || "#EEF1FF");
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const ratio = img.naturalHeight / img.naturalWidth || 1;
+      const cw = Math.max(1, Math.round((width || img.naturalWidth) / pixel));
+      const ch = Math.max(1, Math.round((height || (width || img.naturalWidth) * ratio) / pixel));
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      canvas.width = cw;
+      canvas.height = ch;
+      ctx.imageSmoothingEnabled = true;
+      const s = Math.max(cw / img.naturalWidth, ch / img.naturalHeight);
+      const dw = img.naturalWidth * s;
+      const dh = img.naturalHeight * s;
+      ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+      const id = ctx.getImageData(0, 0, cw, ch);
+      const data = id.data;
+      const c = Math.max(0, contrast);
+      for (let y = 0; y < ch; y++) {
+        for (let x = 0; x < cw; x++) {
+          const i = (y * cw + x) * 4;
+          let lum = (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]) / 255;
+          lum = Math.min(1, Math.max(0, (lum - 0.5) * c + 0.5));
+          const t = (BAYER[y & 3][x & 3] + 0.5) / 16;
+          const col = lum > t ? hRGB : sRGB;
+          data[i] = col[0];
+          data[i + 1] = col[1];
+          data[i + 2] = col[2];
+          data[i + 3] = 255;
+        }
+      }
+      ctx.putImageData(id, 0, 0);
+    };
+    img.src = src;
+  });
+</script>

@@ -1,0 +1,17 @@
+---
+interface Props {
+  variant?: "full" | "mark";
+  size?: "sm" | "md" | "lg";
+  inverse?: boolean;
+  class?: string;
+  [key: string]: any;
+}
+const { variant = "full", size = "md", inverse = false, class: className, ...rest } = Astro.props;
+const SIZES: Record<string, number> = { sm: 15, md: 19, lg: 27 };
+const fontSize = SIZES[size] ?? SIZES.md;
+const cls = ["aol-logo", inverse && "aol-logo--inverse", className].filter(Boolean).join(" ");
+---
+<span class={cls} style={`font-size:${fontSize}px`} {...rest}>
+  <span>And/or</span>
+  {variant === "full" && <span class="aol-logo__labs">Labs</span>}
+</span>

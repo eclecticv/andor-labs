@@ -1,0 +1,59 @@
+/* ============================================================
+   And/or Labs — Borders, radii, shadows, grid, motion
+   Aesthetic: printed/technical. Corners are nearly square. Elevation is a HARD
+   offset block (like a sticker or a printed shadow), never a soft glow.
+   The faint engineering grid is a first-class surface treatment.
+   ============================================================ */
+
+:root {
+  /* ---- Radii (kept tight; pixel/print look) ---- */
+  --radius-none: 0px;
+  --radius-xs:   2px;
+  --radius-sm:   3px;
+  --radius-md:   5px;   /* exact — do not snap to 4 */
+  --radius-lg:   8px;
+  --radius-pill: 999px;
+
+  /* ---- Border widths ---- */
+  --border-hairline-width: 1px;
+  --border-width:          1.5px;
+  --border-thick:          2px;
+
+  /* ---- Elevation: hard offset blocks ---- */
+  --shadow-hard-sm: 2px 2px 0 0 var(--ink-900);
+  --shadow-hard:    3px 3px 0 0 var(--ink-900);
+  --shadow-hard-lg: 5px 5px 0 0 var(--ink-900);
+  --shadow-hard-blue: 3px 3px 0 0 var(--blue-500);
+  /* The one soft shadow, reserved for floating overlays (menus, tooltips) */
+  --shadow-soft:    0 4px 16px -4px rgba(20, 21, 26, 0.18);
+
+  /* ---- Motion ---- */
+  --ease-out:   cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-snap:  cubic-bezier(0.34, 1.32, 0.64, 1);
+  --dur-fast:   90ms;
+  --dur-base:   160ms;
+  --dur-slow:   260ms;
+
+  /* ---- Focus ring ---- */
+  --focus-ring: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--blue-500);
+}
+
+/* ============================================================
+   Engineering grid surface — the ONE grid: an extremely fine dot pattern.
+   .aol-grid       : faint grey dot grid (default)
+   .aol-grid-blue  : same grid in faint blue (behind diagrams / heroes)
+   .aol-grid-dots  : alias of .aol-grid (kept for back-compat)
+   ============================================================ */
+.aol-grid,
+.aol-grid-dots {
+  background-color: var(--color-bg);
+  background-image: radial-gradient(var(--grid-line) 0.9px, transparent 1px);
+  background-size: var(--grid-fine) var(--grid-fine);
+  background-position: -0.45px -0.45px;
+}
+.aol-grid-blue {
+  background-color: var(--color-bg);
+  background-image: radial-gradient(var(--grid-blue) 0.9px, transparent 1px);
+  background-size: var(--grid-fine) var(--grid-fine);
+  background-position: -0.45px -0.45px;
+}

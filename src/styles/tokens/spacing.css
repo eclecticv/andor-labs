@@ -1,0 +1,33 @@
+/* ============================================================
+   And/or Labs — Spacing & layout tokens
+   4px base unit. The 24px grid module is the visible engineering grid;
+   layout rhythm snaps to it where possible.
+   ============================================================ */
+
+:root {
+  --space-0:   0;
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;   /* = one grid module */
+  --space-8:   32px;
+  --space-10:  40px;
+  --space-12:  48px;   /* = two grid modules */
+  --space-16:  64px;
+  --space-20:  80px;
+  --space-24:  96px;   /* = four grid modules */
+  --space-32:  128px;
+  --space-40:  160px;
+
+  /* ---- Engineering grid module ---- */
+  --grid-module: 24px;   /* coarse module — card backgrounds, layout rhythm */
+  --grid-fine:   6px;    /* fine graph-paper — diagram frames (the source motif) */
+
+  /* ---- Layout widths ---- */
+  --measure:        66ch;     /* ideal reading column */
+  --content-width:  720px;    /* article column */
+  --container-width: 1200px;  /* marketing max width */
+  --gutter:         24px;
+}

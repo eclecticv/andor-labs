@@ -1,0 +1,27 @@
+---
+interface Props {
+  variant?: "flat" | "raised" | "sunken";
+  padding?: "none" | "sm" | "md" | "lg";
+  grid?: boolean;
+  interactive?: boolean;
+  class?: string;
+  [key: string]: any;
+}
+const {
+  variant = "flat",
+  padding = "md",
+  grid = false,
+  interactive = false,
+  class: className,
+  ...rest
+} = Astro.props;
+const cls = [
+  "aol-card",
+  `aol-card--${variant}`,
+  `aol-card--p-${padding}`,
+  grid && "aol-card--grid",
+  interactive && "aol-card--interactive",
+  className,
+].filter(Boolean).join(" ");
+---
+<div class={cls} {...rest}><slot /></div>

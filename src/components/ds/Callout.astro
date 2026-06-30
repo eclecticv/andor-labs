@@ -1,0 +1,16 @@
+---
+interface Props { variant?: "note" | "info" | "warning" | "important"; label?: string; class?: string; [key: string]: any; }
+const DEFAULT_LABELS: Record<string, string> = { note: "Note", info: "Info", warning: "Heads up", important: "Important" };
+const { variant = "note", label, class: className, ...rest } = Astro.props;
+const text = label !== undefined ? label : DEFAULT_LABELS[variant] || "Note";
+const cls = ["aol-callout", `aol-callout--${variant}`, className].filter(Boolean).join(" ");
+---
+<div class={cls} {...rest}>
+  {text && (
+    <div class="aol-callout__label">
+      <span class="aol-callout__swatch" />
+      {text}
+    </div>
+  )}
+  <div class="aol-callout__body"><slot /></div>
+</div>

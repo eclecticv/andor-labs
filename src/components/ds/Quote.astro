@@ -1,0 +1,26 @@
+---
+// Quote — testimonial card. This port implements the "figure" variant used on
+// the homepage wall of love (technical graph-paper frame + mono citation).
+interface Props {
+  quote: string;
+  name?: string;
+  role?: string;
+  size?: "sm" | "md" | "lg";
+  label?: string;
+  class?: string;
+  [key: string]: any;
+}
+const { quote, name, role, size = "sm", label, class: className, ...rest } = Astro.props;
+const cls = ["aol-quote", "aol-quote--figure", `aol-quote--${size}`, className].filter(Boolean).join(" ");
+---
+<figure class={cls} {...rest}>
+  <span class="aol-quote__crop aol-quote__crop--tl" />
+  <span class="aol-quote__crop aol-quote__crop--tr" />
+  <span class="aol-quote__crop aol-quote__crop--bl" />
+  <span class="aol-quote__crop aol-quote__crop--br" />
+  {label && <span class="aol-quote__figlabel">{label}</span>}
+  <blockquote class="aol-quote__body" style="border:none;padding:0">{quote}</blockquote>
+  {(name || role) && (
+    <figcaption class="aol-quote__citemono">{name}{role && <> &middot; <i>{role}</i></>}</figcaption>
+  )}
+</figure>

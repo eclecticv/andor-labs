@@ -1,0 +1,20 @@
+---
+interface Props { number?: number | string; caption?: string; class?: string; [key: string]: any; }
+const { number, caption, class: className, ...rest } = Astro.props;
+const num =
+  number != null
+    ? typeof number === "number"
+      ? String(number).padStart(2, "0")
+      : number
+    : null;
+---
+<figure class={["aol-figure", className].filter(Boolean).join(" ")} {...rest}>
+  <div class="aol-figure__body"><slot /></div>
+  {(num || caption) && (
+    <figcaption class="aol-figure__caption">
+      {num && <span class="aol-figure__num">FIG. {num}</span>}
+      {num && caption && <span class="aol-figure__lead" />}
+      {caption && <span class="aol-figure__text">{caption}</span>}
+    </figcaption>
+  )}
+</figure>

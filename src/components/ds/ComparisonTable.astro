@@ -1,0 +1,51 @@
+---
+import StatusMark from "./StatusMark.astro";
+
+interface Column { name: string; note?: string; featured?: boolean; }
+interface Cell { mark?: "yes" | "no" | "partial"; text?: string; }
+interface Row { label: string; cells: Cell[]; }
+interface Props {
+  columns?: Column[];
+  rows?: Row[];
+  featureLabelWidth?: string;
+  class?: string;
+}
+const { columns = [], rows = [], featureLabelWidth = "1.7fr", class: className } = Astro.props;
+const template = `${featureLabelWidth} ${columns.map(() => "minmax(0,1fr)").join(" ")}`;
+---
+<div class={["aol-cmp", className].filter(Boolean).join(" ")} style={`grid-template-columns:${template}`}>
+  <div class="aol-cmp__corner" />
+  {columns.map((c, ci) => (
+    <div class={c.featured ? "aol-cmp__col--featured" : undefined} style={`grid-column:${ci + 2}`}>
+      {c.featured && <div class="aol-cmp__rail" />}
+      <div class="aol-cmp__head">
+        <div class={["aol-cmp__name", c.featured && "aol-cmp__name--featured"].filter(Boolean).join(" ")}>{c.name}</div>
+        {c.note && <div class="aol-cmp__note">{c.note}</div>}
+      </div>
+    </div>
+  ))}
+  {rows.map((r, ri) => {
+    const last = ri === rows.length - 1;
+    return (
+      <>
+        <div class={["aol-cmp__rowlabel", last && "aol-cmp__rowlabel--last"].filter(Boolean).join(" ")} style="grid-column:1" set:html={r.label} />
+        {columns.map((c, ci) => {
+          const cell = r.cells[ci];
+          return (
+            <div
+              class={["aol-cmp__cell", c.featured && "aol-cmp__col--featured", last && "aol-cmp__cell--last"].filter(Boolean).join(" ")}
+              style={`grid-column:${ci + 2}`}
+            >
+              <div class="aol-cmp__val">
+                {cell?.mark && <StatusMark kind={cell.mark} />}
+                {cell?.text && (
+                  <span class={["aol-cmp__valtext", cell.mark === "no" && "aol-cmp__valtext--muted"].filter(Boolean).join(" ")}>{cell.text}</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </>
+    );
+  })}
+</div>

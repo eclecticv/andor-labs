@@ -1,5 +1,8 @@
 # build output
 dist/
+
+# project scratch (screenshots, exploratory artifacts) — never committed
+.scratch/
 # generated types
 .astro/
 

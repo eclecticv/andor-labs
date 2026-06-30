@@ -1,0 +1,20 @@
+---
+import Logo from "../ds/Logo.astro";
+import Button from "../ds/Button.astro";
+
+const NAV: [string, string][] = [
+  ["Why us", "#compare"],
+  ["How we work", "#how-we-work"],
+];
+---
+<header style="position:sticky;top:0;z-index:20;background:rgba(255,255,255,0.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--ink-200)">
+  <div style="max-width:1200px;margin:0 auto;padding:14px 28px;display:flex;align-items:center;justify-content:space-between">
+    <a href="/" style="text-decoration:none"><Logo size="md" /></a>
+    <nav style="display:flex;gap:26px;align-items:center">
+      {NAV.map(([label, href]) => (
+        <a class="site-nav-link" href={href} style="font-family:var(--font-mono);font-size:12px;letter-spacing:0.04em;text-decoration:none;color:var(--ink-700)">{label}</a>
+      ))}
+      <Button size="sm" variant="primary" arrow data-open-contact>Get started</Button>
+    </nav>
+  </div>
+</header>

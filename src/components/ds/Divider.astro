@@ -1,0 +1,15 @@
+---
+interface Props { label?: string; vertical?: boolean; class?: string; [key: string]: any; }
+const { label, vertical = false, class: className, ...rest } = Astro.props;
+---
+{vertical ? (
+  <div class={["aol-divider", "aol-divider--vertical", className].filter(Boolean).join(" ")} {...rest}>
+    <span class="aol-divider__line" />
+  </div>
+) : (
+  <div class={["aol-divider", className].filter(Boolean).join(" ")} role="separator" {...rest}>
+    <span class="aol-divider__line" />
+    {label && <span class="aol-divider__label">{label}</span>}
+    {label && <span class="aol-divider__line" />}
+  </div>
+)}

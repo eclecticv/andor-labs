@@ -1,0 +1,57 @@
+---
+import Button from "../ds/Button.astro";
+import Badge from "../ds/Badge.astro";
+import DiagramFigure from "../ds/DiagramFigure.astro";
+import GridFrame from "../ds/GridFrame.astro";
+
+const PRESS = ["AdExchanger", "Digiday", "MediaPost", "ExchangeWire", "The Drum"];
+const pressStyle = "font-family:var(--font-mono);font-size:13px;letter-spacing:0.06em;color:var(--ink-500)";
+---
+<section class="aol-grid aol-hero" style="border-bottom:1px solid var(--ink-200)">
+  <div class="aol-hero-inner" style="max-width:1200px;margin:0 auto;padding:40px 28px;display:grid;gap:56px;align-items:center">
+    <div>
+      <div class="aol-eyebrow" style="margin-bottom:22px">Est. 2025</div>
+      <h1 style="font-family:var(--font-serif);font-weight:600;font-size:clamp(38px, 6vw, 62px);line-height:1.02;letter-spacing:-0.025em;margin:0 0 22px;text-wrap:balance;max-width:14ch">The winning edge for adtech growth</h1>
+      <p style="font-size:21px;line-height:1.5;color:var(--ink-700);max-width:42ch;margin:0 0 32px">
+        We help adtech startups dominate their category by blending real operator experience with the science of how B2B buyers think.
+      </p>
+      <Button size="lg" variant="primary" arrow data-open-contact>Book a call</Button>
+    </div>
+    <DiagramFigure number={1} caption="Clarity compounds — the trajectory once you're the obvious pick.">
+      <GridFrame label="FIG. 01 — GROWTH CURVE" blue>
+        <div style="position:relative;height:248px">
+          <svg viewBox="0 0 320 248" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%">
+            <line x1="34" y1="60" x2="306" y2="60" stroke="var(--ink-200)" stroke-width="1" />
+            <line x1="34" y1="110" x2="306" y2="110" stroke="var(--ink-200)" stroke-width="1" />
+            <line x1="34" y1="160" x2="306" y2="160" stroke="var(--ink-200)" stroke-width="1" />
+            <line x1="34" y1="210" x2="306" y2="210" stroke="var(--ink-900)" stroke-width="1.5" />
+            <line x1="34" y1="20" x2="34" y2="210" stroke="var(--ink-900)" stroke-width="1.5" />
+            <path d="M34 188 L86 176 L138 168 L190 128 L242 86 L294 38 L294 210 L34 210 Z" fill="var(--blue-500)" fill-opacity="0.10" />
+            <path d="M34 188 L86 176 L138 168 L190 128 L242 86 L294 38" fill="none" stroke="var(--blue-500)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="294" cy="38" r="5" fill="var(--blue-500)" stroke="var(--paper-pure)" stroke-width="2" />
+          </svg>
+          <div style="position:absolute;left:4px;top:42%;font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;color:var(--ink-500);transform:rotate(-90deg);transform-origin:left;white-space:nowrap">PIPELINE →</div>
+          <div style="position:absolute;left:34px;right:14px;bottom:14px;text-align:center;font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;color:var(--ink-500)">TIME →</div>
+        </div>
+      </GridFrame>
+    </DiagramFigure>
+  </div>
+  <div style="max-width:1200px;margin:0 auto;padding:32px 28px 38px;display:flex;align-items:center;gap:28px;flex-wrap:wrap;row-gap:16px">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style={pressStyle}>Founded by the former Head of Marketing at <strong style="font-weight:400;color:var(--ink-900)">Blockthrough</strong> and <strong style="font-weight:400;color:var(--ink-900)">AdPushup</strong></span>
+      <Badge variant="blue" dot>Acquired &gt;$100M</Badge>
+    </div>
+    <div style="width:1px;height:26px;background:var(--ink-200)"></div>
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <span class="aol-eyebrow">As seen in</span>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        {PRESS.map((n) => <span style={pressStyle}>{n}</span>)}
+      </div>
+    </div>
+    <div style="width:1px;height:26px;background:var(--ink-200)"></div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="aol-eyebrow">Brand partner</span>
+      <span style="font-family:var(--font-mono);font-size:13px;letter-spacing:0.06em;color:var(--ink-900)">AirOps</span>
+    </div>
+  </div>
+</section>

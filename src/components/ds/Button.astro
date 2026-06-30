@@ -1,0 +1,37 @@
+---
+import Arrow from "./Arrow.astro";
+
+interface Props {
+  variant?: "primary" | "secondary" | "ghost" | "link";
+  size?: "sm" | "md" | "lg";
+  fullWidth?: boolean;
+  arrow?: boolean;
+  href?: string;
+  class?: string;
+  [key: string]: any;
+}
+
+const {
+  variant = "primary",
+  size = "md",
+  fullWidth = false,
+  arrow = false,
+  href,
+  class: className,
+  ...rest
+} = Astro.props;
+
+const Tag = href ? "a" : "button";
+const cls = [
+  "aol-btn",
+  `aol-btn--${variant}`,
+  `aol-btn--${size}`,
+  fullWidth && "aol-btn--full",
+  className,
+].filter(Boolean).join(" ");
+const tagProps = href ? { href } : { type: "button" };
+---
+<Tag class={cls} {...tagProps} {...rest}>
+  <slot />
+  {arrow && <span class="aol-btn__icon"><Arrow /></span>}
+</Tag>

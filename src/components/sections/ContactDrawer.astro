@@ -1,0 +1,52 @@
+---
+import Button from "../ds/Button.astro";
+import Field from "../ds/Field.astro";
+import Input from "../ds/Input.astro";
+import Callout from "../ds/Callout.astro";
+
+const TALLY = "https://tally.so/r/ZjaeZV";
+---
+<div id="contact-overlay" class="contact-overlay" aria-hidden="true">
+  <div class="contact-drawer aol-grid" role="dialog" aria-modal="true" aria-label="Book a strategy call">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px">
+      <div class="aol-eyebrow">book a strategy call</div>
+      <Button size="sm" variant="ghost" data-close-contact>Close ✕</Button>
+    </div>
+    <h2 style="font-size:30px;margin:0 0 8px">Let's make you the obvious pick.</h2>
+    <p style="font-size:16px;color:var(--ink-600);margin:0 0 24px">Tell us where you're stuck. We'll come back within a day.</p>
+    <div style="display:grid;gap:16px">
+      <Field label="Name" required htmlFor="c-name"><Input id="c-name" name="name" autocomplete="name" placeholder="Your name" /></Field>
+      <Field label="Work email" required htmlFor="c-email"><Input id="c-email" name="email" type="email" autocomplete="email" placeholder="you@company.com" /></Field>
+      <Field label="What's the bottleneck?" htmlFor="c-bottleneck"><Input id="c-bottleneck" name="bottleneck" placeholder="e.g. great product, nobody can tell us apart" /></Field>
+      <Button size="lg" variant="primary" fullWidth arrow href={TALLY} target="_blank" rel="noopener" style="text-decoration:none">Book strategy call</Button>
+      <Callout variant="info" label="Note">We only take on a handful of adtech teams at a time.</Callout>
+    </div>
+  </div>
+</div>
+
+<script>
+  const overlay = document.getElementById("contact-overlay");
+  const open = () => {
+    overlay?.classList.add("is-open");
+    overlay?.setAttribute("aria-hidden", "false");
+    document.body.classList.add("no-scroll");
+  };
+  const close = () => {
+    overlay?.classList.remove("is-open");
+    overlay?.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("no-scroll");
+  };
+  document.querySelectorAll("[data-open-contact]").forEach((el) =>
+    el.addEventListener("click", (e) => {
+      e.preventDefault();
+      open();
+    })
+  );
+  document.querySelectorAll("[data-close-contact]").forEach((el) => el.addEventListener("click", close));
+  overlay?.addEventListener("click", (e) => {
+    if (e.target === overlay) close();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") close();
+  });
+</script>
