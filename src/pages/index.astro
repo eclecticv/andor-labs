@@ -6,8 +6,11 @@ import FounderNote from "../components/sections/FounderNote.astro";
 import Compare from "../components/sections/Compare.astro";
 import Offers from "../components/sections/Offers.astro";
 import FAQ from "../components/sections/FAQ.astro";
+// Newsletter hidden until the Beehiiv email capture is wired (Newsletter.astro is ready).
+// import Newsletter from "../components/sections/Newsletter.astro";
 import SiteFooter from "../components/sections/SiteFooter.astro";
-import ContactDrawer from "../components/sections/ContactDrawer.astro";
+import SiteMotion from "../components/SiteMotion.astro";
+import CopyDiffer from "../components/CopyDiffer.astro";
 ---
 <Base>
   <SiteHeader />
@@ -17,7 +20,9 @@ import ContactDrawer from "../components/sections/ContactDrawer.astro";
     <Compare />
     <Offers />
     <FAQ />
+    {/* <Newsletter /> — hidden until email capture is wired */}
   </main>
   <SiteFooter />
-  <ContactDrawer />
+  <SiteMotion />
+  {import.meta.env.DEV && <CopyDiffer />}
 </Base>

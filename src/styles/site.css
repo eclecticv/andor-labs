@@ -5,14 +5,74 @@
    re-implements the React drawer/FAQ behaviour with the platform.
    ============================================================ */
 html { scroll-behavior: smooth; }
+/* The global reduced-motion rule only zeros animation/transition durations, so
+   anchor scrolling would still animate. Turn it off explicitly. */
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 body { margin: 0; background: var(--paper); }
+
+/* Anchored sections land clear of the 57px sticky header, so a nav jump or deep
+   link never buries the section's own eyebrow behind the header. */
+section[id] { scroll-margin-top: calc(57px + 24px); }
+
+/* ── Header nav — hover affordance + "you are here" scroll-spy ──────
+   The active section's link carries a blue registration underline that snaps in
+   like a mark on a technical drawing; hover previews a fainter one. aria-current
+   is toggled from the IntersectionObserver in SiteMotion. */
+.site-nav-link {
+  position: relative;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  color: var(--ink-700);
+  transition: color var(--dur-base) var(--ease-out);
+}
+.site-nav-link::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: -6px;
+  block-size: 2px;
+  background: var(--blue-500);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--dur-base) var(--ease-out), background var(--dur-base) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .site-nav-link:hover { color: var(--blue-600); }
+  .site-nav-link:hover::after { transform: scaleX(1); background: var(--blue-300); }
+}
+.site-nav-link[aria-current="true"] { color: var(--blue-700); }
+.site-nav-link[aria-current="true"]::after { transform: scaleX(1); background: var(--blue-500); }
+
+/* Footer / social links — same hover affordance as the body links: shift to blue
+   and reveal the signature wavy underline. (Class overrides the global wavy `a`
+   default, which the old inline `text-decoration:none` used to suppress.) */
+.aol-flink {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink-700);
+  text-decoration: none;
+  transition: color var(--dur-base) var(--ease-out), text-decoration-color var(--dur-base) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .aol-flink:hover {
+    color: var(--blue-600);
+    text-decoration: underline;
+    text-decoration-style: wavy;
+    text-decoration-color: var(--blue-400);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    text-decoration-skip-ink: none;
+  }
+}
 
 /* ── Responsive column behaviour ──────────────────────────── */
 .aol-hero-inner { grid-template-columns: 1.12fr 0.88fr; }
 
 /* Hero fills the first screen below the sticky header and centres its content;
    the credentials bar rests at the bottom of that screen. */
-.aol-hero { min-height: calc(100svh - 57px); display: flex; flex-direction: column; }
+.aol-hero { display: flex; flex-direction: column; }
 .aol-hero > .aol-hero-inner { flex: 1 1 auto; align-content: center; }
 .aol-grid-3 { grid-template-columns: repeat(3, 1fr); }
 .aol-grid-2 { grid-template-columns: 1.25fr 1fr; }
@@ -49,17 +109,12 @@ body { margin: 0; background: var(--paper); }
 body.no-scroll { overflow: hidden; }
 
 /* ── FAQ accordion (native <details>, exclusive via name=) ──── */
-.faq-frame { position: relative; border: 1px solid var(--ink-900); border-radius: var(--radius-md); background: var(--paper-pure); }
+.faq-frame { position: relative; border: 1px solid var(--ink-900); border-radius: var(--radius-md); background: var(--paper-pure); padding-block: var(--space-1); }
 .faq-crop { position: absolute; width: 9px; height: 9px; pointer-events: none; }
 .faq-crop--tl { top: -1px; left: -1px; border-top: 1.5px solid var(--ink-900); border-left: 1.5px solid var(--ink-900); }
 .faq-crop--tr { top: -1px; right: -1px; border-top: 1.5px solid var(--ink-900); border-right: 1.5px solid var(--ink-900); }
 .faq-crop--bl { bottom: -1px; left: -1px; border-bottom: 1.5px solid var(--ink-900); border-left: 1.5px solid var(--ink-900); }
 .faq-crop--br { bottom: -1px; right: -1px; border-bottom: 1.5px solid var(--ink-900); border-right: 1.5px solid var(--ink-900); }
-.faq-framelabel {
-  position: absolute; top: 0; left: 22px; transform: translateY(-50%);
-  background: var(--paper-pure); padding: 0 8px;
-  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-500);
-}
 .faq-item { border-top: 1px solid var(--ink-200); }
 .faq-item:first-of-type { border-top: none; }
 .faq-q {
@@ -69,10 +124,16 @@ body.no-scroll { overflow: hidden; }
   transition: background var(--dur-base) var(--ease-out);
 }
 .faq-q::-webkit-details-marker { display: none; }
-.faq-item[open] .faq-q { background: var(--blue-050); }
-.faq-idx { font-family: var(--font-mono); font-size: 12px; color: var(--ink-400); position: relative; top: 4px; letter-spacing: 0.04em; }
+.faq-item[open] { background: var(--pink-050); }
+/* Closed rows tint on hover so they read as clickable before you open them —
+   this is the trigger the declared `transition: background` was missing.
+   Fine-pointer only so a touch tap doesn't leave a row stuck-tinted. */
+@media (hover: hover) and (pointer: fine) {
+  .faq-item:not([open]) .faq-q:hover { background: var(--ink-050); }
+}
+.faq-idx { font-family: var(--font-mono); font-size: 12px; color: var(--ink-500); position: relative; top: 4px; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
 .faq-item[open] .faq-idx { color: var(--blue-600); }
-.faq-text { font-family: var(--font-serif); font-size: 19px; line-height: 1.32; color: var(--ink-900); }
+.faq-text { font-family: var(--font-display); font-size: 21px; line-height: 1.2; color: var(--ink-900); }
 .faq-toggle {
   flex: none; width: 24px; height: 24px;
   display: flex; align-items: center; justify-content: center;
@@ -80,16 +141,50 @@ body.no-scroll { overflow: hidden; }
   background: var(--paper-pure); color: var(--ink-900);
   font-family: var(--font-mono); font-size: 15px; line-height: 1;
   position: relative; top: 2px;
+  transition: background var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
 }
 .faq-toggle::before { content: "+"; }
 .faq-item[open] .faq-toggle { background: var(--ink-900); color: var(--paper-pure); }
 .faq-item[open] .faq-toggle::before { content: "\2212"; }
-.faq-a { font-family: var(--font-serif); font-size: 16px; line-height: 1.62; color: var(--ink-700); margin: 0; padding: 0 26px 22px 48px; }
+.faq-a { font-family: var(--font-serif); font-size: 16px; line-height: 1.62; color: var(--ink-700); margin: 0; padding: 12px 26px 22px 48px; }
 .faq-a > :last-child { margin-bottom: 0; }
+
+/* Mobile menu — hidden on desktop; the hamburger + dropdown appear ≤560px. */
+.site-nav-toggle { display: none; }
+.site-mobilemenu { display: none; }
 
 /* ── Small-screen safeguards (not in the kit; keep chrome from overflowing) ── */
 @media (max-width: 560px) {
   .site-nav-link { display: none; }
+
+  /* Hamburger toggle (three bars → X when open) */
+  .site-nav-toggle {
+    display: inline-flex; flex-direction: column; justify-content: center; gap: 4px;
+    width: 40px; height: 40px; padding: 9px 8px;
+    border: 1px solid var(--ink-300); border-radius: var(--radius-sm);
+    background: var(--paper-pure); cursor: pointer;
+  }
+  .site-nav-toggle span {
+    display: block; height: 1.5px; width: 100%; background: var(--ink-900);
+    transition: transform var(--dur-base) var(--ease-out), opacity var(--dur-base) var(--ease-out);
+  }
+  header.nav-open .site-nav-toggle span:nth-child(1) { transform: translateY(5.5px) rotate(45deg); }
+  header.nav-open .site-nav-toggle span:nth-child(2) { opacity: 0; }
+  header.nav-open .site-nav-toggle span:nth-child(3) { transform: translateY(-5.5px) rotate(-45deg); }
+
+  /* Dropdown panel under the sticky bar */
+  .site-mobilemenu { border-top: 1px solid var(--ink-200); background: var(--paper-pure); }
+  header.nav-open .site-mobilemenu { display: block; }
+  .site-mobilelink {
+    display: block; padding: 15px var(--gutter);
+    font-family: var(--font-mono); font-size: 14px; letter-spacing: 0.02em;
+    color: var(--ink-800); text-decoration: none; border-bottom: 1px solid var(--ink-100);
+  }
+  .site-mobilelink:last-child { border-bottom: none; }
+  .site-mobilelink:active { background: var(--ink-050); }
+
+  /* Touch targets: enlarge footer links toward the 44px minimum. */
+  .aol-flink { padding-block: 11px; }
 }
 @media (max-width: 720px) {
   .aol-footer-grid { grid-template-columns: 1fr 1fr; }

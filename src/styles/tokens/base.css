@@ -17,18 +17,23 @@ body {
   line-height: var(--leading-relaxed);
   font-feature-settings: "liga" 1, "kern" 1;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
-/* ---- Headings: serif display ---- */
+/* ---- Headings: Instrument Serif display (400 only; its contrast reads bold) ---- */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
   color: var(--text-strong);
-  font-weight: var(--weight-semibold);
-  line-height: var(--leading-tight);
-  letter-spacing: var(--tracking-tight);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-normal);
   margin: 0 0 0.5em;
-  text-wrap: balance;
+  /* GUARDRAIL — do not remove. Headings flow full-width like body text; they must
+     NEVER `text-wrap: balance`, which packs long headings into ~60%-width blocks
+     (the recurring "clamped/chopped headings" bug). `!important` so a stray inline
+     `text-wrap:balance` on any heading cannot reintroduce it. Use `pretty` only. */
+  text-wrap: pretty !important;
 }
 h1 { font-size: var(--text-3xl); }
 h2 { font-size: var(--text-2xl); }

@@ -1,57 +1,114 @@
 ---
 import Button from "../ds/Button.astro";
 import Badge from "../ds/Badge.astro";
-import DiagramFigure from "../ds/DiagramFigure.astro";
-import GridFrame from "../ds/GridFrame.astro";
 
 const PRESS = ["AdExchanger", "Digiday", "MediaPost", "ExchangeWire", "The Drum"];
-const pressStyle = "font-family:var(--font-mono);font-size:13px;letter-spacing:0.06em;color:var(--ink-500)";
+
+// ANDOR/OS boot log — server-rendered in its FINAL state (no-JS and
+// reduced-motion visitors see the completed syscheck); JS replays it as a
+// slow boot on load. Dotted leaders align every status to one column.
+const lead = (name: string) => "  " + name + " " + ".".repeat(20 - name.length) + " ";
+const BOOT_LINES: { text: string; status?: string; prompt?: boolean }[] = [
+  { text: "SYSCHECK" },
+  { text: lead("design"), status: "OK" },
+  { text: lead("positioning"), status: "OK" },
+  { text: lead("distribution"), status: "OK" },
+  { text: lead("conversion funnel"), status: "OK" },
+  { text: lead("tech stack"), status: "RUNNING" },
+  { text: " " },
+  { text: "all systems operational" },
+  { text: "> ", prompt: true },
+];
 ---
-<section class="aol-grid aol-hero" style="border-bottom:1px solid var(--ink-200)">
-  <div class="aol-hero-inner" style="max-width:1200px;margin:0 auto;padding:40px 28px;display:grid;gap:56px;align-items:center">
+<section class="aol-hero" style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
+  <div class="aol-hero-inner" style="max-width:var(--container-width);width:100%;margin:0 auto;padding:var(--space-24) var(--gutter) var(--space-12);display:grid;gap:var(--space-16);align-items:center">
     <div>
-      <div class="aol-eyebrow" style="margin-bottom:22px">Est. 2025</div>
-      <h1 style="font-family:var(--font-serif);font-weight:600;font-size:clamp(38px, 6vw, 62px);line-height:1.02;letter-spacing:-0.025em;margin:0 0 22px;text-wrap:balance;max-width:14ch">The winning edge for adtech growth</h1>
-      <p style="font-size:21px;line-height:1.5;color:var(--ink-700);max-width:42ch;margin:0 0 32px">
-        We help adtech startups dominate their category by blending real operator experience with the science of how B2B buyers think.
+      <div class="aol-eyebrow" data-r style="margin-bottom:var(--space-3);--r:0">Est. 2025</div>
+      <p data-r style="font-family:var(--font-mono);font-size:13px;line-height:1.5;letter-spacing:0.02em;color:var(--ink-600);margin:0 0 var(--space-6);--r:0">Founded by former Head of Marketing at<br /><strong style="font-weight:400;color:var(--ink-900)">Blockthrough</strong> &amp; <strong style="font-weight:400;color:var(--ink-900)">AdPushup</strong> <Badge variant="tint" style="vertical-align:middle;margin-left:6px">Acquired for &gt;$100M</Badge></p>
+      <h1 data-r style="font-family:var(--font-display);font-weight:400;font-size:42px;line-height:1.18;letter-spacing:0;margin:0 0 var(--space-6);max-width:30.5rem;--r:1">The go-to-market operating system for adtech startups</h1>
+      <p data-r style="font-size:21px;line-height:1.5;color:var(--ink-600);max-width:42ch;margin:0 0 var(--space-8);--r:2">
+        And/or Labs helps early-stage adtech startups win their category through clear positioning, content engineering, and sales intelligence your competitors don't have.
       </p>
-      <Button size="lg" variant="primary" arrow data-open-contact>Book a call</Button>
+      <div data-r style="--r:3"><Button size="lg" variant="primary" arrow href="https://calendar.app.google/X1YiTW5qcfR3WQ6LA" target="_blank" rel="noopener">Book a call</Button></div>
     </div>
-    <DiagramFigure number={1} caption="Clarity compounds — the trajectory once you're the obvious pick.">
-      <GridFrame label="FIG. 01 — GROWTH CURVE" blue>
-        <div style="position:relative;height:248px">
-          <svg viewBox="0 0 320 248" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%">
-            <line x1="34" y1="60" x2="306" y2="60" stroke="var(--ink-200)" stroke-width="1" />
-            <line x1="34" y1="110" x2="306" y2="110" stroke="var(--ink-200)" stroke-width="1" />
-            <line x1="34" y1="160" x2="306" y2="160" stroke="var(--ink-200)" stroke-width="1" />
-            <line x1="34" y1="210" x2="306" y2="210" stroke="var(--ink-900)" stroke-width="1.5" />
-            <line x1="34" y1="20" x2="34" y2="210" stroke="var(--ink-900)" stroke-width="1.5" />
-            <path d="M34 188 L86 176 L138 168 L190 128 L242 86 L294 38 L294 210 L34 210 Z" fill="var(--blue-500)" fill-opacity="0.10" />
-            <path d="M34 188 L86 176 L138 168 L190 128 L242 86 L294 38" fill="none" stroke="var(--blue-500)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-            <circle cx="294" cy="38" r="5" fill="var(--blue-500)" stroke="var(--paper-pure)" stroke-width="2" />
-          </svg>
-          <div style="position:absolute;left:4px;top:42%;font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;color:var(--ink-500);transform:rotate(-90deg);transform-origin:left;white-space:nowrap">PIPELINE →</div>
-          <div style="position:absolute;left:34px;right:14px;bottom:14px;text-align:center;font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;color:var(--ink-500)">TIME →</div>
+    <div data-r style="--r:4">
+      <div class="aol-term">
+        <div class="aol-term__head" aria-hidden="true">
+          <span>ANDOR/OS v1.0</span>
+          <span class="aol-term__head-right">CRT-01 <span class="aol-term__led"></span></span>
         </div>
-      </GridFrame>
-    </DiagramFigure>
-  </div>
-  <div style="max-width:1200px;margin:0 auto;padding:32px 28px 38px;display:flex;align-items:center;gap:28px;flex-wrap:wrap;row-gap:16px">
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <span style={pressStyle}>Founded by the former Head of Marketing at <strong style="font-weight:400;color:var(--ink-900)">Blockthrough</strong> and <strong style="font-weight:400;color:var(--ink-900)">AdPushup</strong></span>
-      <Badge variant="blue" dot>Acquired &gt;$100M</Badge>
-    </div>
-    <div style="width:1px;height:26px;background:var(--ink-200)"></div>
-    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-      <span class="aol-eyebrow">As seen in</span>
-      <div style="display:flex;gap:16px;flex-wrap:wrap">
-        {PRESS.map((n) => <span style={pressStyle}>{n}</span>)}
+        <div class="aol-term__screen">
+          <div class="aol-term__log" aria-hidden="true">
+            {BOOT_LINES.map((l) => (
+              <div class={"aol-term__line" + (l.prompt ? " aol-term__prompt" : "")}>{l.text}{l.status && <span class={"aol-term__ok" + (l.status === "RUNNING" ? " aol-term__ok--live" : "")}>{l.status}</span>}</div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
-    <div style="width:1px;height:26px;background:var(--ink-200)"></div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <span class="aol-eyebrow">Brand partner</span>
-      <span style="font-family:var(--font-mono);font-size:13px;letter-spacing:0.06em;color:var(--ink-900)">AirOps</span>
+  </div>
+  <div class="aol-grid-blue" data-r style="border-top:1px solid var(--ink-200);--r:5">
+    <div style="max-width:var(--container-width);width:100%;margin:0 auto;padding:var(--space-6) var(--gutter) var(--space-8)">
+    <div class="aol-credstrip" style="border-top:0;padding-top:0">
+      <div class="aol-credstrip__cell">
+        <span class="aol-eyebrow">As seen in</span>
+        <span class="aol-credstrip__val">{PRESS.join("  ·  ")}</span>
+      </div>
+      <div class="aol-credstrip__cell">
+        <span class="aol-eyebrow">Brand partner</span>
+        <span class="aol-credstrip__val">AirOps</span>
+      </div>
+    </div>
     </div>
   </div>
 </section>
+
+<script>
+  // ── ANDOR/OS boot — the log is server-rendered in its final state; with JS +
+  // motion allowed we hide it and replay a slow, deliberate boot (line lands,
+  // beat, status lands). Final state = the completed syscheck resting on a prompt.
+  // Never blocks page load — it's the hero figure's own behavior, not a gate.
+  const term = document.querySelector<HTMLElement>(".aol-term");
+  const lines = term ? Array.from(term.querySelectorAll<HTMLElement>(".aol-term__line")) : [];
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  let timers: number[] = [];
+  const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
+
+  const runBoot = () => {
+    if (!term) return;
+    clearTimers();
+    term.classList.remove("is-booted");
+    term.classList.add("is-on", "is-booting");
+    lines.forEach((l) => {
+      l.classList.remove("is-in");
+      l.querySelector(".aol-term__ok")?.classList.remove("is-in");
+    });
+    // Deliberate cadence: header, pause, then each check prints and its
+    // status lands a beat later — the old-POST rhythm, unhurried.
+    let t = 500;
+    lines.forEach((l) => {
+      const ok = l.querySelector<HTMLElement>(".aol-term__ok");
+      const isBlank = l.textContent!.trim() === "";
+      timers.push(window.setTimeout(() => l.classList.add("is-in"), t));
+      if (ok) {
+        timers.push(window.setTimeout(() => ok.classList.add("is-in"), t + 340));
+        t += 780;
+      } else {
+        t += isBlank ? 220 : 620;
+      }
+    });
+    timers.push(window.setTimeout(() => {
+      term.classList.remove("is-booting");
+      term.classList.add("is-booted");
+    }, t + 300));
+  };
+
+  if (term) {
+    if (reduce) {
+      term.classList.add("is-on", "is-booted");
+    } else {
+      window.setTimeout(runBoot, 450);
+    }
+  }
+</script>

@@ -27,8 +27,13 @@
 .aol-btn--md{ font-size:13px; padding:9px 16px; }
 .aol-btn--lg{ font-size:14px; padding:13px 22px; }
 .aol-btn--full{ width:100%; }
-.aol-btn__icon{ display:inline-flex; width:1em; height:1em; }
+.aol-btn__icon{ display:inline-flex; width:1em; height:1em; transition:transform var(--dur-base) var(--ease-out); }
 .aol-btn__icon svg{ width:100%; height:100%; display:block; }
+/* Hover nudge — matches the Link arrow's motion so buttons and links move as one
+   hand. Gated to fine pointers so touch taps don't leave a stuck-nudged arrow. */
+@media (hover:hover) and (pointer:fine){
+  .aol-btn:hover .aol-btn__icon{ transform:translateX(2px); }
+}
 
 .aol-btn--primary{ background:var(--blue-500); color:#fff; border-color:var(--blue-700); box-shadow:0 3px 0 0 var(--blue-700); }
 .aol-btn--primary:hover{ background:var(--blue-600); border-color:var(--blue-700); }
@@ -248,7 +253,7 @@
 .aol-quote--md{ padding:30px 32px; }
 .aol-quote--lg{ padding:38px 40px; }
 .aol-quote__mark{
-  font-family:var(--font-serif); line-height:0.9; color:var(--blue-500);
+  font-family:var(--font-display); line-height:0.9; color:var(--blue-500);
   display:block; margin-bottom:6px; user-select:none;
 }
 .aol-quote__body{
@@ -270,33 +275,173 @@
   text-transform:uppercase; color:var(--blue-600); margin-top:1px;
 }
 
+/* ---- Operator-quote marquee (de-boxed) ----
+   Continuous right-to-left ticker of operator quotes. NOT cards — each quote is an
+   editorial column separated by a single hairline rule (ledger, not box). Content
+   is duplicated once and the track scrolls one full set width then loops seamlessly.
+   Pauses on hover/focus; collapses to a static wrap under prefers-reduced-motion. */
+.aol-qmarquee{
+  position:relative; overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+  mask-image:linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+}
+.aol-qmarquee__track{
+  display:flex; width:max-content;
+  animation:aol-marquee-scroll 60s linear infinite;
+}
+.aol-qmarquee:hover .aol-qmarquee__track,
+.aol-qmarquee:focus-within .aol-qmarquee__track{ animation-play-state:paused; }
+.aol-qmarquee__item{
+  flex:0 0 auto; width:min(360px, 80vw); margin:0;
+  display:flex; flex-direction:column; gap:16px;
+  padding:6px 40px 6px 30px; border-left:1px solid var(--ink-200);
+}
+.aol-qmarquee__mark{ font-family:var(--font-display); font-size:38px; line-height:0.5; color:var(--blue-500); }
+.aol-qmarquee__body{ font-family:var(--font-serif); font-size:17px; line-height:1.5; color:var(--ink-800); margin:0; }
+.aol-qmarquee__cite{ margin-top:auto; display:flex; flex-direction:column; gap:2px; }
+.aol-qmarquee__name{ font-family:var(--font-serif); font-weight:600; font-size:15px; color:var(--ink-900); }
+.aol-qmarquee__role{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.04em; text-transform:uppercase; color:var(--blue-600); }
+@keyframes aol-marquee-scroll{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+@media (prefers-reduced-motion: reduce){
+  .aol-qmarquee{ -webkit-mask-image:none; mask-image:none; }
+  .aol-qmarquee__track{ animation:none; flex-wrap:wrap; width:auto; }
+  .aol-qmarquee__track > [aria-hidden="true"]{ display:none; }
+}
+
+/* ---- ANDOR/OS terminal (hero) ----
+   A schematic front panel in the printed-hardware language: hard 1.5px chassis,
+   offset block shadow, bezel head-strip with power LED, plotting-paper screen.
+   The boot log types on the screen and rests on the completed syscheck
+   (see Hero.astro + motion.css). */
+.aol-term{
+  border:1.5px solid var(--ink-900); border-radius:var(--radius-md);
+  background:var(--surface-card); box-shadow:var(--shadow-hard); overflow:hidden;
+}
+.aol-term__head{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:8px 14px; border-bottom:1px solid var(--ink-200);
+  font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em;
+  text-transform:uppercase; color:var(--ink-500);
+}
+.aol-term__head-right{ display:inline-flex; align-items:center; gap:7px; }
+.aol-term__led{
+  width:7px; height:7px; border-radius:50%; background:var(--ink-200); flex:none;
+  transition:background var(--dur-base) var(--ease-out);
+}
+.aol-term.is-on .aol-term__led{ background:var(--blue-500); }
+.aol-term.is-booting .aol-term__led{ animation:aol-led-blink 0.5s step-start infinite; }
+@keyframes aol-led-blink{ 50%{ background:var(--blue-200); } }
+@media (prefers-reduced-motion: reduce){
+  .aol-term.is-booting .aol-term__led{ animation:none; }
+}
+.aol-term__screen{
+  position:relative; background-color:var(--paper-pure);
+  background-image:url("/texture.svg"); background-repeat:repeat;
+}
+.aol-term__log{
+  padding:20px 22px; font-family:var(--font-mono); font-size:12px;
+  line-height:1.9; letter-spacing:0.02em; color:var(--ink-800); white-space:pre;
+}
+.aol-term__ok{ color:var(--blue-600); }
+.aol-term__ok--live{ color:var(--blue-500); }
+.aol-term.is-booted .aol-term__ok--live{ animation:aol-led-blink-text 1.4s step-start infinite; }
+@keyframes aol-led-blink-text{ 50%{ color:var(--blue-300); } }
+.aol-term__prompt::after{
+  content:"▌"; color:var(--blue-500); margin-left:1px;
+  animation:aol-cursor-blink 0.85s step-start infinite;
+}
+@keyframes aol-cursor-blink{ 50%{ opacity:0; } }
+@media (prefers-reduced-motion: reduce){
+  .aol-term__prompt::after{ animation:none; }
+  .aol-term.is-booted .aol-term__ok--live{ animation:none; }
+}
+
+/* ---- Founder note: letter + evidence, two columns ---- */
+.aol-note__grid{ display:grid; grid-template-columns:1.55fr 1fr; gap:44px; align-items:center; }
+.aol-note__body{ min-width:0; }
+.aol-note__evidence{ margin:0; }
+@media (max-width:860px){
+  .aol-note__grid{ grid-template-columns:1fr; gap:26px; align-items:stretch; }
+}
+
+/* ---- Credibility strip (hero) ---- */
+.aol-credstrip{
+  display:grid; grid-template-columns:1fr auto; gap:48px;
+  border-top:1px solid var(--ink-200); padding-top:22px;
+}
+.aol-credstrip__cell{ display:flex; flex-direction:column; gap:9px; }
+.aol-credstrip__val{ font-family:var(--font-mono); font-size:13px; line-height:1.5; letter-spacing:0.02em; color:var(--ink-600); }
+.aol-credstrip__val strong{ font-weight:400; color:var(--ink-900); }
+@media (max-width:820px){
+  .aol-credstrip{ grid-template-columns:1fr; gap:22px; }
+}
+
 /* ---- ComparisonTable ---- */
+/* Horizontal scroll-rail: below the table's natural min-width the whole figure
+   swipes instead of crushing. Keeps the exact desktop grid + featured rail. */
+.aol-cmp-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.aol-cmp-hint{ display:none; }
+@media (max-width:620px){
+  .aol-cmp-hint{
+    display:block;
+    font-family:var(--font-mono); font-size:11px; letter-spacing:0.08em;
+    text-transform:uppercase; color:var(--ink-500); margin-bottom:8px;
+  }
+}
 .aol-cmp{
   --cmp-feature-col: 1.7fr;
-  display:grid; width:100%;
-  border:1px solid var(--ink-200); border-radius:var(--radius-md);
+  display:grid; width:100%; min-width:640px;
+  /* Standard card lift (matches .aol-card--raised): 1px ink border + hard offset. */
+  border:1px solid var(--ink-900); border-radius:var(--radius-md);
   overflow:hidden; background:var(--paper-pure);
+  box-shadow: var(--shadow-hard);
 }
-.aol-cmp__cell{ padding:10px 18px; border-bottom:1px solid var(--border-hairline); min-width:0; }
+.aol-cmp__cell{ padding:16px 22px; border-bottom:1px solid var(--border-hairline); min-width:0; }
 .aol-cmp__cell--row{ border-bottom:1px solid var(--border-hairline); }
 .aol-cmp__rowlabel{
   display:flex; flex-direction:column; justify-content:center; font-family:var(--font-serif); font-size:16px;
-  color:var(--ink-900); padding:10px 20px; border-bottom:1px solid var(--border-hairline);
+  color:var(--ink-900); padding:16px 24px; border-bottom:1px solid var(--border-hairline);
 }
-.aol-cmp__head{ padding:18px 18px 15px; border-bottom:1.5px solid var(--ink-900); }
-.aol-cmp__corner{ border-bottom:1.5px solid var(--ink-900); }
-.aol-cmp__name{ font-family:var(--font-serif); font-size:17px; font-weight:600; color:var(--ink-900); margin-bottom:3px; }
-.aol-cmp__note{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.04em; color:var(--ink-500); }
-.aol-cmp__val{ display:flex; flex-direction:row; align-items:center; gap:8px; }
-.aol-cmp__valtext{ font-family:var(--font-mono); font-size:12px; line-height:1.35; color:var(--ink-700); }
-.aol-cmp__valtext--muted{ color:var(--ink-400); }
-.aol-cmp__col--featured{ position:relative; background:var(--surface-card); box-shadow: inset 1.5px 0 0 var(--ink-900), inset -1.5px 0 0 var(--ink-900); }
-.aol-cmp__col--featured .aol-cmp__head{ border-top:1.5px solid var(--ink-900); }
-.aol-cmp__rail{ height:3px; background:var(--blue-600); }
-.aol-cmp__name--featured{ color:var(--blue-700); }
+.aol-cmp__head{ padding:22px 20px 18px; border-bottom:1px solid var(--ink-200); }
+.aol-cmp__corner{ border-bottom:1px solid var(--ink-200); }
+.aol-cmp__name{ font-family:var(--font-serif); font-size:16px; font-weight:600; color:var(--ink-600); margin-bottom:4px; }
+.aol-cmp__note{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.04em; color:var(--ink-500); }
+.aol-cmp__val{ display:flex; flex-direction:row; align-items:center; gap:9px; }
+.aol-cmp__valtext{ font-family:var(--font-mono); font-size:12.5px; line-height:1.4; color:var(--ink-600); }
+.aol-cmp__valtext--muted{ color:var(--ink-500); }
+/* Featured column: QUIET emphasis — a faint blue tint + a blue top rail, not a loud
+   solid-blue block. Text stays ink like every other column; only the tint, the rail,
+   and a slightly larger name signal "recommended". */
+/* Featured column: a deliberately framed highlight, not a flat fill. A thin blue
+   signal frame wraps the whole column; the header sits as a slightly deeper cap
+   (blue-100) over the faint blue-050 body — layered, so it reads as "the pick". */
+.aol-cmp__col--featured{ position:relative; background:var(--blue-050); border-inline:1.5px solid var(--blue-500); }
+.aol-cmp__colcell.aol-cmp__col--featured{ background:var(--blue-100); border-top:1.5px solid var(--blue-500); }
+.aol-cmp__col--featured .aol-cmp__head{ border-bottom-color:var(--blue-200); }
+.aol-cmp__col--featured .aol-statusmark{ color:var(--blue-500); }
+/* Header cells fill the header row and bottom-align their content, so the divider
+   under every column lands on one straight line no matter how many lines the note
+   wraps to. The featured rail is absolute so it caps the column top without adding height. */
+.aol-cmp__colcell{ display:flex; flex-direction:column; justify-content:flex-end; position:relative; }
+.aol-cmp__name--featured{ font-size:19px; color:var(--blue-700); letter-spacing:-0.01em; }
+.aol-cmp__col--featured .aol-cmp__note{ color:var(--blue-600); }
+.aol-cmp__col--featured .aol-cmp__valtext{ color:var(--ink-800); }
 .aol-cmp__cell--last{ border-bottom:none; }
 .aol-cmp__rowlabel--last{ border-bottom:none; }
-.aol-cmp__col--featured .aol-cmp__cell--last{ box-shadow: inset 0 -1.5px 0 var(--ink-900); border-bottom:none; }
+.aol-cmp__col--featured .aol-cmp__cell--last{ box-shadow:none; border-bottom:1.5px solid var(--blue-500); }
+/* Vertical dividers between the non-featured columns (Airtable-style grid lines).
+   Adjacency selector skips the column right after the featured one, which already
+   carries the featured black inset border — avoids a doubled rule. */
+.aol-cmp__colcell:not(.aol-cmp__col--featured) + .aol-cmp__colcell:not(.aol-cmp__col--featured),
+.aol-cmp__cell:not(.aol-cmp__col--featured) + .aol-cmp__cell:not(.aol-cmp__col--featured){
+  border-left:1px solid var(--border-hairline);
+}
+/* Zebra striping — shade alternate rows; the featured column keeps its blue tint. */
+.aol-cmp__rowlabel.aol-cmp__row--alt,
+.aol-cmp__cell.aol-cmp__row--alt:not(.aol-cmp__col--featured){ background:var(--surface-card); }
+/* The blue engineering grid now lives on the whole #compare section (.aol-grid-blue),
+   so the frame is just a layout passthrough — the white table sits as a card on that grid. */
+.aol-cmp-frame{ margin:0 auto; }
 
 /* ---- Callout ---- */
 .aol-callout{

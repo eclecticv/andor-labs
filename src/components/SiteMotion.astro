@@ -1,0 +1,64 @@
+---
+// Motion controller: triggers the hero assembly on load and reveals each
+// section as it scrolls into view. Everything degrades to fully-visible
+// without JS (styles gated on html.js) or under reduced-motion.
+---
+<script>
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Hero + growth-curve assembly on first paint.
+  requestAnimationFrame(() => document.body.classList.add("ready"));
+
+  if ("IntersectionObserver" in window) {
+    // Reveal: sections develop as they enter (skipped under reduced motion).
+    if (!reduce) {
+      const sections = document.querySelectorAll("main > section:not(.aol-hero)");
+      sections.forEach((s) => s.classList.add("reveal"));
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            if (e.isIntersecting) {
+              e.target.classList.add("is-in");
+              io.unobserve(e.target);
+            }
+          }
+        },
+        { rootMargin: "0px 0px -12% 0px", threshold: 0.08 }
+      );
+      sections.forEach((s) => io.observe(s));
+    }
+
+    // Scroll-spy: mark the active section's nav link (runs under reduced motion
+    // too — it's a "you are here" indicator, not an animation). A thin band near
+    // the upper-middle of the viewport decides which section is current.
+    const navLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>(".site-nav-link"));
+    const targets: HTMLElement[] = [];
+    for (const a of navLinks) {
+      const id = (a.getAttribute("href") || "").replace("#", "");
+      const sec = id && document.getElementById(id);
+      if (sec) targets.push(sec);
+    }
+    if (targets.length) {
+      const visible = new Set<string>();
+      const spy = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            if (e.isIntersecting) visible.add(e.target.id);
+            else visible.delete(e.target.id);
+          }
+          let current: string | null = null;
+          for (const sec of targets) {
+            if (visible.has(sec.id)) { current = sec.id; break; }
+          }
+          for (const a of navLinks) {
+            const id = (a.getAttribute("href") || "").replace("#", "");
+            if (id === current) a.setAttribute("aria-current", "true");
+            else a.removeAttribute("aria-current");
+          }
+        },
+        { rootMargin: "-45% 0px -50% 0px", threshold: 0 }
+      );
+      targets.forEach((s) => spy.observe(s));
+    }
+  }
+</script>

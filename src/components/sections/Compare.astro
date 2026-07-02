@@ -2,7 +2,15 @@
 import Button from "../ds/Button.astro";
 import ComparisonTable from "../ds/ComparisonTable.astro";
 
-const sub = "display:block;font-weight:400;font-size:13px;color:var(--ink-400);margin-top:2px";
+const quotes: [string, string, string][] = [
+  ["His work was instrumental in establishing Blockthrough as the category leader.", "Marty Kratky-Katz", "Exited tech founder"],
+  ["He brings a solutions-first mindset and a holistic view of what needs to be done.", "Goswijn Thijssen", "ex-Google/Microsoft marketing exec"],
+  ["His sales operations work drove exponential revenue growth for the company.", "Trevor Thomas", "ex-OpenX revenue executive"],
+  ["I just reviewed your profile and I'm extremely impressed with your experience.", "Adam Heimlich", "Founder & CEO, Chalice AI"],
+  ["His eye for design and detail was unlike anything I had seen before.", "Shubham Grover", "Head of Inbound Marketing, AdPushup"],
+  ["He has the uncanny ability to say the most complex thing in the most simple manner.", "Sudhiranjan Bannerjee", "Senior Trade Officer, Govt of Alberta"],
+];
+
 const columns = [
   { name: "And/or Labs", note: "operator-led, end to end", featured: true },
   { name: "Full-service agency", note: "broad, generic" },
@@ -10,34 +18,55 @@ const columns = [
 ];
 const rows = [
   {
-    label: `<strong>Go-to-market scope</strong><span style="${sub}">How much of the GTM stack is covered</span>`,
+    label: `<strong>Go-to-market scope</strong>`,
     cells: [{ mark: "yes", text: "Positioning → site → content" }, { mark: "partial", text: "Broad but generic" }, { mark: "no", text: "Positioning only" }],
   },
   {
-    label: `<strong>Adtech operator experience</strong><span style="${sub}">Hands-on category knowledge</span>`,
+    label: `<strong>Adtech operator experience</strong>`,
     cells: [{ mark: "yes", text: "Exited operator" }, { mark: "no", text: "Generalists" }, { mark: "partial", text: "Varies" }],
   },
   {
-    label: `<strong>Builds &amp; ships the work</strong><span style="${sub}">Execution, not just advice</span>`,
+    label: `<strong>Builds &amp; ships the work</strong>`,
     cells: [{ mark: "yes", text: "Done-for-you" }, { mark: "yes", text: "Done-for-you" }, { mark: "no", text: "Advice only" }],
   },
   {
-    label: `<strong>Speed to value</strong><span style="${sub}">Time to first deliverable</span>`,
+    label: `<strong>Speed to value</strong>`,
     cells: [{ mark: "yes", text: "Weeks" }, { mark: "no", text: "Months" }, { mark: "partial", text: "Weeks, but narrow" }],
   },
   {
-    label: `<strong>Typical cost</strong><span style="${sub}">Relative investment level</span>`,
+    label: `<strong>Typical cost</strong>`,
     cells: [{ mark: "yes", text: "$$" }, { mark: "no", text: "$$$$" }, { mark: "partial", text: "$$$" }],
   },
 ];
 ---
-<section id="compare" style="border-bottom:1px solid var(--ink-200)">
-  <div style="max-width:1000px;margin:0 auto;padding:84px 28px">
+<section id="compare" class="aol-grid-blue" style="border-bottom:1px solid var(--ink-200)">
+  <div style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
     <div class="aol-eyebrow" style="margin-bottom:14px">the alternatives</div>
-    <h2 class="aol-display-mono" style="font-size:clamp(30px, 5vw, 40px);margin:0 0 40px;max-width:22ch">One partner instead of three half-fits.</h2>
-    <ComparisonTable columns={columns} rows={rows} />
-    <div style="display:flex;justify-content:flex-end;margin-top:24px">
-      <Button variant="primary" arrow data-open-contact>Start with a GTM audit</Button>
+    <h2 class="aol-display" style="font-size:40px;margin:0 0 40px">The only full-stack adtech GTM agency.</h2>
+    <div class="aol-cmp-frame">
+      <ComparisonTable columns={columns} rows={rows} />
+    </div>
+
+    <div style="margin-top:56px">
+      <div class="aol-eyebrow" style="margin-bottom:20px">what operators say</div>
+      <div class="aol-qmarquee" aria-label="What operators say about the founder">
+        <div class="aol-qmarquee__track">
+          {[...quotes, ...quotes].map(([quote, name, role], i) => (
+            <figure class="aol-qmarquee__item" aria-hidden={i >= quotes.length ? "true" : undefined}>
+              <span class="aol-qmarquee__mark" aria-hidden="true">“</span>
+              <blockquote class="aol-qmarquee__body">{quote}</blockquote>
+              <figcaption class="aol-qmarquee__cite">
+                <span class="aol-qmarquee__name">{name}</span>
+                <span class="aol-qmarquee__role">{role}</span>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:40px">
+      <Button variant="primary" arrow href="https://calendar.app.google/X1YiTW5qcfR3WQ6LA" target="_blank" rel="noopener">Start with Syscheck</Button>
     </div>
   </div>
 </section>

@@ -1,8 +1,9 @@
 /* ============================================================
    And/or Labs — Font faces
-   - Departure Mono : the character voice (labels, captions, diagrams, UI chrome)
-   - Newsreader     : the editorial serif (body/display), loaded via <link> in <head>
-     (see Base.astro) for a faster, non-render-blocking path.
+   - Departure Mono   : the character voice (labels, captions, diagrams, UI chrome) — self-hosted
+   - Instrument Serif : display / headlines (400 only) — SELF-HOSTED + preloaded (it's the LCP
+     headline; self-hosting removes the external gstatic round-trip and the swap-flash)
+   - Newsreader       : body & prose — loaded via Google Fonts <link> in <head>
    ============================================================ */
 
 @font-face {
@@ -11,5 +12,19 @@
        url("/fonts/DepartureMono-Regular.woff") format("woff");
   font-weight: 400;
   font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("/fonts/InstrumentSerif-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("/fonts/InstrumentSerif-Italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
   font-display: swap;
 }

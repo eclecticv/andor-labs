@@ -20,7 +20,15 @@
 
   --paper:      #FFFFFF;  /* page background — pure white, like the source */
   --paper-pure: #FFFFFF;  /* inputs, full-bleed surfaces */
-  --surface-card: #F7F9FB; /* card fill — a hair cooler than the page */
+
+  /* ---- Warm surface + copper accent (Financial Times paper) ---- */
+  --pink-050:   #FCF4F4;  /* FT-inspired paper — soft, faint pink */
+  --pink-100:   #F7EAEA;  /* deeper pink tint — borders, hover on pink */
+  --copper-700: #7E4A24;  /* copper, active/text-strong on pink */
+  --copper-600: #9A5A2D;  /* copper accent — warm counterpart to the blue signal */
+  --copper-400: #C08A5B;  /* faint copper — hairlines, muted marks */
+
+  --surface-card: var(--pink-050); /* card + footer fill — warm FT paper (was cool grey #F7F9FB) */
 
   /* ---- Signal: technical blue ---- */
   --blue-700: #0A2EBF;  /* active / pressed */
@@ -65,10 +73,9 @@
   --signal-tint:   var(--blue-050);
   --signal-fill:   var(--blue-100);
 
-  /* ---- The faint engineering grid (the make-or-break motif) ---- */
-  --grid-line:        rgba(20, 21, 26, 0.045);
-  --grid-line-strong: rgba(20, 21, 26, 0.08);
-  --grid-blue:        rgba(40, 96, 255, 0.085);
+  /* ---- The engineering grid (blue is the only grid tint) ---- */
+  --grid-line:        rgba(27, 77, 255, 0.11);
+  --grid-blue:        rgba(27, 77, 255, 0.17);
 
   /* ---- Status semantics ---- */
   --color-positive: var(--green-600);

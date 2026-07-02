@@ -1,0 +1,120 @@
+/* ============================================================
+   And/or Labs — motion & interaction
+   Refinement layer on top of the design system: the identity is
+   "technical figures being plotted," so the page assembles, the growth
+   curve draws itself, sections develop on scroll, and the printed-shadow
+   surfaces have real press physics. Restrained, ease-out, no bounce.
+   All entrance animation is gated on `html.js` (no-JS → fully visible)
+   and `prefers-reduced-motion: no-preference` (reduced → instant).
+   ============================================================ */
+
+:root { interpolate-size: allow-keywords; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* ── Hero: staggered assembly on load ─────────────────────── */
+  html.js .aol-hero [data-r] {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  html.js body.ready .aol-hero [data-r] {
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+    transition-delay: calc(var(--r, 0) * 90ms);
+  }
+
+  /* ── Hero terminal: boot log lines are hidden until the boot controller
+     reveals them one by one (see Hero.astro). Gated on html.js AND no-preference:
+     no-JS and reduced-motion both see the server-rendered completed syscheck.
+     Lines snap in (no fade) — terminals print, they don't ease. */
+  html.js .aol-term:not(.is-booted) .aol-term__line { opacity: 0; }
+  html.js .aol-term:not(.is-booted) .aol-term__ok { opacity: 0; }
+  html.js .aol-term .aol-term__line.is-in { opacity: 1; }
+  html.js .aol-term .aol-term__ok.is-in { opacity: 1; }
+
+  /* ── Sections develop as they enter the viewport ──────────── */
+  html.js .reveal {
+    position: relative;
+    opacity: 0;
+    transform: translateY(26px);
+    transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
+  }
+  html.js .reveal.is-in {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* ── Plot-in: a blue registration line draws across the top edge as the
+     section enters, then fades — each section reads as being *plotted* onto
+     the page. Transient (leaves the existing hairline behind), transform-only. */
+  html.js .reveal::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    block-size: 1.5px;
+    background: var(--blue-500);
+    transform: scaleX(0);
+    transform-origin: left center;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+  }
+  html.js .reveal.is-in::before {
+    animation: aol-plot 0.9s var(--ease-out) forwards;
+  }
+  @keyframes aol-plot {
+    0%   { transform: scaleX(0); opacity: 1; }
+    55%  { transform: scaleX(1); opacity: 1; }
+    100% { transform: scaleX(1); opacity: 0; }
+  }
+
+  /* ── FAQ: smooth height open (native <details>) ───────────── */
+  .faq-item::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition: block-size 0.32s var(--ease-out), content-visibility 0.32s allow-discrete;
+    transition-behavior: allow-discrete;
+  }
+  .faq-item[open]::details-content { block-size: auto; }
+}
+
+/* ── Press physics — hover lift on the printed-shadow surfaces ──
+   (kept outside the reduced-motion gate: hover is user-initiated; the
+   transform still reads, just without the eased transition.) */
+/* Pricing cards: flat by default (no card is lifted at rest), press into a hard
+   shadow on hover only. */
+#how-we-work .aol-card {
+  transition: transform 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out), border-color 0.18s var(--ease-out);
+}
+#how-we-work .aol-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-hard);
+  border-color: var(--ink-900);
+}
+.aol-quote--figure {
+  transition: transform 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out);
+}
+.aol-quote--figure:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-hard);
+}
+/* Testimonial cards (FounderNote) lift into a printed shadow on hover, matching
+   the figure-card vocabulary so every bordered surface presses the same way.
+   Fine-pointer only — no stuck lift after a touch tap. */
+.aol-quote--sm {
+  transition: transform 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out), border-color 0.18s var(--ease-out);
+}
+@media (hover:hover) and (pointer:fine) {
+  .aol-quote--sm:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-hard);
+    border-color: var(--ink-900);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #how-we-work .aol-card, .aol-quote--figure, .aol-quote--sm { transition: none; }
+}
+
+/* (The FIG.01 growth-chart crosshair styles were retired with the chart —
+   the terminal's screen now rests on the completed syscheck log.) */

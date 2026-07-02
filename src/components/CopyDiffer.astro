@@ -1,0 +1,149 @@
+---
+// Dev-only inline copy editor. Toggle edit mode, edit any text in place, then
+// "Copy diff" to get an old→new list to paste back for applying. Rendered only
+// when import.meta.env.DEV is true (see index.astro), so it never ships to prod.
+---
+<script>
+  const norm = (s) => s.replace(/\s+/g, " ").trim();
+
+  // Top-level text blocks (block containers + standalone inline text), de-nested.
+  function blocks() {
+    const strong = [...document.querySelectorAll("h1,h2,h3,h4,p,li,blockquote,figcaption,summary,button")];
+    const loose = [...document.querySelectorAll("a,span,div")].filter(
+      (el) =>
+        !el.querySelector("h1,h2,h3,h4,p,li,blockquote,figcaption,summary,button") &&
+        [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())
+    );
+    const all = [...strong, ...loose].filter(
+      (el) => el.textContent.trim() && !el.closest("#copydiff-ui") && !el.closest("script,style,noscript")
+    );
+    // keep only the outermost of any nested pair
+    return all.filter((el) => !all.some((o) => o !== el && o.contains(el)));
+  }
+
+  const orig = new Map();
+  let editing = false;
+
+  function label(el) {
+    const sec = el.closest("section[id]");
+    const where = sec ? "#" + sec.id : el.closest("header") ? "header" : el.closest("footer") ? "footer" : el.closest(".contact-drawer") ? "contact-drawer" : "hero";
+    return `${el.tagName.toLowerCase()} · ${where}`;
+  }
+
+  function capture() {
+    orig.clear();
+    blocks().forEach((el) => orig.set(el, norm(el.innerText)));
+  }
+
+  function setEditing(on) {
+    editing = on;
+    blocks().forEach((el) => {
+      if (on) {
+        el.setAttribute("contenteditable", "true");
+        el.dataset.cd = "1";
+      } else {
+        el.removeAttribute("contenteditable");
+        delete el.dataset.cd;
+      }
+    });
+    document.body.classList.toggle("cd-editing", on);
+    toggleBtn.textContent = on ? "✓ Editing — click text" : "✎ Edit copy";
+    toggleBtn.style.background = on ? "#1B4DFF" : "#14151A";
+    render();
+  }
+
+  function changes() {
+    const out = [];
+    orig.forEach((was, el) => {
+      const now = norm(el.innerText);
+      if (now !== was) out.push({ el, was, now });
+    });
+    return out;
+  }
+
+  function render() {
+    const n = changes().length;
+    copyBtn.textContent = n ? `⧉ Copy diff (${n})` : "⧉ Copy diff";
+    copyBtn.disabled = !n;
+    copyBtn.style.opacity = n ? "1" : "0.45";
+  }
+
+  async function copyDiff() {
+    const ch = changes();
+    if (!ch.length) return;
+    const lines = [`Copy diff — ${ch.length} change${ch.length > 1 ? "s" : ""} (andorlabs.ca)`, ""];
+    ch.forEach((c, i) => {
+      lines.push(`${i + 1}. ${label(c.el)}`);
+      lines.push(`- ${c.was}`);
+      lines.push(`+ ${c.now}`);
+      lines.push("");
+    });
+    const text = lines.join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      flash("Copied ✓");
+    } catch {
+      // clipboard blocked → drop into a selectable textarea
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      Object.assign(ta.style, { position: "fixed", inset: "auto 12px 92px 12px", height: "40vh", zIndex: 100000 });
+      document.body.appendChild(ta);
+      ta.select();
+      flash("Select + copy");
+    }
+  }
+
+  function flash(msg) {
+    status.textContent = msg;
+    setTimeout(() => (status.textContent = editing ? "edit mode on" : ""), 1600);
+  }
+
+  // Block navigation/drawer while editing so clicks just place the caret.
+  document.addEventListener(
+    "click",
+    (e) => {
+      if (!editing) return;
+      const t = e.target.closest("a,button,summary,[data-open-contact],[data-close-contact]");
+      if (t && t.dataset.cd) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    },
+    true
+  );
+
+  // ── UI ─────────────────────────────────────────────────────
+  const ui = document.createElement("div");
+  ui.id = "copydiff-ui";
+  ui.innerHTML = `
+    <style>
+      #copydiff-ui{position:fixed;left:14px;bottom:14px;z-index:99999;display:flex;gap:8px;align-items:center;
+        font:12px/1 ui-monospace,Menlo,monospace;}
+      #copydiff-ui button{border:1.5px solid #14151A;border-radius:6px;padding:8px 11px;color:#fff;background:#14151A;
+        cursor:pointer;font:inherit;letter-spacing:.02em;box-shadow:2px 2px 0 0 rgba(20,21,26,.25);}
+      #copydiff-ui button:active{transform:translate(2px,2px);box-shadow:none;}
+      #copydiff-ui .cd-copy{background:#1B4DFF;border-color:#0A2EBF;}
+      #copydiff-ui .cd-status{color:#52555F;background:#fff;padding:5px 8px;border-radius:5px;border:1px solid #D8DAE0;}
+      body.cd-editing [data-cd]{outline:1.5px dashed rgba(27,77,255,.5);outline-offset:2px;border-radius:2px;}
+      body.cd-editing [data-cd]:hover{outline-style:solid;background:rgba(27,77,255,.05);}
+      body.cd-editing [data-cd]:focus{outline:2px solid #1B4DFF;background:rgba(27,77,255,.08);}
+    </style>`;
+  const toggleBtn = document.createElement("button");
+  const copyBtn = document.createElement("button");
+  copyBtn.className = "cd-copy";
+  const status = document.createElement("span");
+  status.className = "cd-status";
+  ui.append(toggleBtn, copyBtn, status);
+  document.body.appendChild(ui);
+
+  capture();
+  setEditing(false);
+
+  toggleBtn.addEventListener("click", () => setEditing(!editing));
+  copyBtn.addEventListener("click", copyDiff);
+  document.addEventListener("input", () => editing && render());
+  document.addEventListener("keydown", (e) => {
+    if (e.altKey && (e.key === "e" || e.key === "E")) setEditing(!editing);
+    if (editing && e.key === "Escape") setEditing(false);
+  });
+</script>

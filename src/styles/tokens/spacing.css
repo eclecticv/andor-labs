@@ -25,9 +25,12 @@
   --grid-module: 24px;   /* coarse module — card backgrounds, layout rhythm */
   --grid-fine:   6px;    /* fine graph-paper — diagram frames (the source motif) */
 
+  /* ---- Section rhythm ---- */
+  --section-pad-y: var(--space-20);   /* 80px — standard vertical padding for top-level sections */
+
   /* ---- Layout widths ---- */
   --measure:        66ch;     /* ideal reading column */
-  --content-width:  720px;    /* article column */
-  --container-width: 1200px;  /* marketing max width */
+  --content-width:  720px;    /* narrow column — founder note / article prose */
+  --container-width: 1200px;  /* the site width — every section except the founder note */
   --gutter:         24px;
 }

@@ -1,18 +1,20 @@
 /* ============================================================
    And/or Labs — Typography tokens
-   Two voices only:
-   - SERIF (Newsreader): everything you read. Headlines, body, quotes.
-   - MONO  (Departure Mono): everything that labels, measures, or annotates.
+   Three voices:
+   - DISPLAY (Instrument Serif): headlines only — high-contrast serif at large sizes.
+   - SERIF   (Newsreader): everything you read at body size. Prose, quotes, names.
+   - MONO    (Departure Mono): everything that labels, measures, or annotates.
      Captions, eyebrows, UI chrome, diagram callouts, metadata, code.
-   No sans. The tension between literary serif and pixel mono IS the brand.
+   Instrument display + Newsreader body + pixel mono.
    ============================================================ */
 
 :root {
   /* ---- Families ---- */
-  --font-serif: "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
-  --font-mono:  "Departure Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  /* Display alias — same family, used at large sizes with tight tracking */
-  --font-display: var(--font-serif);
+  --font-display: "Instrument Serif", ui-serif, Georgia, "Times New Roman", serif;  /* headlines — its contrast reads bold at 400 */
+  --font-serif:   "Newsreader", ui-serif, Georgia, "Times New Roman", serif;          /* body & reading prose */
+  --font-mono:    "Departure Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  /* Fallback only — a handful of helpers reference --font-sans; not web-loaded. */
+  --font-sans:    system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
   /* ---- Size scale ----
      Mono sizes favour multiples of 11px for Departure Mono's pixel-perfect grid. */
@@ -28,7 +30,7 @@
   --text-4xl:  64px;  /* display */
   --text-5xl:  88px;  /* hero display */
 
-  /* ---- Weights (Newsreader range; Departure Mono is 400 only) ---- */
+  /* ---- Weights (IBM Plex Sans range; Instrument Serif & Departure Mono are 400 only) ---- */
   --weight-regular:  400;
   --weight-medium:   500;
   --weight-semibold: 600;
@@ -56,23 +58,13 @@
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 .aol-display {
   font-family: var(--font-display);
-  font-weight: var(--weight-semibold);
+  font-weight: var(--weight-regular);  /* Instrument Serif is 400-only; its contrast reads bold. Faux-bold muddies it. */
   line-height: var(--leading-tight);
   letter-spacing: var(--tracking-tight);
-}
-/* Mono display voice — the deliberate "title-card" treatment for hero and
-   major SECTION headers (not in-content headings, which stay serif). Departure
-   Mono is single-weight, so kill faux-bold synthesis and lean on size for impact. */
-.aol-display-mono {
-  font-family: var(--font-mono);
-  font-weight: var(--weight-regular);
-  font-synthesis: none;
-  line-height: 1.12;
-  letter-spacing: -0.01em;
-  text-wrap: balance;
 }
 .aol-body {
   font-family: var(--font-serif);
@@ -84,4 +76,5 @@
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   letter-spacing: var(--tracking-mono);
+  font-variant-numeric: tabular-nums;
 }

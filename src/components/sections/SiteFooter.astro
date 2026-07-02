@@ -2,41 +2,41 @@
 import Logo from "../ds/Logo.astro";
 
 const NAV: [string, string][] = [
+  ["About", "#founder"],
   ["Why us", "#compare"],
-  ["How we work", "#how-we-work"],
+  ["Pricing", "#how-we-work"],
+  ["FAQ", "#faq"],
 ];
 const SOCIALS: [string, string][] = [
   ["LinkedIn", "https://www.linkedin.com/in/vishveshwar-jatain"],
   ["X / Twitter", "https://x.com/eclecticV"],
   ["GitHub", "https://github.com/eclecticv"],
 ];
-const linkStyle = "font-family:var(--font-mono);font-size:13px;color:var(--ink-700);text-decoration:none";
 ---
-<footer style="background:var(--surface-card);border-top:1px solid var(--ink-200)">
-  <div class="aol-footer-grid" style="max-width:1200px;margin:0 auto;padding:48px 28px 28px;display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:32px;align-items:start">
+<footer style="border-top:1px solid var(--ink-200);background:var(--surface-card)">
+  <div class="aol-footer-grid" style="max-width:var(--container-width);margin:0 auto;padding:var(--space-12) var(--gutter) var(--gutter);display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:32px;align-items:start">
     <div>
       <Logo size="md" />
       <p style="font-family:var(--font-mono);font-size:12px;color:var(--ink-500);line-height:1.6;margin-top:16px;max-width:30ch">
-        The operating system for B2B growth. Real operator experience, meet the science of how buyers think.
+        The go-to-market operating system for adtech startups.
       </p>
     </div>
     <div>
       <div class="aol-eyebrow" style="margin-bottom:14px">Site</div>
       <div style="display:flex;flex-direction:column;gap:9px">
-        {NAV.map(([l, href]) => <a href={href} style={linkStyle}>{l}</a>)}
+        {NAV.map(([l, href]) => <a class="aol-flink" href={href}>{l}</a>)}
       </div>
     </div>
     <div>
       <div class="aol-eyebrow" style="margin-bottom:14px">Elsewhere</div>
       <div style="display:flex;flex-direction:column;gap:9px">
-        {SOCIALS.map(([l, href]) => <a href={href} target="_blank" rel="noopener" style={linkStyle}>{l}</a>)}
+        {SOCIALS.map(([l, href]) => <a class="aol-flink" href={href} target="_blank" rel="noopener">{l}</a>)}
       </div>
     </div>
   </div>
   <div style="border-top:1px solid var(--ink-200)">
-    <div style="max-width:1200px;margin:0 auto;padding:16px 28px;display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--ink-400);letter-spacing:0.04em">
+    <div style="max-width:var(--container-width);margin:0 auto;padding:var(--space-4) var(--gutter);display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--ink-500);letter-spacing:0.04em">
       <span>© 2026 And/or Labs</span>
-      <span>and · or · not</span>
     </div>
   </div>
 </footer>

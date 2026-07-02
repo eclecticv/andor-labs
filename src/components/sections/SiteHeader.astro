@@ -2,19 +2,54 @@
 import Logo from "../ds/Logo.astro";
 import Button from "../ds/Button.astro";
 
+const CAL = "https://calendar.app.google/X1YiTW5qcfR3WQ6LA";
 const NAV: [string, string][] = [
+  ["About", "#founder"],
   ["Why us", "#compare"],
-  ["How we work", "#how-we-work"],
+  ["Pricing", "#how-we-work"],
+  ["FAQ", "#faq"],
 ];
 ---
 <header style="position:sticky;top:0;z-index:20;background:rgba(255,255,255,0.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--ink-200)">
-  <div style="max-width:1200px;margin:0 auto;padding:14px 28px;display:flex;align-items:center;justify-content:space-between">
+  <div style="max-width:var(--container-width);margin:0 auto;padding:var(--space-4) var(--gutter);display:flex;align-items:center;justify-content:space-between">
     <a href="/" style="text-decoration:none"><Logo size="md" /></a>
     <nav style="display:flex;gap:26px;align-items:center">
       {NAV.map(([label, href]) => (
-        <a class="site-nav-link" href={href} style="font-family:var(--font-mono);font-size:12px;letter-spacing:0.04em;text-decoration:none;color:var(--ink-700)">{label}</a>
+        <a class="site-nav-link" href={href}>{label}</a>
       ))}
-      <Button size="sm" variant="primary" arrow data-open-contact>Get started</Button>
+      <Button size="sm" variant="primary" arrow href={CAL} target="_blank" rel="noopener">Book a call</Button>
+      <button type="button" class="site-nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+        <span></span><span></span><span></span>
+      </button>
     </nav>
   </div>
+  <nav id="mobile-menu" class="site-mobilemenu" aria-label="Sections">
+    {NAV.map(([label, href]) => (
+      <a class="site-mobilelink" href={href}>{label}</a>
+    ))}
+  </nav>
 </header>
+
+<script>
+  const header = document.querySelector<HTMLElement>("header");
+  const toggle = header?.querySelector<HTMLButtonElement>(".site-nav-toggle");
+  const menu = header?.querySelector<HTMLElement>("#mobile-menu");
+  if (header && toggle && menu) {
+    const setOpen = (open: boolean) => {
+      header.classList.toggle("nav-open", open);
+      toggle.setAttribute("aria-expanded", String(open));
+      toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    };
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      setOpen(toggle.getAttribute("aria-expanded") !== "true");
+    });
+    menu.querySelectorAll("a").forEach((a) => a.addEventListener("click", () => setOpen(false)));
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") setOpen(false); });
+    document.addEventListener("click", (e) => {
+      if (header.classList.contains("nav-open") && !header.contains(e.target as Node)) setOpen(false);
+    });
+    // Close the menu if the viewport grows past the mobile breakpoint.
+    matchMedia("(min-width: 561px)").addEventListener("change", (e) => { if (e.matches) setOpen(false); });
+  }
+</script>

@@ -13,11 +13,13 @@ interface Props {
 const { columns = [], rows = [], featureLabelWidth = "1.7fr", class: className } = Astro.props;
 const template = `${featureLabelWidth} ${columns.map(() => "minmax(0,1fr)").join(" ")}`;
 ---
+<div class="aol-cmp-wrap">
+  <div class="aol-cmp-hint" aria-hidden="true">Scroll for full table →</div>
+  <div class="aol-cmp-scroll">
 <div class={["aol-cmp", className].filter(Boolean).join(" ")} style={`grid-template-columns:${template}`}>
   <div class="aol-cmp__corner" />
   {columns.map((c, ci) => (
-    <div class={c.featured ? "aol-cmp__col--featured" : undefined} style={`grid-column:${ci + 2}`}>
-      {c.featured && <div class="aol-cmp__rail" />}
+    <div class={["aol-cmp__colcell", c.featured && "aol-cmp__col--featured"].filter(Boolean).join(" ")} style={`grid-column:${ci + 2}`}>
       <div class="aol-cmp__head">
         <div class={["aol-cmp__name", c.featured && "aol-cmp__name--featured"].filter(Boolean).join(" ")}>{c.name}</div>
         {c.note && <div class="aol-cmp__note">{c.note}</div>}
@@ -26,14 +28,15 @@ const template = `${featureLabelWidth} ${columns.map(() => "minmax(0,1fr)").join
   ))}
   {rows.map((r, ri) => {
     const last = ri === rows.length - 1;
+    const alt = ri % 2 === 1;
     return (
       <>
-        <div class={["aol-cmp__rowlabel", last && "aol-cmp__rowlabel--last"].filter(Boolean).join(" ")} style="grid-column:1" set:html={r.label} />
+        <div class={["aol-cmp__rowlabel", alt && "aol-cmp__row--alt", last && "aol-cmp__rowlabel--last"].filter(Boolean).join(" ")} style="grid-column:1" set:html={r.label} />
         {columns.map((c, ci) => {
           const cell = r.cells[ci];
           return (
             <div
-              class={["aol-cmp__cell", c.featured && "aol-cmp__col--featured", last && "aol-cmp__cell--last"].filter(Boolean).join(" ")}
+              class={["aol-cmp__cell", alt && "aol-cmp__row--alt", c.featured && "aol-cmp__col--featured", last && "aol-cmp__cell--last"].filter(Boolean).join(" ")}
               style={`grid-column:${ci + 2}`}
             >
               <div class="aol-cmp__val">
@@ -48,4 +51,6 @@ const template = `${featureLabelWidth} ${columns.map(() => "minmax(0,1fr)").join
       </>
     );
   })}
+</div>
+  </div>
 </div>

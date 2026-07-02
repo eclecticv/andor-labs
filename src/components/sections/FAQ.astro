@@ -3,20 +3,19 @@ import Link from "../ds/Link.astro";
 
 const faqs: [string, string][] = [
   ["How is this different from a typical marketing agency?", "Agencies hand you to a junior account team and run a generic playbook. You work directly with an exited adtech operator, across the whole go-to-market — positioning, site, and content — not one isolated slice."],
-  ["What does the GTM Audit include?", "A focused teardown of your site, positioning, and sales funnel against peer-reviewed research, plus a prioritized list of what to fix first and a 60-minute readout call. It's the recommended starting point for every engagement."],
-  ["How quickly will we see results?", "The audit lands in days. A Makeover Sprint ships a new identity and site in a few weeks. The Fractional CMO retainer compounds over months — that's why it carries a three-month minimum."],
-  ["Do you only work with adtech startups?", "Adtech is the focus, and the operator experience behind it is why the work goes deep. The underlying GTM principles travel to adjacent B2B categories — book an intro call and we'll tell you honestly if it's a fit."],
+  ["What's included in Syscheck?", "Syscheck is a focused teardown of your site, positioning, and sales funnel against peer-reviewed research, plus a prioritized list of what to fix first and a 60-minute readout call. It's the recommended starting point for every engagement."],
+  ["How quickly will we see results?", "Syscheck lands in days. A Hard reset ships a new identity and site in a few weeks. The Heartbeat retainer compounds over months — that's why it carries a three-month minimum."],
+  ["Do you only work with adtech startups?", "Adtech is the focus, and the operator experience behind it is why the work goes deep. The underlying GTM principles travel to adjacent categories — book an intro call and we'll tell you honestly if it's a fit."],
   ["Who will I actually be working with?", "The founder, directly. No layers, no handoff to an account manager — the person auditing your funnel is the person who's run marketing and sales ops through two nine-figure exits."],
 ];
-const entries = String(faqs.length).padStart(2, "0");
 ---
-<section id="faq" style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
-  <div class="aol-faq-grid" style="max-width:1100px;margin:0 auto;padding:84px 28px;display:grid;grid-template-columns:0.82fr 1.18fr;gap:56px;align-items:start">
+<section id="faq" class="aol-grid-blue" style="border-bottom:1px solid var(--ink-200)">
+  <div class="aol-faq-grid" style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter);display:grid;grid-template-columns:0.82fr 1.18fr;gap:56px;align-items:start">
     <div>
-      <div class="aol-eyebrow" style="margin-bottom:14px">questions</div>
-      <h2 class="aol-display-mono" style="font-size:clamp(30px, 5vw, 40px);margin:0 0 16px">Frequently asked.</h2>
-      <p style="font-family:var(--font-serif);font-size:16.5px;line-height:1.55;color:var(--ink-600);margin:0 0 18px;max-width:32ch">Still unsure where you'd start? The audit answers most of it.</p>
-      <Link arrow data-open-contact>Book an intro call</Link>
+      <div class="aol-eyebrow" style="margin-bottom:14px">ICYMI</div>
+      <h2 class="aol-display" style="font-size:40px;margin:0 0 16px">Frequently asked questions.</h2>
+      <p style="font-family:var(--font-serif);font-size:16.5px;line-height:1.55;color:var(--ink-600);margin:0 0 18px;max-width:32ch">Still unsure where you'd start? The audit is a great place to start for most startups.</p>
+      <Link arrow href="https://calendar.app.google/X1YiTW5qcfR3WQ6LA" target="_blank" rel="noopener">Book a call</Link>
     </div>
 
     <div class="faq-frame">
@@ -24,7 +23,6 @@ const entries = String(faqs.length).padStart(2, "0");
       <span class="faq-crop faq-crop--tr"></span>
       <span class="faq-crop faq-crop--bl"></span>
       <span class="faq-crop faq-crop--br"></span>
-      <span class="faq-framelabel">FAQ / {entries} entries</span>
       {faqs.map(([q, a], i) => (
         <details class="faq-item" name="faq" open={i === 0}>
           <summary class="faq-q">

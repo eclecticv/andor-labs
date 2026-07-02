@@ -39,21 +39,16 @@
 }
 
 /* ============================================================
-   Engineering grid surface — the ONE grid: an extremely fine dot pattern.
-   .aol-grid       : faint grey dot grid (default)
-   .aol-grid-blue  : same grid in faint blue (behind diagrams / heroes)
-   .aol-grid-dots  : alias of .aol-grid (kept for back-compat)
+   Engineering grid surface — the ONE grid (makingsoftware.com lineage):
+   a 3×3px tile carrying a single 1px vertical tick in signal blue at 15%,
+   tiled with `repeat`. Same texture, one tint — see /public/texture.svg.
+   .aol-grid / .aol-grid-dots / .aol-grid-blue all resolve to it.
    ============================================================ */
 .aol-grid,
-.aol-grid-dots {
-  background-color: var(--color-bg);
-  background-image: radial-gradient(var(--grid-line) 0.9px, transparent 1px);
-  background-size: var(--grid-fine) var(--grid-fine);
-  background-position: -0.45px -0.45px;
-}
+.aol-grid-dots,
 .aol-grid-blue {
   background-color: var(--color-bg);
-  background-image: radial-gradient(var(--grid-blue) 0.9px, transparent 1px);
-  background-size: var(--grid-fine) var(--grid-fine);
-  background-position: -0.45px -0.45px;
+  background-image: url("/texture.svg");
+  background-repeat: repeat;
+  background-position: 0 0;
 }
