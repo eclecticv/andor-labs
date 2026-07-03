@@ -90,7 +90,7 @@ section[id] { scroll-margin-top: calc(57px + 24px); }
 
 /* Hero fills the first screen below the sticky header and centres its content;
    the credentials bar rests at the bottom of that screen. */
-.aol-hero { display: flex; flex-direction: column; }
+.aol-hero { display: flex; flex-direction: column; min-height: calc(100svh - 65px); }
 .aol-hero > .aol-hero-inner { flex: 1 1 auto; align-content: center; }
 .aol-grid-3 { grid-template-columns: repeat(3, 1fr); }
 .aol-grid-2 { grid-template-columns: 1.25fr 1fr; }
