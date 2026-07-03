@@ -113,11 +113,14 @@ section[id] { scroll-margin-top: calc(57px + 24px); }
       "subhead"
       "cta";
   }
-  .aol-hero__term { align-self: stretch; margin: var(--space-1) 0 var(--space-7); }
+  .aol-hero__term { align-self: stretch; margin: var(--space-1) 0 var(--space-8); }
   /* Mobile hero flows from the top (no 100svh centering — content already
-     overflows the viewport) with a tighter, even rhythm. */
+     overflows the viewport) with a tighter, even rhythm.
+     NB: the space scale is non-linear — --space-7/--space-9 don't exist, and a
+     var() to an undefined token invalidates the whole shorthand (which silently
+     zeroed the gutter padding). Stick to defined steps. */
   .aol-hero { min-height: auto; }
-  .aol-hero > .aol-hero-inner { align-content: start; padding: var(--space-7) var(--gutter) var(--space-9); }
+  .aol-hero > .aol-hero-inner { align-content: start; padding: var(--space-8) var(--gutter) var(--space-10); }
   .aol-hero__founder  { margin-bottom: var(--space-5); }
   .aol-hero__headline { margin-bottom: var(--space-5); }
   .aol-hero__subhead  { margin-bottom: var(--space-6); }
