@@ -68,7 +68,25 @@ section[id] { scroll-margin-top: calc(57px + 24px); }
 }
 
 /* ── Responsive column behaviour ──────────────────────────── */
-.aol-hero-inner { grid-template-columns: 1.12fr 0.88fr; }
+/* Flattened hero grid: text elements + terminal are peers, placed via named
+   areas. Desktop = text column | terminal column. Mobile = the terminal slots
+   between the headline and the subhead (see the 880px override below). */
+.aol-hero-inner {
+  display: grid;
+  grid-template-columns: 1.12fr 0.88fr;
+  grid-template-areas:
+    "eyebrow  term"
+    "headline term"
+    "subhead  term"
+    "cta      term";
+  column-gap: var(--space-16);
+  align-items: start;
+}
+.aol-hero__eyebrow  { grid-area: eyebrow;  margin: 0 0 var(--space-3); }
+.aol-hero__headline { grid-area: headline; margin: 0 0 var(--space-6); }
+.aol-hero__subhead  { grid-area: subhead;  margin: 0 0 var(--space-8); }
+.aol-hero__cta      { grid-area: cta;      margin: 0; }
+.aol-hero__term     { grid-area: term;     align-self: center; }
 
 /* Hero fills the first screen below the sticky header and centres its content;
    the credentials bar rests at the bottom of that screen. */
@@ -81,7 +99,16 @@ section[id] { scroll-margin-top: calc(57px + 24px); }
   .aol-grid-3 { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 880px) {
-  .aol-hero-inner { grid-template-columns: 1fr; }
+  .aol-hero-inner {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "eyebrow"
+      "headline"
+      "term"
+      "subhead"
+      "cta";
+  }
+  .aol-hero__term { align-self: stretch; margin: 0 0 var(--space-6); }
   .aol-grid-2 { grid-template-columns: 1fr; }
   .aol-faq-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
 }

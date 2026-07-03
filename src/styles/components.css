@@ -366,10 +366,16 @@
 
 /* ---- Credibility strip (hero) ---- */
 .aol-credstrip{
-  display:grid; grid-template-columns:1fr auto; gap:48px;
+  display:grid; grid-template-columns:1fr auto; gap:20px 48px;
   border-top:1px solid var(--ink-200); padding-top:22px;
 }
 .aol-credstrip__cell{ display:flex; flex-direction:column; gap:9px; }
+/* Founder credential leads the band on its own row, hairline-divided from the
+   press / partner row beneath it. */
+.aol-credstrip__cell--wide{
+  grid-column:1 / -1;
+  padding-bottom:18px; border-bottom:1px solid var(--ink-200);
+}
 .aol-credstrip__val{ font-family:var(--font-mono); font-size:13px; line-height:1.5; letter-spacing:0.02em; color:var(--ink-600); }
 .aol-credstrip__val strong{ font-weight:400; color:var(--ink-900); }
 @media (max-width:820px){
