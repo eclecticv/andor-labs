@@ -366,7 +366,7 @@
 
 /* ---- Credibility strip (hero) ---- */
 .aol-credstrip{
-  display:grid; grid-template-columns:1.4fr 1.15fr auto; gap:40px;
+  display:grid; grid-template-columns:1fr auto; gap:48px;
   border-top:1px solid var(--ink-200); padding-top:22px;
 }
 .aol-credstrip__cell{ display:flex; flex-direction:column; gap:9px; }
@@ -374,6 +374,22 @@
 .aol-credstrip__val strong{ font-weight:400; color:var(--ink-900); }
 @media (max-width:820px){
   .aol-credstrip{ grid-template-columns:1fr; gap:22px; }
+}
+
+/* Founder note before/after — Before row (label + 1/2/3), After row (label + 1/2/3) */
+.aol-ba{
+  margin-top:24px; background:var(--paper-pure);
+  border:1px solid var(--ink-200); border-radius:var(--radius-md);
+  padding:20px 24px;
+  display:grid; grid-template-columns:auto 1fr 1fr 1fr;
+  column-gap:22px; row-gap:16px; align-items:start;
+}
+.aol-ba__label{ align-self:center; font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; }
+.aol-ba__label--before{ color:var(--ink-500); }
+.aol-ba__label--after{ color:var(--blue-600); }
+@media (max-width:640px){
+  .aol-ba{ grid-template-columns:1fr; row-gap:10px; }
+  .aol-ba__label{ align-self:start; margin-top:8px; }
 }
 
 /* ---- ComparisonTable ---- */
