@@ -32,13 +32,13 @@ const afterRow = "display:flex;gap:9px;align-items:flex-start;font-family:var(--
       <div style="margin-top:26px;border-top:1px solid var(--ink-200)"></div>
 
       <div class="aol-ba">
-        <div class="aol-ba__label aol-ba__label--before">Before</div>
+        <div class="aol-ba__label aol-ba__label--before">BEFORE</div>
         {beforeItems.map((s) => (
           <div style={beforeRow}>
             <span style="flex:none;position:relative;top:1px"><StatusMark kind="no" size={16} /></span>{s}
           </div>
         ))}
-        <div class="aol-ba__label aol-ba__label--after">After</div>
+        <div class="aol-ba__label aol-ba__label--after">AFTER</div>
         {afterItems.map((s) => (
           <div style={afterRow}>
             <span style="flex:none;position:relative;top:1px"><StatusMark kind="yes" size={16} /></span>{s}
