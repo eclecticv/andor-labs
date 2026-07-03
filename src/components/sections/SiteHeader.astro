@@ -30,7 +30,9 @@ const NAV: [string, string][] = [
     {NAV.map(([label, href]) => (
       <a class="site-mobilelink" href={href}>{label}</a>
     ))}
-    <a class="site-mobilelink site-mobilecta" href={CAL} target="_blank" rel="noopener">Book a call →</a>
+    <div class="site-mobilecta">
+      <Button variant="primary" size="md" fullWidth arrow href={CAL} target="_blank" rel="noopener">Book a call</Button>
+    </div>
   </nav>
 </header>
 
