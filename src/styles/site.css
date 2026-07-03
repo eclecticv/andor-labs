@@ -82,6 +82,7 @@ section[id] { scroll-margin-top: calc(57px + 24px); }
     "cta      term";
   column-gap: var(--space-16);
   align-items: start;
+  padding: var(--space-16) var(--gutter);
 }
 .aol-hero__eyebrow  { grid-area: eyebrow;  margin: 0 0 var(--space-3); }
 .aol-hero__founder  { grid-area: founder;  margin: 0 0 var(--space-6); }
@@ -89,6 +90,7 @@ section[id] { scroll-margin-top: calc(57px + 24px); }
 .aol-hero__subhead  { grid-area: subhead;  margin: 0 0 var(--space-8); }
 .aol-hero__cta      { grid-area: cta;      margin: 0; }
 .aol-hero__term     { grid-area: term;     align-self: center; }
+.aol-founderpill    { vertical-align: middle; margin-left: 6px; font-size: 10px; padding: 2px 6px; letter-spacing: 0.04em; }
 
 /* Hero fills the first screen below the sticky header and centres its content;
    the credentials bar rests at the bottom of that screen. */
@@ -111,7 +113,15 @@ section[id] { scroll-margin-top: calc(57px + 24px); }
       "subhead"
       "cta";
   }
-  .aol-hero__term { align-self: stretch; margin: 0 0 var(--space-6); }
+  .aol-hero__term { align-self: stretch; margin: var(--space-1) 0 var(--space-7); }
+  /* Mobile hero flows from the top (no 100svh centering — content already
+     overflows the viewport) with a tighter, even rhythm. */
+  .aol-hero { min-height: auto; }
+  .aol-hero > .aol-hero-inner { align-content: start; padding: var(--space-7) var(--gutter) var(--space-9); }
+  .aol-hero__founder  { margin-bottom: var(--space-5); }
+  .aol-hero__headline { margin-bottom: var(--space-5); }
+  .aol-hero__subhead  { margin-bottom: var(--space-6); }
+  .aol-founderpill    { display: block; width: fit-content; margin: 8px 0 0; }
   .aol-grid-2 { grid-template-columns: 1fr; }
   .aol-faq-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
 }
@@ -186,6 +196,14 @@ body.no-scroll { overflow: hidden; }
 /* ── Small-screen safeguards (not in the kit; keep chrome from overflowing) ── */
 @media (max-width: 560px) {
   .site-nav-link { display: none; }
+  /* Header CTA moves into the dropdown so it can't collide with the wordmark */
+  .site-header-cta { display: none; }
+  .site-mobilecta {
+    margin: 10px var(--gutter) 12px; padding: 13px 16px;
+    background: var(--blue-500); color: #fff; border-bottom: none;
+    border-radius: var(--radius-sm); text-align: center; letter-spacing: 0.04em;
+  }
+  .site-mobilecta:active { background: var(--blue-600); }
 
   /* Hamburger toggle (three bars → X when open) */
   .site-nav-toggle {

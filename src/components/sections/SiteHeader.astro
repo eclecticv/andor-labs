@@ -12,12 +12,15 @@ const NAV: [string, string][] = [
 ---
 <header style="position:sticky;top:0;z-index:20;background:rgba(255,255,255,0.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--ink-200)">
   <div style="max-width:var(--container-width);margin:0 auto;padding:var(--space-4) var(--gutter);display:flex;align-items:center;justify-content:space-between">
-    <a href="/" style="text-decoration:none"><Logo size="md" /></a>
+    <a href="/" style="text-decoration:none;display:inline-flex;align-items:center;gap:9px">
+      <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true" style="display:block;flex:none"><rect width="32" height="32" rx="4" fill="#1B4DFF"/><path d="M20.75 8 L11.25 24" stroke="#fff" stroke-width="3.25" stroke-linecap="round"/></svg>
+      <Logo size="md" />
+    </a>
     <nav style="display:flex;gap:26px;align-items:center">
       {NAV.map(([label, href]) => (
         <a class="site-nav-link" href={href}>{label}</a>
       ))}
-      <Button size="sm" variant="primary" arrow href={CAL} target="_blank" rel="noopener">Book a call</Button>
+      <Button size="sm" variant="primary" arrow href={CAL} target="_blank" rel="noopener" class="site-header-cta">Book a call</Button>
       <button type="button" class="site-nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
         <span></span><span></span><span></span>
       </button>
@@ -27,6 +30,7 @@ const NAV: [string, string][] = [
     {NAV.map(([label, href]) => (
       <a class="site-mobilelink" href={href}>{label}</a>
     ))}
+    <a class="site-mobilelink site-mobilecta" href={CAL} target="_blank" rel="noopener">Book a call →</a>
   </nav>
 </header>
 
