@@ -385,7 +385,7 @@
   .aol-cmp-hint{
     display:block;
     font-family:var(--font-mono); font-size:11px; letter-spacing:0.08em;
-    text-transform:uppercase; color:var(--ink-500); margin-bottom:8px;
+    color:var(--ink-500); margin-bottom:8px;
   }
 }
 .aol-cmp{

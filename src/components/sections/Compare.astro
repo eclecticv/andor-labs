@@ -12,26 +12,26 @@ const quotes: [string, string, string][] = [
 ];
 
 const columns = [
-  { name: "And/or Labs", note: "operator-led, end to end", featured: true },
-  { name: "Full-service agency", note: "broad, generic" },
-  { name: "Specialist consultant", note: "one slice only" },
+  { name: "And/or Labs", note: "", featured: true },
+  { name: "Full-service agency", note: "" },
+  { name: "Specialist consultant", note: "" },
 ];
 const rows = [
   {
     label: `<strong>Go-to-market scope</strong>`,
-    cells: [{ mark: "yes", text: "Positioning → site → content" }, { mark: "partial", text: "Broad but generic" }, { mark: "no", text: "Positioning only" }],
+    cells: [{ mark: "yes", text: "Full-stack" }, { mark: "partial", text: "Broad but generic" }, { mark: "no", text: "Messaging/comms" }],
   },
   {
     label: `<strong>Adtech operator experience</strong>`,
-    cells: [{ mark: "yes", text: "Exited operator" }, { mark: "no", text: "Generalists" }, { mark: "partial", text: "Varies" }],
+    cells: [{ mark: "yes", text: "2x Exited" }, { mark: "no", text: "Generalist" }, { mark: "partial", text: "Tangential" }],
   },
   {
     label: `<strong>Builds &amp; ships the work</strong>`,
-    cells: [{ mark: "yes", text: "Done-for-you" }, { mark: "yes", text: "Done-for-you" }, { mark: "no", text: "Advice only" }],
+    cells: [{ mark: "yes", text: "Yes" }, { mark: "yes", text: "Yes" }, { mark: "no", text: "Limited" }],
   },
   {
     label: `<strong>Speed to value</strong>`,
-    cells: [{ mark: "yes", text: "Weeks" }, { mark: "no", text: "Months" }, { mark: "partial", text: "Weeks, but narrow" }],
+    cells: [{ mark: "yes", text: "Weeks" }, { mark: "no", text: "Months" }, { mark: "partial", text: "Varies" }],
   },
   {
     label: `<strong>Typical cost</strong>`,
@@ -42,7 +42,7 @@ const rows = [
 <section id="compare" class="aol-grid-blue" style="border-bottom:1px solid var(--ink-200)">
   <div style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
     <div class="aol-eyebrow" style="margin-bottom:14px">the alternatives</div>
-    <h2 class="aol-display" style="font-size:40px;margin:0 0 40px">The only full-stack adtech GTM agency.</h2>
+    <h2 class="aol-display" style="font-size:40px;margin:0 0 40px">The only full-stack growth partner for adtech.</h2>
     <div class="aol-cmp-frame">
       <ComparisonTable columns={columns} rows={rows} />
     </div>
