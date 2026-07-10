@@ -1,0 +1,27 @@
+---
+import StatusMark from "./StatusMark.astro";
+
+interface Change {
+  before: string;
+  after: string;
+}
+interface Props {
+  items: Change[];
+  class?: string;
+  [key: string]: any;
+}
+const { items, class: className, ...rest } = Astro.props;
+const cls = ["aol-changes", className].filter(Boolean).join(" ");
+---
+<div class={cls} {...rest}>
+  {items.map((c) => (
+    <div class="aol-changes__row">
+      <div class="aol-changes__cell aol-changes__cell--before">
+        <span class="aol-changes__icon"><StatusMark kind="no" size={15} /></span>{c.before}
+      </div>
+      <div class="aol-changes__cell aol-changes__cell--after">
+        <span class="aol-changes__icon"><StatusMark kind="yes" size={15} /></span>{c.after}
+      </div>
+    </div>
+  ))}
+</div>

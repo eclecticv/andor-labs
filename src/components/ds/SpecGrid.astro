@@ -1,0 +1,25 @@
+---
+// A leader-dot spec sheet — label ... dotted leader ... value, like a
+// datasheet or price list. Deliberately not a card grid: rows of facts read
+// as a technical figure, where identical stat tiles would read as filler.
+interface Spec {
+  label: string;
+  value: string;
+}
+interface Props {
+  specs: Spec[];
+  class?: string;
+  [key: string]: any;
+}
+const { specs, class: className, ...rest } = Astro.props;
+const cls = ["aol-specsheet", className].filter(Boolean).join(" ");
+---
+<dl class={cls} {...rest}>
+  {specs.map((s) => (
+    <div class="aol-specsheet__row">
+      <dt class="aol-specsheet__label">{s.label}</dt>
+      <span class="aol-specsheet__leader" aria-hidden="true" />
+      <dd class="aol-specsheet__val">{s.value}</dd>
+    </div>
+  ))}
+</dl>

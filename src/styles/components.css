@@ -36,16 +36,16 @@
 }
 
 .aol-btn--primary{ background:var(--blue-500); color:#fff; border-color:var(--blue-700); box-shadow:0 3px 0 0 var(--blue-700); }
-.aol-btn--primary:hover{ background:var(--blue-600); border-color:var(--blue-700); }
-.aol-btn--primary:active{ background:var(--blue-600); transform:translateY(3px); box-shadow:0 0 0 0 var(--blue-700); }
+.aol-btn--primary:hover{ background:var(--blue-600); border-color:var(--blue-700); color:#fff; }
+.aol-btn--primary:active{ background:var(--blue-600); transform:translateY(3px); box-shadow:0 0 0 0 var(--blue-700); color:#fff; }
 
 .aol-btn--secondary{ background:var(--paper-pure); color:var(--ink-900); border-color:var(--ink-900); box-shadow:0 3px 0 0 var(--ink-900); }
-.aol-btn--secondary:hover{ background:var(--ink-050); }
-.aol-btn--secondary:active{ transform:translateY(3px); box-shadow:0 0 0 0 var(--ink-900); }
+.aol-btn--secondary:hover{ background:var(--ink-050); color:var(--ink-900); }
+.aol-btn--secondary:active{ transform:translateY(3px); box-shadow:0 0 0 0 var(--ink-900); color:var(--ink-900); }
 
 .aol-btn--ghost{ background:transparent; color:var(--ink-900); border-color:transparent; }
-.aol-btn--ghost:hover{ background:var(--ink-100); }
-.aol-btn--ghost:active{ background:var(--ink-200); }
+.aol-btn--ghost:hover{ background:var(--ink-100); color:var(--ink-900); }
+.aol-btn--ghost:active{ background:var(--ink-200); color:var(--ink-900); }
 
 .aol-btn--link{ background:transparent; color:var(--blue-500); border-color:transparent; padding-left:4px; padding-right:4px; }
 .aol-btn--link:hover{ color:var(--blue-600); text-decoration:underline; text-decoration-style:wavy; text-underline-offset:3px; text-decoration-color:var(--blue-400); }
@@ -65,9 +65,9 @@
 .aol-card--sunken{ background:var(--ink-050); border-color:var(--ink-200); }
 .aol-card--grid{
   background-color:var(--surface-card);
-  background-image:radial-gradient(var(--grid-line) 0.9px, transparent 1px);
-  background-size: var(--grid-fine) var(--grid-fine);
-  background-position:-0.45px -0.45px;
+  background-image:url("/texture.svg");
+  background-repeat:repeat;
+  background-position:0 0;
 }
 .aol-card--p-none{ padding:0; }
 .aol-card--p-sm{ padding:16px; }
@@ -118,6 +118,9 @@
   background-size: 3px 6px;
 }
 
+/* ---- DitherLine — makingsoftware.com's section divider (SVG-tiled "░") ---- */
+.aol-ditherline{ display:block; }
+
 /* ---- Link ---- */
 .aol-link{
   color:var(--blue-500); text-decoration:underline; text-decoration-style:wavy;
@@ -146,13 +149,10 @@
 .aol-gridframe{
   position:relative; box-sizing:border-box;
   background-color:var(--color-surface);
-  background-image:radial-gradient(var(--grid-line) 0.9px, transparent 1px);
-  background-size: var(--grid-fine) var(--grid-fine);
-  background-position:-0.45px -0.45px;
+  background-image:url("/texture.svg");
+  background-repeat:repeat;
+  background-position:0 0;
   padding:30px 32px;
-}
-.aol-gridframe--blue{
-  background-image:radial-gradient(var(--grid-blue) 0.9px, transparent 1px);
 }
 .aol-gridframe--bordered{ border:1px solid var(--border-hairline); }
 .aol-gridframe__ruler{ position:absolute; pointer-events:none; opacity:0.65; }
@@ -238,8 +238,9 @@
   position:relative; height:100%; justify-content:space-between; border-radius:0;
   border:1px solid var(--border-hairline);
   background-color:var(--paper-pure);
-  background-image:radial-gradient(var(--grid-line) 0.9px, transparent 1px);
-  background-size:11px 11px; background-position:-0.45px -0.45px;
+  background-image:url("/texture.svg");
+  background-repeat:repeat;
+  background-position:0 0;
 }
 .aol-quote__crop{ position:absolute; width:9px; height:9px; pointer-events:none; }
 .aol-quote__crop--tl{ top:-1px; left:-1px; border-top:1.5px solid var(--ink-900); border-left:1.5px solid var(--ink-900); }
@@ -390,6 +391,45 @@
 @media (max-width:640px){
   .aol-ba{ grid-template-columns:1fr; row-gap:10px; }
   .aol-ba__label{ align-self:start; margin-top:8px; }
+}
+
+/* ---- SpecSheet — leader-dot label/value rows, like a datasheet or price list.
+   Deliberately not a card/stat grid — rows read as a technical figure. ---- */
+.aol-specsheet{ margin:0; }
+.aol-specsheet__row{
+  display:flex; align-items:baseline; gap:10px;
+  padding:11px 0;
+}
+.aol-specsheet__row:first-child{ border-top:1px solid var(--ink-200); }
+.aol-specsheet__label{
+  flex:none; font-family:var(--font-mono); font-size:11px; letter-spacing:0.08em;
+  text-transform:uppercase; color:var(--ink-500); white-space:nowrap;
+}
+.aol-specsheet__leader{
+  flex:1; height:3px; align-self:flex-end; margin-bottom:2px;
+  background-image:radial-gradient(var(--ink-300) 0.9px, transparent 1.1px);
+  background-size:6px 3px; background-position:left center; background-repeat:repeat-x;
+}
+.aol-specsheet__val{
+  flex:none; margin:0; font-family:var(--font-serif); font-weight:600;
+  font-size:16px; color:var(--ink-900); text-align:right;
+}
+
+/* ---- ChangesList — paired before/after rows (variable length, unlike .aol-ba's fixed 3-item row) ---- */
+.aol-changes{
+  margin-top:24px; border:1px solid var(--ink-200); border-radius:var(--radius-md); background:var(--paper-pure);
+}
+.aol-changes__row{
+  display:grid; grid-template-columns:1fr 1fr; gap:22px;
+  padding:16px 24px; border-bottom:1px solid var(--ink-200);
+}
+.aol-changes__row:last-child{ border-bottom:0; }
+.aol-changes__cell{ display:flex; gap:10px; align-items:flex-start; font-family:var(--font-mono); font-size:13px; line-height:1.5; }
+.aol-changes__cell--before{ color:var(--ink-500); }
+.aol-changes__cell--after{ color:var(--ink-900); font-weight:600; }
+.aol-changes__icon{ flex:none; position:relative; top:1px; }
+@media (max-width:640px){
+  .aol-changes__row{ grid-template-columns:1fr; gap:8px; }
 }
 
 /* ---- ComparisonTable ---- */

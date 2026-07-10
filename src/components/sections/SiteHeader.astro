@@ -3,11 +3,16 @@ import Logo from "../ds/Logo.astro";
 import Button from "../ds/Button.astro";
 
 const CAL = "https://calendar.app.google/X1YiTW5qcfR3WQ6LA";
+// Homepage anchors are absolute (`/#id`) rather than relative (`#id`) so they
+// still resolve correctly from the new /work pages, not just from `/`.
+// "Work" points straight at the one live case study for now — the /work
+// listing page is parked (index.astro.parked) until a few more exist.
 const NAV: [string, string][] = [
-  ["About", "#founder"],
-  ["Why us", "#compare"],
-  ["Pricing", "#how-we-work"],
-  ["FAQ", "#faq"],
+  ["About", "/#founder"],
+  ["Why us", "/#compare"],
+  ["Pricing", "/#how-we-work"],
+  ["Work", "/work/filament"],
+  ["FAQ", "/#faq"],
 ];
 ---
 <header style="position:sticky;top:0;z-index:20;background:rgba(255,255,255,0.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--ink-200)">

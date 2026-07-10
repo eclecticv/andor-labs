@@ -60,6 +60,11 @@
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
+/* Departure Mono ships 400-weight only — faux-bold blurs its pixel grid, so
+   "bold" emphasis here comes from full ink contrast instead of font-weight. */
+.aol-eyebrow--strong {
+  color: var(--ink-900);
+}
 .aol-display {
   font-family: var(--font-display);
   font-weight: var(--weight-regular);  /* Instrument Serif is 400-only; its contrast reads bold. Faux-bold muddies it. */

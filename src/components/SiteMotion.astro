@@ -34,7 +34,10 @@
     const navLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>(".site-nav-link"));
     const targets: HTMLElement[] = [];
     for (const a of navLinks) {
-      const id = (a.getAttribute("href") || "").replace("#", "");
+      // `.hash` is the resolved fragment (e.g. "#founder"), unlike the raw
+      // `href` attribute — this stays correct whether the link is `#founder`
+      // (same-page) or `/#founder` (absolute, resolves from any page).
+      const id = a.hash.replace("#", "");
       const sec = id && document.getElementById(id);
       if (sec) targets.push(sec);
     }
@@ -51,7 +54,7 @@
             if (visible.has(sec.id)) { current = sec.id; break; }
           }
           for (const a of navLinks) {
-            const id = (a.getAttribute("href") || "").replace("#", "");
+            const id = a.hash.replace("#", "");
             if (id === current) a.setAttribute("aria-current", "true");
             else a.removeAttribute("aria-current");
           }

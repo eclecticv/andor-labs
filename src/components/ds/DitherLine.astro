@@ -1,0 +1,24 @@
+---
+// Exact replica of makingsoftware.com's header divider: an SVG <pattern>
+// tiling the Unicode light-shade block "░" in a 14x14 grid (their own
+// markup: <text x="0" y="6" class="text-xs">░</text>), rendered in their
+// body serif at 12px — not mono. It lives in their <nav>, directly under
+// the masthead, not as a repeating section separator.
+interface Props {
+  height?: number;
+  color?: string;
+  class?: string;
+  [key: string]: any;
+}
+const { height = 14, color = "var(--ink-900)", class: className, ...rest } = Astro.props;
+const patternId = `aol-dither-${crypto.randomUUID().slice(0, 8)}`;
+const cls = ["aol-ditherline", className].filter(Boolean).join(" ");
+---
+<svg class={cls} width="100%" height={height} style={`color:${color}`} {...rest}>
+  <defs>
+    <pattern id={patternId} x="0" y="0" width={height} height={height} patternUnits="userSpaceOnUse">
+      <text x="0" y="6" fill="currentColor" font-size="12" font-family="var(--font-serif)">░</text>
+    </pattern>
+  </defs>
+  <rect x="0" y="0" width="100%" height="100%" fill={`url(#${patternId})`} />
+</svg>

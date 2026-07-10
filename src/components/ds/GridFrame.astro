@@ -2,7 +2,6 @@
 interface Props {
   label?: string;
   dim?: string;
-  blue?: boolean;
   bordered?: boolean;
   ruler?: boolean;
   registration?: boolean;
@@ -13,7 +12,6 @@ interface Props {
 const {
   label,
   dim,
-  blue = false,
   bordered = true,
   ruler = false,
   registration = true,
@@ -23,7 +21,6 @@ const {
 } = Astro.props;
 const cls = [
   "aol-gridframe",
-  blue && "aol-gridframe--blue",
   bordered && "aol-gridframe--bordered",
   className,
 ].filter(Boolean).join(" ");

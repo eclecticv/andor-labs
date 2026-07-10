@@ -73,10 +73,6 @@
   --signal-tint:   var(--blue-050);
   --signal-fill:   var(--blue-100);
 
-  /* ---- The engineering grid (blue is the only grid tint) ---- */
-  --grid-line:        rgba(27, 77, 255, 0.11);
-  --grid-blue:        rgba(27, 77, 255, 0.17);
-
   /* ---- Status semantics ---- */
   --color-positive: var(--green-600);
   --color-warning:  var(--amber-600);

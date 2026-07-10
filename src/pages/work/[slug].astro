@@ -1,0 +1,164 @@
+---
+import { getCollection, render } from "astro:content";
+import Base from "../../layouts/Base.astro";
+import SiteHeader from "../../components/sections/SiteHeader.astro";
+import SiteFooter from "../../components/sections/SiteFooter.astro";
+import SiteMotion from "../../components/SiteMotion.astro";
+import Link from "../../components/ds/Link.astro";
+import Button from "../../components/ds/Button.astro";
+import DiagramFigure from "../../components/ds/DiagramFigure.astro";
+import DitherLine from "../../components/ds/DitherLine.astro";
+import SpecGrid from "../../components/ds/SpecGrid.astro";
+import ChangesList from "../../components/ds/ChangesList.astro";
+import Quote from "../../components/ds/Quote.astro";
+import BeforeAfterSlider from "../../components/BeforeAfterSlider.tsx";
+
+export async function getStaticPaths() {
+  const caseStudies = await getCollection("caseStudies");
+  return caseStudies.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { data } = entry;
+const { Content } = await render(entry);
+
+const CAL = "https://calendar.app.google/X1YiTW5qcfR3WQ6LA";
+---
+<Base title={`${data.client.name} — Work — And/or Labs`} description={data.summary}>
+  <SiteHeader />
+  <main>
+    {/* Header — eyebrow, headline, lead, then a credstrip meta row (same idiom as the homepage hero's "As seen on" strip) instead of a loose badge+label */}
+    <section style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
+      <div style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
+        <div class="aol-eyebrow" style="margin-bottom:14px">case study</div>
+        <h1 class="aol-display" style="font-size:52px;margin:0 0 18px">{data.client.name}</h1>
+        <p style="font-family:var(--font-serif);font-size:19px;line-height:1.55;color:var(--ink-600);max-width:var(--measure);margin:0 0 20px">
+          {data.summary}
+        </p>
+        <DitherLine />
+        <div class="aol-credstrip" style="grid-template-columns:1.8fr 1fr 1.2fr;border-top:none;padding-top:14px">
+          <div class="aol-credstrip__cell">
+            <span class="aol-eyebrow">Industry</span>
+            <span class="aol-credstrip__val">{data.client.industry}</span>
+          </div>
+          <div class="aol-credstrip__cell">
+            <span class="aol-eyebrow">Engagement</span>
+            <span class="aol-credstrip__val">{data.serviceLine}</span>
+          </div>
+          <div class="aol-credstrip__cell">
+            <span class="aol-eyebrow">Live site</span>
+            <span class="aol-credstrip__val"><Link arrow href={data.client.url} target="_blank" rel="noopener">{data.client.url.replace(/^https?:\/\/(www\.)?/, "")}</Link></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* Before/after hero figure — full width, the page's one big visual moment */}
+    <section style="border-bottom:1px solid var(--ink-200);background:var(--surface-card)">
+      <div style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
+        <DiagramFigure number={1} caption="Homepage hero — before and after">
+          <div style="aspect-ratio:16/10;overflow:hidden;border-radius:var(--radius-sm)">
+            <BeforeAfterSlider
+              client:visible
+              beforeSrc={data.before.image}
+              beforeAlt={data.before.alt}
+              afterSrc={data.after.src}
+              afterAlt={data.after.alt}
+              afterType={data.after.type}
+            />
+          </div>
+        </DiagramFigure>
+      </div>
+    </section>
+
+    {/* Editorial two-column body — narrative reads as the main column, the
+        stack/performance facts sit in a spec-sheet sidebar rather than
+        interrupting the story as their own full-width sections */}
+    <section style="background:var(--paper)">
+      <div class="case-body" style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
+        <div class="case-body__main">
+          <div class="case-narrative aol-body">
+            <Content />
+          </div>
+
+          <div style="margin-top:40px">
+            <div class="aol-eyebrow aol-eyebrow--strong" style="margin-bottom:14px">what changed</div>
+            <ChangesList items={data.changes} />
+          </div>
+        </div>
+
+        <aside class="case-body__side">
+          <div class="aol-eyebrow aol-eyebrow--strong" style="margin-bottom:14px">the stack</div>
+          <SpecGrid specs={data.stack} />
+
+          {data.performance && data.performance.length > 0 && (
+            <div style="margin-top:40px">
+              <div class="aol-eyebrow aol-eyebrow--strong" style="margin-bottom:14px">performance snapshot</div>
+              <SpecGrid specs={data.performance.map((p) => ({ label: p.metric, value: p.value }))} />
+            </div>
+          )}
+        </aside>
+      </div>
+    </section>
+
+    {/* Testimonial, if supplied */}
+    {data.testimonial && (
+      <section style="border-top:1px solid var(--ink-200);background:var(--surface-card)">
+        <div style="max-width:var(--content-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
+          <Quote quote={data.testimonial.quote} name={data.testimonial.name} role={data.testimonial.title} size="lg" />
+        </div>
+      </section>
+    )}
+
+    {/* CTA — the section itself carries the engineering-grid texture (no
+        bordered card, no crop-tick/registration chrome), closing the page
+        with the same brand texture rather than a framed figure */}
+    <section class="aol-grid-blue" style="border-top:1px solid var(--ink-200)">
+      <div style="max-width:var(--content-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter);text-align:center">
+        <h2 style="font-family:var(--font-serif);font-weight:600;font-size:26px;color:var(--ink-900);margin:0 0 20px">Want a {data.serviceLine} like this?</h2>
+        <Button size="lg" variant="primary" arrow href={CAL} target="_blank" rel="noopener">Book a call</Button>
+      </div>
+    </section>
+  </main>
+  <SiteFooter />
+  <SiteMotion />
+</Base>
+
+<style>
+  .case-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 72px;
+    align-items: start;
+  }
+  .case-body__side {
+    position: sticky;
+    top: 96px;
+  }
+  @media (max-width: 860px) {
+    .case-body {
+      grid-template-columns: 1fr;
+      gap: 48px;
+    }
+    .case-body__side {
+      position: static;
+    }
+  }
+
+  .case-narrative :global(h2) {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 22px;
+    color: var(--ink-900);
+    margin: 32px 0 12px;
+  }
+  .case-narrative :global(h2:first-child) {
+    margin-top: 0;
+  }
+  .case-narrative :global(p) {
+    margin: 0 0 16px;
+  }
+</style>
