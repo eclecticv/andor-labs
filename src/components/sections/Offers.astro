@@ -1,8 +1,6 @@
 ---
 import Card from "../ds/Card.astro";
-import Badge from "../ds/Badge.astro";
 import Button from "../ds/Button.astro";
-import Divider from "../ds/Divider.astro";
 import Link from "../ds/Link.astro";
 import StatusMark from "../ds/StatusMark.astro";
 
@@ -13,6 +11,7 @@ const plans = [
     price: "$495", per: "one-time", cta: "Book your audit",
     feats: ["B2B SaaS benchmarking", "Positioning teardown", "SEO/AEO competitive report", "30/60/90 action plan", "45-minute readout"],
     raised: true, flag: "Most teams start here" as string | null,
+    accent: "blue" as "blue" | "copper",
   },
   {
     kind: "Sprint", name: "Design Makeover",
@@ -20,6 +19,7 @@ const plans = [
     price: "$9,995", per: "one-time", cta: "Reserve your sprint",
     feats: ["Positioning rewrite", "Full design system", "New, AI-ready site", "Headless CMS configuration", "Social asset pack (X/LinkedIn)"],
     raised: false, flag: null as string | null,
+    accent: "copper" as "blue" | "copper",
   },
   {
     kind: "Retainer", name: "Fractional CMO",
@@ -27,33 +27,34 @@ const plans = [
     price: "$5,995", per: "/mo · 3-month min", cta: "Book intro call",
     feats: ["Weekly GTM strategy call", "Active SEO/AEO campaign", "Multi-format social content", "Bi-weekly newsletter", "1x custom content / quarter"],
     raised: false, flag: null as string | null,
+    accent: "copper" as "blue" | "copper",
   },
 ];
 ---
 <section id="how-we-work" style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
   <div style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
     <div class="aol-eyebrow" style="margin-bottom:14px">how we work</div>
-    <h2 class="aol-display" style="font-size:40px;margin:0 0 36px">Pick the one that works best or book a call.</h2>
+    <h2 class="aol-display" style="font-size:40px;margin:0 0 36px">Book a call to evaluate fit.</h2>
     <div class="aol-grid-3" style="display:grid;gap:20px;align-items:start">
       {plans.map((p) => (
         <Card variant="flat" padding="lg" style="display:flex;flex-direction:column;position:relative;background:var(--surface-card)">
           {p.flag && (
             <div style="position:absolute;top:0;right:18px;transform:translateY(-50%);background:var(--blue-600);color:#fff;font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;padding:4px 10px;border-radius:var(--radius-sm)">{p.flag}</div>
           )}
-          <Badge variant="outline" dot>{p.kind}</Badge>
           <h3 style="font-family:var(--font-serif);font-weight:600;font-size:25px;letter-spacing:-0.01em;margin:14px 0 8px">{p.name}</h3>
           <p style="font-size:16px;color:var(--ink-600);line-height:1.5;margin:0 0 20px">{p.blurb}</p>
-          <div style="margin-bottom:20px;border-top:1px solid var(--ink-200)">
+          <div style="margin-bottom:20px;background-image:radial-gradient(var(--ink-300) 0.9px, transparent 1.1px);background-size:6px 3px;background-position:left top;background-repeat:repeat-x">
             {p.feats.map((f) => (
-              <div style="display:flex;gap:10px;align-items:flex-start;font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--ink-900);padding:10px 0;border-bottom:1px solid var(--ink-200)">
-                <span style="flex:none;position:relative;top:1px"><StatusMark kind="yes" size={15} /></span>{f}
+              <div style="display:flex;gap:10px;align-items:flex-start;font-family:var(--font-mono);font-size:13px;font-weight:400;color:var(--ink-900);padding:10px 0;background-image:radial-gradient(var(--ink-300) 0.9px, transparent 1.1px);background-size:6px 3px;background-position:left bottom;background-repeat:repeat-x">
+                <span style="flex:none;position:relative;top:1px">
+                  <StatusMark kind="yes" size={15} style={`color:${p.accent === "blue" ? "var(--blue-600)" : "var(--copper-600)"}`} />
+                </span>{f}
               </div>
             ))}
           </div>
           <div style="margin-top:auto">
-            <Button variant="primary" fullWidth href="https://calendar.app.google/X1YiTW5qcfR3WQ6LA" target="_blank" rel="noopener">{p.cta}</Button>
-            <div style="margin:18px 0 0"><Divider /></div>
-            <div style="display:flex;align-items:baseline;justify-content:center;gap:8px;margin-top:16px">
+            <Button variant="primary" fullWidth href="https://calendar.app.google/X1YiTW5qcfR3WQ6LA" target="_blank" rel="noopener" style="padding:16px">{p.cta}</Button>
+            <div class="aol-grid" style="display:flex;align-items:baseline;justify-content:center;gap:8px;margin:24px -32px -32px;padding:16px 32px 28px;border-radius:0 0 var(--radius-md) var(--radius-md)">
               <span style="font-family:var(--font-display);font-size:28px;font-weight:400;color:var(--ink-900);font-variant-numeric:tabular-nums">{p.price}</span>
               <span style="font-family:var(--font-mono);font-size:12px;color:var(--ink-500)">{p.per}</span>
             </div>

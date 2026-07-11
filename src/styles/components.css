@@ -98,6 +98,7 @@
 .aol-badge--positive{ background:var(--green-100); color:var(--green-600); }
 .aol-badge--warning{ background:var(--amber-100); color:var(--amber-600); }
 .aol-badge--danger{ background:var(--red-100); color:var(--red-600); }
+.aol-badge--copper{ background:var(--pink-100); color:var(--copper-700); border-color:var(--copper-400); }
 
 /* ---- Divider ---- */
 .aol-divider{ display:flex; align-items:center; gap:12px; color:var(--ink-300); width:100%; }
