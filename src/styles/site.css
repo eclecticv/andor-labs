@@ -253,7 +253,7 @@ body.no-scroll { overflow: hidden; }
 .aol-article-body h3 { font-size: var(--text-xl); margin-top: var(--space-10); }
 .aol-article-body h4, .aol-article-body h5, .aol-article-body h6 { margin-top: var(--space-8); }
 .aol-article-body h2 + *, .aol-article-body h3 + *, .aol-article-body h4 + * { margin-top: var(--space-4); }
-.aol-article-body p { margin: 0; }
+.aol-article-body p { margin-bottom: 0; } /* only clear the base reset's 1em bottom; margin: 0 would out-specific the > * + * rule above and collapse all paragraph spacing */
 .aol-article-body ul, .aol-article-body ol { margin: 0; padding-left: 1.4em; }
 .aol-article-body li + li { margin-top: 0.4em; }
 .aol-article-body li::marker { color: var(--blue-500); }

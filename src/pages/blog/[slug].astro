@@ -38,13 +38,14 @@ const jsonLd = {
   headline: post.title,
   description: post.excerpt,
   datePublished: post.publishedAt,
+  ...(post.tags?.length ? { keywords: post.tags.join(", ") } : {}),
   author: { "@type": "Person", name: "Vishveshwar Jatain", url: "https://andorlabs.ca" },
   publisher: { "@type": "Organization", name: "And/or Labs", url: "https://andorlabs.ca" },
   mainEntityOfPage: new URL(`/blog/${post.slug}/`, Astro.site).href,
 };
 ---
 
-<Base title={`${post.title} — And/or Labs`} description={post.excerpt}>
+<Base title={`${post.title} — And/or Labs`} description={post.excerpt} ogType="article" publishedTime={post.publishedAt}>
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   <SiteHeader />
   <main class="blog-post">
