@@ -240,3 +240,29 @@ body.no-scroll { overflow: hidden; }
 @media (max-width: 420px) {
   .aol-footer-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Blog post body — Portable Text prose ─────────────────────────
+   astro-portabletext renders bare semantic elements (p, h2-h6, blockquote,
+   ul/ol/li, a, code, strong, em) with no classes. base.css already covers
+   headings/links/code globally; this fills the gaps (blockquote, lists,
+   inter-block rhythm) scoped to the article body so it never leaks into
+   other prose (e.g. the FAQ answers, which use their own faq-a rules). */
+.aol-article-body { font-family: var(--font-serif); font-size: var(--text-base); line-height: var(--leading-relaxed); color: var(--text-body); }
+.aol-article-body > * + * { margin-top: var(--space-6); }
+.aol-article-body h2 { font-size: var(--text-2xl); margin-top: var(--space-12); }
+.aol-article-body h3 { font-size: var(--text-xl); margin-top: var(--space-10); }
+.aol-article-body h4, .aol-article-body h5, .aol-article-body h6 { margin-top: var(--space-8); }
+.aol-article-body h2 + *, .aol-article-body h3 + *, .aol-article-body h4 + * { margin-top: var(--space-4); }
+.aol-article-body p { margin: 0; }
+.aol-article-body ul, .aol-article-body ol { margin: 0; padding-left: 1.4em; }
+.aol-article-body li + li { margin-top: 0.4em; }
+.aol-article-body li::marker { color: var(--blue-500); }
+.aol-article-body blockquote {
+  margin: 0;
+  padding: 2px 0 2px var(--space-5);
+  border-left: var(--border-thick) solid var(--blue-400);
+  color: var(--ink-600);
+  font-style: italic;
+}
+.aol-article-body blockquote > * + * { margin-top: var(--space-3); }
+.aol-article-body code { background: var(--ink-050); padding: 0.15em 0.4em; border-radius: var(--radius-xs); }

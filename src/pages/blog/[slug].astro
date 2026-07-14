@@ -1,0 +1,66 @@
+---
+import { sanityClient } from "sanity:client";
+import { PortableText } from "astro-portabletext";
+import Base from "../../layouts/Base.astro";
+import SiteHeader from "../../components/sections/SiteHeader.astro";
+import SiteFooter from "../../components/sections/SiteFooter.astro";
+import SiteMotion from "../../components/SiteMotion.astro";
+import Badge from "../../components/ds/Badge.astro";
+import Link from "../../components/ds/Link.astro";
+
+export async function getStaticPaths() {
+  const posts = await sanityClient.fetch(
+    `*[_type == "post" && defined(slug.current)]{
+      title, "slug": slug.current, excerpt, publishedAt, tags, targetQuery, body
+    }`
+  );
+  return posts.map((post: any) => ({ params: { slug: post.slug }, props: { post } }));
+}
+
+const { post } = Astro.props;
+
+const fmt = (d: string) =>
+  new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: post.title,
+  description: post.excerpt,
+  datePublished: post.publishedAt,
+  author: { "@type": "Person", name: "Vishveshwar Jatain", url: "https://andorlabs.ca" },
+  publisher: { "@type": "Organization", name: "And/or Labs", url: "https://andorlabs.ca" },
+  mainEntityOfPage: new URL(`/blog/${post.slug}/`, Astro.site).href,
+};
+---
+
+<Base title={`${post.title} — And/or Labs`} description={post.excerpt}>
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  <SiteHeader />
+  <main class="blog-post">
+    <section style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
+      <div style="max-width:var(--content-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
+        <Link href="/blog/" variant="quiet" class="aol-mono" style="display:inline-block;margin-bottom:22px">&larr; Field notes</Link>
+        <article>
+          <header>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+              {post.tags?.[0] && <Badge variant="outline" dot>{post.tags[0]}</Badge>}
+              <time datetime={post.publishedAt} class="aol-mono" style="color:var(--ink-500)">{fmt(post.publishedAt)}</time>
+            </div>
+            <h1 class="aol-display" style="font-size:42px;margin:0 0 18px">{post.title}</h1>
+            {/* Answer-first: the excerpt is the on-page answer engines lift — it
+                renders directly under the H1, before the body, every time. */}
+            <p class="excerpt" style="font-family:var(--font-serif);font-size:19px;line-height:1.55;color:var(--ink-600);margin:0 0 36px">
+              {post.excerpt}
+            </p>
+          </header>
+          <div class="aol-article-body">
+            <PortableText value={post.body} />
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+  <SiteFooter />
+  <SiteMotion />
+</Base>
