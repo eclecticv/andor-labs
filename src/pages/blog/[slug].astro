@@ -8,13 +8,23 @@ import SiteMotion from "../../components/SiteMotion.astro";
 import Badge from "../../components/ds/Badge.astro";
 import Link from "../../components/ds/Link.astro";
 
+interface PostDetail {
+  title: string;
+  slug: string;
+  excerpt: string;
+  publishedAt: string;
+  tags?: string[];
+  targetQuery?: string;
+  body: import("@portabletext/types").PortableTextBlock[];
+}
+
 export async function getStaticPaths() {
-  const posts = await sanityClient.fetch(
+  const posts = await sanityClient.fetch<PostDetail[]>(
     `*[_type == "post" && defined(slug.current)]{
       title, "slug": slug.current, excerpt, publishedAt, tags, targetQuery, body
     }`
   );
-  return posts.map((post: any) => ({ params: { slug: post.slug }, props: { post } }));
+  return posts.map((post) => ({ params: { slug: post.slug }, props: { post } }));
 }
 
 const { post } = Astro.props;
