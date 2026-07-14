@@ -475,3 +475,19 @@ Run the workflow on one real topic → approve in AirOps → post appears in San
 - [ ] **Step 6: Record completion**
 
 Update this plan's checkboxes; add a review section to the spec noting deviations, if any.
+
+---
+
+## Review — session close 2026-07-14
+
+**Tasks 1–5 complete and verified in production.** Blog live at andorlabs.ca/blog (11 migrated posts), Studio at /admin, pipeline proven autonomous twice (Sanity edit → webhook → deploy hook → live, deployments d36872b7 / f3b30235).
+
+**Deviations from plan:**
+- Seeding: 11 legacy posts migrated by script (`scripts/seed-blog.ts`) instead of 2 manual posts.
+- No CF Pages project created — `andorlabs` project already existed, git-connected to this repo (plan assumption about old-repo hosting was wrong); Task 5 reduced to deploy hook + webhook, both created via API/CLI, not dashboard.
+- No build read-token (production dataset is public); only secret is the future AirOps write token.
+- Sanity webhook gotcha: `apiVersion v2021-03-16` = silently never fires; use `v2025-02-19`.
+- `sanity` installed at v6 (plan said "Studio v4" — stale).
+- Post-merge fixes: paragraph-spacing CSS specificity bug; og:type=article + article:published_time + JSON-LD keywords; source-content defects repaired in Sanity (bold/em restored, 2 posts).
+
+**Task 6 (AirOps) NOT started** — requires VJ in AirOps UI: write token, connection, brand kit, editorial workflow w/ approval step, E2E. Also pending: blog nav link (VJ design call), PortableText image renderer before AirOps goes live, revoke session CF API token.
