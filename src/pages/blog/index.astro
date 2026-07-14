@@ -1,0 +1,62 @@
+---
+import { sanityClient } from "sanity:client";
+import Base from "../../layouts/Base.astro";
+import SiteHeader from "../../components/sections/SiteHeader.astro";
+import SiteFooter from "../../components/sections/SiteFooter.astro";
+import SiteMotion from "../../components/SiteMotion.astro";
+import Card from "../../components/ds/Card.astro";
+import Badge from "../../components/ds/Badge.astro";
+
+interface PostCard {
+  title: string;
+  slug: string;
+  excerpt: string;
+  publishedAt: string;
+  tags?: string[];
+}
+
+const posts: PostCard[] = await sanityClient.fetch(
+  `*[_type == "post" && defined(slug.current)] | order(publishedAt desc){
+    title, "slug": slug.current, excerpt, publishedAt, tags
+  }`,
+);
+
+const fmt = (d: string) =>
+  new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+---
+
+<Base
+  title="Blog — And/or Labs"
+  description="Educational content on B2B marketing, content strategy, and sales ops for adtech founders."
+>
+  <SiteHeader />
+  <main>
+    <section style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
+      <div style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
+        <div class="aol-eyebrow" style="margin-bottom:14px">blog</div>
+        <h1 class="aol-display" style="font-size:44px;margin:0 0 12px">Field notes.</h1>
+        <p style="font-family:var(--font-serif);font-size:18px;color:var(--ink-600);max-width:var(--measure);margin:0 0 44px">
+          Essays and explainers on GTM engineering, content strategy, and sales ops — written from inside the machine, not about it.
+        </p>
+        <ul style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:20px">
+          {posts.map((post) => (
+            <li>
+              <a href={`/blog/${post.slug}/`} style="text-decoration:none;color:inherit;display:block;height:100%">
+                <Card variant="raised" padding="lg" interactive style="height:100%;display:flex;flex-direction:column;gap:14px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                    {post.tags?.[0] && <Badge variant="outline" dot>{post.tags[0]}</Badge>}
+                    <time datetime={post.publishedAt} class="aol-mono" style="color:var(--ink-500);white-space:nowrap">{fmt(post.publishedAt)}</time>
+                  </div>
+                  <h2 style="font-family:var(--font-serif);font-weight:600;font-size:22px;line-height:1.25;margin:0;color:var(--ink-900)">{post.title}</h2>
+                  <p style="font-size:15px;line-height:1.55;color:var(--ink-600);margin:0">{post.excerpt}</p>
+                </Card>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  </main>
+  <SiteFooter />
+  <SiteMotion />
+</Base>
