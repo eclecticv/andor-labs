@@ -17,6 +17,6 @@ export default defineConfig({
     }),
     // React powers the embedded Studio and the dev-only Agentation island (see Base.astro).
     react(),
-    sitemap(),
+    sitemap({ filter: (page) => !page.includes('/admin') }),
   ],
 });
