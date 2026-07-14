@@ -26,7 +26,9 @@
   },
   "devDependencies": {
     "@sanity/block-tools": "^3.70.0",
+    "@sanity/schema": "^6.4.0",
     "gray-matter": "^4.0.3",
+    "jsdom": "^29.1.1",
     "marked": "^18.0.6"
   }
 }
