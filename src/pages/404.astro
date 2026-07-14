@@ -1,0 +1,25 @@
+---
+import Base from "../layouts/Base.astro";
+import SiteHeader from "../components/sections/SiteHeader.astro";
+import SiteFooter from "../components/sections/SiteFooter.astro";
+import SiteMotion from "../components/SiteMotion.astro";
+---
+
+<Base title="Page not found — And/or Labs" description="That page doesn't exist.">
+  <SiteHeader />
+  <main class="not-found">
+    <section style="border-bottom:1px solid var(--ink-200);background:var(--paper);min-height:60vh;display:flex;align-items:center;justify-content:center">
+      <div style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter);text-align:center;width:100%">
+        <h1 class="aol-display" style="font-size:64px;margin:0 0 16px">404</h1>
+        <p style="font-family:var(--font-serif);font-size:18px;color:var(--ink-600);max-width:var(--measure);margin:0 auto 24px">
+          That page doesn't exist.
+        </p>
+        <p style="font-size:15px;color:var(--ink-600);margin:0">
+          <a href="/" style="color:var(--ink-900);font-weight:600;text-decoration:none;border-bottom:1px solid var(--ink-900)">Back to the homepage</a> or <a href="/blog/" style="color:var(--ink-900);font-weight:600;text-decoration:none;border-bottom:1px solid var(--ink-900)">read the blog</a>.
+        </p>
+      </div>
+    </section>
+  </main>
+  <SiteFooter />
+  <SiteMotion />
+</Base>
