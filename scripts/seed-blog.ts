@@ -17,7 +17,6 @@ import { getCliClient } from "sanity/cli";
 import matter from "gray-matter";
 import { marked } from "marked";
 import { JSDOM } from "jsdom";
-// @ts-expect-error — @sanity/block-tools ships no types for this deep import path.
 import { htmlToBlocks } from "@sanity/block-tools";
 import { Schema } from "@sanity/schema";
 import { schemaTypes } from "../sanity/schemaTypes";
