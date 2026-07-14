@@ -2,9 +2,9 @@
 client:
   name: "Filament"
   url: "https://www.wearefilament.com"
-  industry: "Human-verified brand safety for YouTube & CTV"
+  industry: "Human-verified brand safety for YouTube"
 serviceLine: "Design Makeover"
-summary: "Modernizing a WordPress site into a Next.js build, with Sanity CMS, and WebGL used to render a moving prism in the hero—signifying the brand's promise of illuminating waste."
+summary: "Modernizing a WordPress site into a Next.js build, with Sanity CMS, and WebGL used to render a moving prism in the hero, signifying the brand's promise of illumination."
 before:
   image: "/case-studies/filament/before-hero.png"
   alt: "Filament's legacy WordPress homepage — bright purple and pink layout with a 'Reduce Wasted YouTube Ad Spend' headline"
@@ -17,8 +17,8 @@ stack:
     value: "Next.js 16"
   - label: "CMS"
     value: "Sanity"
-  - label: "Styling"
-    value: "Tailwind CSS v4"
+  - label: "Analytics"
+    value: "PostHog"
   - label: "Codebase"
     value: "14,693 LOC / 148 files"
   - label: "Build window"
@@ -43,6 +43,10 @@ changes:
     after: "Standardized CTA event tracking + first-party-proxied PostHog"
   - before: "Static brand presentation"
     after: "Live WebGL hero animation, animated verification and stat counters"
+testimonial:
+  quote: "VJ redesigned the website and helped us reframe our GTM. He brought a thoughtful approach to the UX, positioning, and messaging—and a much-needed ‘been-there-done-that’ perspective."
+  name: "Scott Konopasek"
+  title: "Co-founder & COO, Filament"
 publishedAt: 2026-07-09
 ---
 

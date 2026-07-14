@@ -9,7 +9,6 @@ import Button from "../../components/ds/Button.astro";
 import DiagramFigure from "../../components/ds/DiagramFigure.astro";
 import DitherLine from "../../components/ds/DitherLine.astro";
 import SpecGrid from "../../components/ds/SpecGrid.astro";
-import ChangesList from "../../components/ds/ChangesList.astro";
 import Quote from "../../components/ds/Quote.astro";
 import BeforeAfterSlider from "../../components/BeforeAfterSlider.tsx";
 
@@ -84,10 +83,11 @@ const CAL = "https://calendar.app.google/X1YiTW5qcfR3WQ6LA";
             <Content />
           </div>
 
-          <div style="margin-top:40px">
-            <div class="aol-eyebrow aol-eyebrow--strong" style="margin-bottom:14px">what changed</div>
-            <ChangesList items={data.changes} />
-          </div>
+          {data.testimonial && (
+            <div style="margin-top:40px;max-width:var(--measure)">
+              <Quote variant="plain" quote={data.testimonial.quote} name={data.testimonial.name} role={data.testimonial.title} size="md" />
+            </div>
+          )}
         </div>
 
         <aside class="case-body__side">
@@ -103,15 +103,6 @@ const CAL = "https://calendar.app.google/X1YiTW5qcfR3WQ6LA";
         </aside>
       </div>
     </section>
-
-    {/* Testimonial, if supplied */}
-    {data.testimonial && (
-      <section style="border-top:1px solid var(--ink-200);background:var(--surface-card)">
-        <div style="max-width:var(--content-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
-          <Quote quote={data.testimonial.quote} name={data.testimonial.name} role={data.testimonial.title} size="lg" />
-        </div>
-      </section>
-    )}
 
     {/* CTA — the section itself carries the engineering-grid texture (no
         bordered card, no crop-tick/registration chrome), closing the page

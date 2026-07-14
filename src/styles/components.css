@@ -254,6 +254,13 @@
 .aol-quote--sm{ padding:24px 26px; }
 .aol-quote--md{ padding:30px 32px; }
 .aol-quote--lg{ padding:38px 40px; }
+/* Plain (de-boxed) quote: size classes carry type scale only — no card padding.
+   Compound selectors out-specify the size padding rules above. */
+.aol-quote--plain.aol-quote--sm,
+.aol-quote--plain.aol-quote--md,
+.aol-quote--plain.aol-quote--lg{ padding:0; }
+.aol-quote--plain .aol-quote__mark{ line-height:0.5; }
+.aol-quote--plain .aol-quote__body{ margin-bottom:16px; }
 .aol-quote__mark{
   font-family:var(--font-display); line-height:0.9; color:var(--blue-500);
   display:block; margin-bottom:6px; user-select:none;

@@ -1,26 +1,43 @@
 ---
-// Quote — testimonial card. This port implements the "figure" variant used on
-// the homepage wall of love (technical graph-paper frame + mono citation).
+// Quote — testimonial. Two variants:
+//  - "figure" (default): graph-paper frame + crop ticks + mono citation.
+//  - "plain": de-boxed editorial pull-quote (blue serif mark, serif body,
+//    serif name / mono role) for use inside flowing prose. Same idiom as the
+//    homepage quote marquee, without the ticker's structural hairline.
 interface Props {
   quote: string;
   name?: string;
   role?: string;
   size?: "sm" | "md" | "lg";
-  label?: string;
+  label?: string; // figure variant only
+  variant?: "figure" | "plain";
   class?: string;
   [key: string]: any;
 }
-const { quote, name, role, size = "sm", label, class: className, ...rest } = Astro.props;
-const cls = ["aol-quote", "aol-quote--figure", `aol-quote--${size}`, className].filter(Boolean).join(" ");
+const { quote, name, role, size = "sm", label, variant = "figure", class: className, ...rest } = Astro.props;
+const cls = ["aol-quote", `aol-quote--${variant}`, `aol-quote--${size}`, className].filter(Boolean).join(" ");
 ---
-<figure class={cls} {...rest}>
-  <span class="aol-quote__crop aol-quote__crop--tl" />
-  <span class="aol-quote__crop aol-quote__crop--tr" />
-  <span class="aol-quote__crop aol-quote__crop--bl" />
-  <span class="aol-quote__crop aol-quote__crop--br" />
-  {label && <span class="aol-quote__figlabel">{label}</span>}
-  <blockquote class="aol-quote__body" style="border:none;padding:0">{quote}</blockquote>
-  {(name || role) && (
-    <figcaption class="aol-quote__citemono">{name}{role && <> &middot; <i>{role}</i></>}</figcaption>
-  )}
-</figure>
+{variant === "figure" ? (
+  <figure class={cls} {...rest}>
+    <span class="aol-quote__crop aol-quote__crop--tl" />
+    <span class="aol-quote__crop aol-quote__crop--tr" />
+    <span class="aol-quote__crop aol-quote__crop--bl" />
+    <span class="aol-quote__crop aol-quote__crop--br" />
+    {label && <span class="aol-quote__figlabel">{label}</span>}
+    <blockquote class="aol-quote__body" style="border:none;padding:0">{quote}</blockquote>
+    {(name || role) && (
+      <figcaption class="aol-quote__citemono">{name}{role && <> &middot; <i>{role}</i></>}</figcaption>
+    )}
+  </figure>
+) : (
+  <figure class={cls} {...rest}>
+    <span class="aol-quote__mark" aria-hidden="true">&ldquo;</span>
+    <blockquote class="aol-quote__body" style="border:none;padding:0">{quote}</blockquote>
+    {(name || role) && (
+      <figcaption class="aol-quote__cite">
+        {name && <span class="aol-quote__name">{name}</span>}
+        {role && <span class="aol-quote__role">{role}</span>}
+      </figcaption>
+    )}
+  </figure>
+)}
