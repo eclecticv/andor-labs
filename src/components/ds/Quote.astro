@@ -12,11 +12,12 @@ interface Props {
   label?: string; // figure variant only
   variant?: "figure" | "plain";
   align?: "start" | "center";
+  mark?: "top" | "left"; // plain variant only — "left" hangs the mark beside the text
   class?: string;
   [key: string]: any;
 }
-const { quote, name, role, size = "sm", label, variant = "figure", align = "start", class: className, ...rest } = Astro.props;
-const cls = ["aol-quote", `aol-quote--${variant}`, `aol-quote--${size}`, align === "center" && "aol-quote--centered", className].filter(Boolean).join(" ");
+const { quote, name, role, size = "sm", label, variant = "figure", align = "start", mark = "top", class: className, ...rest } = Astro.props;
+const cls = ["aol-quote", `aol-quote--${variant}`, `aol-quote--${size}`, align === "center" && "aol-quote--centered", mark === "left" && "aol-quote--markleft", className].filter(Boolean).join(" ");
 ---
 {variant === "figure" ? (
   <figure class={cls} {...rest}>

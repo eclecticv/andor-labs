@@ -44,7 +44,7 @@ changes:
   - before: "Static brand presentation"
     after: "Live WebGL hero animation, animated verification and stat counters"
 testimonial:
-  quote: "VJ brought a thoughtful approach to the UX, positioning, and messaging during the site redesign—and a much-needed ‘been-there-done-that’ perspective to many parts of our business."
+  quote: "VJ brought a thoughtful approach to the UX, positioning, and messaging during the site redesign process—and a much-needed ‘been-there-done-that’ perspective to many parts of our business."
   name: "Scott Konopasek"
   title: "Co-founder & COO, Filament"
 publishedAt: 2026-07-09
@@ -52,12 +52,12 @@ publishedAt: 2026-07-09
 
 ## About
 
-Filament helps brands and agencies get more for every dollar spent on YouTube by eliminating 98% of low quality and unsuitable inventory using human-verified, daily updating exclusion lists. The WordPress site used an off-the-shelf theme that Scott Konopasek, Co-founder & COO of Filament, had to manually update and maintain. The design makeover, a focussed sprint that helps adtech startups revamp their positioning, product messaging, design system, and technical architecture, was chosen as the best-fit engagement given the scope of work.
+Filament helps brands and agencies improve their YouTube ROAS by eliminating 98% of low quality and unsuitable inventory using human-verified, daily updating exclusion lists. The WordPress site used an off-the-shelf theme that Scott Konopasek, Co-founder & COO of Filament, had to manually maintain. The design makeover, a sprint that helps startups revamp their positioning, messaging, and design system, was chosen as the right-fit.
 
 ## What we did
 
-As part of the sprint, the founders were presented with three research-backed positioning approaches for the product, with respective pros and cons. After a choice was finalized, we drafted a wireframe, including proposed structure and order of homepage sections and secondary site pages. We chose Next.js as the dev framework for its extensive documentation, SSG with pre-rendered HTML, and vast selection of component samples. For the hero, we implemented a WebGL-based rotating prism taken from the Superdesign prompt library. A micro-animation below the fold visually demonstrates how Filament's double-sweep scan, an AI-based classification followed by human verification, works in practice.
+As part of the sprint, the founders were presented with three research-backed positioning approaches, with pros and cons highlighted for each. After a positioning was finalized, we drafted a wireframe, including homepage sections and secondary pages. We chose Next.js as the dev framework for its extensive documentation, SSG with pre-rendered HTML, and vast selection of components. For the hero, we used a WebGL-based prism taken from the Superdesign prompt library as the visual centrepiece. A micro-animation below demonstrates how the Filament "double-sweep"—an AI-based classification coupled with human verification—works in practice.
 
 ## The result
 
-The core build for the website was completed in just under two weeks, followed by a round of feedback and QA passes for hardening, device responsiveness, and token consistency across the build. Out of the box, the site received excellent PageSpeed and CrUX scores.
+The core build for the website was completed in under two weeks, followed by QA passes for hardening, responsiveness, and ensuring token consistency. Out of the box, the site received excellent PageSpeed and CrUX scores during initial testing. Using Sanity as the headless CMS opens up the possibility of setting up autonomous content pipelines to optimize brand visibility across search and AI chatbots. The codebase and design system for the site are hosted in a GitHub repo, which makes for easy updates via coding agents like Codex, Claude Code, etc.

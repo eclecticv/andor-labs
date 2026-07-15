@@ -262,6 +262,12 @@
 .aol-quote--plain.aol-quote--lg{ padding:0; }
 .aol-quote--plain .aol-quote__mark{ line-height:0.5; }
 .aol-quote--plain .aol-quote__body{ margin-bottom:16px; }
+/* Left-hung mark (plain variant): the quote mark sits in a lead column beside
+   the text — editorial pull-quote style — instead of stacked above it. */
+.aol-quote--markleft{ display:grid; grid-template-columns:auto 1fr; column-gap:20px; }
+.aol-quote--markleft .aol-quote__mark{ grid-row:1 / span 2; align-self:start; margin:6px 0 0; }
+.aol-quote--markleft .aol-quote__body,
+.aol-quote--markleft .aol-quote__cite{ grid-column:2; }
 /* Centered plain quote — for centered sections (case-study CTA). align-items
    is required for the cite row: it's a flex row, so text-align can't center it. */
 .aol-quote--centered{ align-items:center; text-align:center; }

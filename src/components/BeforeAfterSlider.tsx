@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { ReactCompareSlider, ReactCompareSliderHandle } from "react-compare-slider";
 
 interface Props {
@@ -16,6 +16,40 @@ interface Props {
 // so nothing desyncs once the sweep finishes.
 const FINAL_POSITION = 20;
 const SWIVEL_SEQUENCE = [55, 75, 30, 62, FINAL_POSITION];
+
+// Corner labels live INSIDE each pane so the compare clipping applies to them
+// too — "BEFORE" can only ever appear over the before layer, wherever the
+// divider is dragged. Solid backgrounds keep them legible over screenshots.
+function Pane({ side, children }: { side: "before" | "after"; children: ReactNode }) {
+  const isAfter = side === "after";
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      {children}
+      <span
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          top: 14,
+          ...(isAfter ? { right: 14 } : { left: 14 }),
+          zIndex: 2,
+          pointerEvents: "none",
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          lineHeight: 1,
+          padding: "6px 10px",
+          borderRadius: "var(--radius-xs)",
+          ...(isAfter
+            ? { background: "var(--blue-500)", color: "#fff" }
+            : { background: "rgba(255,255,255,0.95)", color: "var(--ink-900)", border: "1px solid var(--ink-300)" }),
+        }}
+      >
+        {isAfter ? "After" : "Before"}
+      </span>
+    </div>
+  );
+}
 
 // Custom handle in the DS's signal-blue — a plain vertical line + square grip,
 // matching the crop-tick/registration-mark visual language rather than
@@ -60,14 +94,17 @@ export default function BeforeAfterSlider({ beforeSrc, beforeAlt, afterSrc, afte
         defaultPosition={FINAL_POSITION}
         transition="0.55s cubic-bezier(0.65, 0, 0.35, 1)"
         itemOne={
-          <img
-            src={beforeSrc}
-            alt={beforeAlt}
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-          />
+          <Pane side="before">
+            <img
+              src={beforeSrc}
+              alt={beforeAlt}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            />
+          </Pane>
         }
         itemTwo={
-          afterType === "site" ? (
+          <Pane side="after">
+          {afterType === "site" ? (
             // The real live hero, embedded directly — accurate by construction,
             // no capture/encoding step to go stale or look janky. The hero fills
             // `min-h-dvh` on the source site, so a 100%-sized iframe naturally
@@ -95,7 +132,8 @@ export default function BeforeAfterSlider({ beforeSrc, beforeAlt, afterSrc, afte
               alt={afterAlt}
               style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
             />
-          )
+          )}
+          </Pane>
         }
         style={{ width: "100%", height: "100%" }}
       />
