@@ -285,6 +285,13 @@
 .aol-quote--sm .aol-quote__body{ font-size:16px; line-height:1.45; margin-bottom:16px; }
 .aol-quote--md .aol-quote__body{ font-size:21px; line-height:1.4; }
 .aol-quote--lg .aol-quote__body{ font-size:27px; line-height:1.34; }
+/* lg quote steps down to the md scale on small screens — 27px serif on a phone
+   column wraps to ~4-word lines and loses the pull-quote read. (Must sit after
+   the base size rules above: same specificity, source order decides.) */
+@media (max-width:560px){
+  .aol-quote--lg .aol-quote__mark{ font-size:38px; }
+  .aol-quote--lg .aol-quote__body{ font-size:21px; line-height:1.4; }
+}
 .aol-quote__cite{ display:flex; align-items:center; gap:12px; }
 .aol-quote__name{ font-family:var(--font-serif); font-weight:600; color:var(--ink-900); }
 .aol-quote--sm .aol-quote__name{ font-size:15px; }

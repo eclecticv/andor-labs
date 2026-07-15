@@ -16,7 +16,7 @@ const { height = 14, color = "var(--ink-900)", class: className, style, ...rest 
 const patternId = `aol-dither-${crypto.randomUUID().slice(0, 8)}`;
 const cls = ["aol-ditherline", className].filter(Boolean).join(" ");
 ---
-<svg class={cls} width="100%" height={height} style={`color:${color};${style ?? ""}`} {...rest}>
+<svg class={cls} width="100%" height={height} aria-hidden="true" style={`color:${color};${style ?? ""}`} {...rest}>
   <defs>
     <pattern id={patternId} x="0" y="0" width={height} height={height} patternUnits="userSpaceOnUse">
       <text x="0" y="6" fill="currentColor" font-size="12" font-family="var(--font-serif)">░</text>

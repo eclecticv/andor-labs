@@ -33,12 +33,12 @@ const CAL = "https://calendar.app.google/X1YiTW5qcfR3WQ6LA";
     <section style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
       <div style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
         <div class="aol-eyebrow" style="margin-bottom:14px">case study</div>
-        <h1 class="aol-display" style="font-size:52px;margin:0 0 18px">{data.client.name}</h1>
+        <h1 class="aol-display" style="font-size:clamp(38px, 3.5vw + 26px, 52px);margin:0 0 18px">{data.client.name}</h1>
         <p style="font-family:var(--font-serif);font-size:19px;line-height:1.55;color:var(--ink-600);max-width:var(--measure);margin:0 0 20px">
           {data.summary}
         </p>
         <DitherLine />
-        <div class="aol-credstrip" style="grid-template-columns:1.8fr 1fr 1.2fr;border-top:none;padding-top:14px">
+        <div class="aol-credstrip case-credstrip" style="border-top:none;padding-top:14px">
           <div class="aol-credstrip__cell">
             <span class="aol-eyebrow">Industry</span>
             <span class="aol-credstrip__val">{data.client.industry}</span>
@@ -123,6 +123,14 @@ const CAL = "https://calendar.app.google/X1YiTW5qcfR3WQ6LA";
 </Base>
 
 <style>
+  /* Column proportions as a class (not inline style) so the design system's
+     820px single-column stacking rule can still win on small screens. */
+  @media (min-width: 821px) {
+    .case-credstrip {
+      grid-template-columns: 1.8fr 1fr 1.2fr;
+    }
+  }
+
   .case-body {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 280px;
@@ -143,6 +151,9 @@ const CAL = "https://calendar.app.google/X1YiTW5qcfR3WQ6LA";
     }
   }
 
+  .case-narrative {
+    max-width: var(--measure);
+  }
   .case-narrative :global(h2) {
     font-family: var(--font-serif);
     font-weight: 600;

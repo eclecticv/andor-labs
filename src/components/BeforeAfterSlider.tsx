@@ -29,7 +29,7 @@ function Pane({ side, children }: { side: "before" | "after"; children: ReactNod
         aria-hidden="true"
         style={{
           position: "absolute",
-          top: 14,
+          bottom: 14, // bottom corners: both panes' embedded site navs live at the top
           ...(isAfter ? { right: 14 } : { left: 14 }),
           zIndex: 2,
           pointerEvents: "none",
