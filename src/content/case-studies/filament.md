@@ -5,6 +5,7 @@ client:
   industry: "Human-verified brand safety for YouTube"
 serviceLine: "Design Makeover"
 summary: "Modernizing a WordPress site into a Next.js build, with Sanity CMS, and WebGL used to render a moving prism in the hero section; signifying the brand's promise of illumination."
+ogImage: "/case-studies/filament/og.png"
 before:
   image: "/case-studies/filament/before-hero.png"
   alt: "Filament's legacy WordPress homepage — bright purple and pink layout with a 'Reduce Wasted YouTube Ad Spend' headline"

@@ -13,6 +13,7 @@ const caseStudies = defineCollection({
     }),
     serviceLine: z.string(),
     summary: z.string(),
+    ogImage: z.string().optional(), // 1200×630 social card; falls back to the site og.png
     before: z.object({
       image: z.string(),
       alt: z.string(),

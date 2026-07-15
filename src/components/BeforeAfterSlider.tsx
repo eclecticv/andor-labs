@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ReactCompareSlider, ReactCompareSliderHandle } from "react-compare-slider";
 
 interface Props {
@@ -16,6 +16,48 @@ interface Props {
 // so nothing desyncs once the sweep finishes.
 const FINAL_POSITION = 20;
 const SWIVEL_SEQUENCE = [55, 75, 30, 62, FINAL_POSITION];
+
+// The "after" site embed renders at a fixed desktop viewport width and is
+// scaled down to fit its container. Without this, the iframe takes the
+// container's own width as its viewport, the embedded site re-lays-out at a
+// tablet breakpoint, and the pane looks zoomed-in next to the static "before"
+// screenshot (which scales like an image).
+const EMBED_DESIGN_WIDTH = 1440;
+
+function SiteEmbed({ src, title }: { src: string; title: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setScale(el.clientWidth / EMBED_DESIGN_WIDTH);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} style={{ width: "100%", height: "100%", overflow: "hidden" }}>
+      <iframe
+        src={src}
+        title={title}
+        loading="lazy"
+        scrolling="no"
+        style={{
+          width: EMBED_DESIGN_WIDTH,
+          height: `${100 / scale}%`,
+          border: "none",
+          display: "block",
+          pointerEvents: "none",
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+        }}
+      />
+    </div>
+  );
+}
 
 // Corner labels live INSIDE each pane so the compare clipping applies to them
 // too — "BEFORE" can only ever appear over the before layer, wherever the
@@ -106,16 +148,9 @@ export default function BeforeAfterSlider({ beforeSrc, beforeAlt, afterSrc, afte
           <Pane side="after">
           {afterType === "site" ? (
             // The real live hero, embedded directly — accurate by construction,
-            // no capture/encoding step to go stale or look janky. The hero fills
-            // `min-h-dvh` on the source site, so a 100%-sized iframe naturally
-            // shows just the hero, not the full scrollable page.
-            <iframe
-              src={afterSrc}
-              title={afterAlt}
-              loading="lazy"
-              scrolling="no"
-              style={{ width: "100%", height: "100%", border: "none", display: "block", pointerEvents: "none" }}
-            />
+            // no capture/encoding step to go stale or look janky. Rendered at a
+            // fixed desktop viewport and scaled to fit (see SiteEmbed).
+            <SiteEmbed src={afterSrc} title={afterAlt} />
           ) : afterType === "video" ? (
             <video
               src={afterSrc}

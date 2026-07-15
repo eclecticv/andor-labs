@@ -26,7 +26,7 @@ const { Content } = await render(entry);
 
 const CAL = "https://calendar.app.google/X1YiTW5qcfR3WQ6LA";
 ---
-<Base title={`${data.client.name} — Work — And/or Labs`} description={data.summary}>
+<Base title={`${data.client.name} ${data.serviceLine}, And/or Labs`} description={data.summary} ogImage={data.ogImage} ogImageAlt={data.after.alt}>
   <SiteHeader />
   <main>
     {/* Header — eyebrow, headline, lead, then a credstrip meta row (same idiom as the homepage hero's "As seen on" strip) instead of a loose badge+label */}
@@ -55,11 +55,13 @@ const CAL = "https://calendar.app.google/X1YiTW5qcfR3WQ6LA";
       </div>
     </section>
 
-    {/* Before/after hero figure — full width, the page's one big visual moment */}
+    {/* Before/after hero figure — a reduced-width plate centered on the warm
+        paper fill, framed by a hairline so the figure reads as a mounted
+        plate rather than a full-bleed band */}
     <section style="border-bottom:1px solid var(--ink-200);background:var(--surface-card)">
-      <div style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
+      <div style="max-width:880px;margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
         <DiagramFigure number={1} caption="Homepage hero — before and after">
-          <div style="aspect-ratio:16/10;overflow:hidden;border-radius:var(--radius-sm)">
+          <div style="aspect-ratio:16/10;overflow:hidden;border-radius:var(--radius-sm);border:1px solid var(--ink-200)">
             <BeforeAfterSlider
               client:visible
               beforeSrc={data.before.image}

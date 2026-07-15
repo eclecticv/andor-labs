@@ -8,16 +8,20 @@ interface Props {
   description?: string;
   ogType?: "website" | "article";
   publishedTime?: string;
+  ogImage?: string; // site-relative path; defaults to the site card
+  ogImageAlt?: string;
 }
 const {
   title = "And/or Labs — the GTM OS for adtech startups",
   description = "We help early-stage adtech startups win their category through clear positioning, content engineering, and sales intelligence your competitors don't have.",
   ogType = "website",
   publishedTime,
+  ogImage: ogImagePath = "/og.png",
+  ogImageAlt = "And/or Labs — the GTM OS for adtech startups",
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
-const ogImage = new URL("/og.png", Astro.site).href;
+const ogImage = new URL(ogImagePath, Astro.site).href;
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -42,14 +46,14 @@ const ogImage = new URL("/og.png", Astro.site).href;
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="And/or Labs — the GTM OS for adtech startups" />
+    <meta property="og:image:alt" content={ogImageAlt} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@eclecticV" />
     <meta name="twitter:creator" content="@eclecticV" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
-    <meta name="twitter:image:alt" content="And/or Labs — the GTM OS for adtech startups" />
+    <meta name="twitter:image:alt" content={ogImageAlt} />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
