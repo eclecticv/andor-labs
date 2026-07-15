@@ -82,12 +82,6 @@ const CAL = "https://calendar.app.google/X1YiTW5qcfR3WQ6LA";
           <div class="case-narrative aol-body">
             <Content />
           </div>
-
-          {data.testimonial && (
-            <div style="margin-top:40px;max-width:var(--measure)">
-              <Quote variant="plain" quote={data.testimonial.quote} name={data.testimonial.name} role={data.testimonial.title} size="md" />
-            </div>
-          )}
         </div>
 
         <aside class="case-body__side">
@@ -102,6 +96,16 @@ const CAL = "https://calendar.app.google/X1YiTW5qcfR3WQ6LA";
           )}
         </aside>
       </div>
+
+      {/* Testimonial coda — a full-width dither rule closes the two-column body
+          (same separator as the page header), then the client quote runs the
+          full container width as the page's parting word before the ask. */}
+      {data.testimonial && (
+        <div style="max-width:var(--container-width);margin:0 auto;padding:0 var(--gutter) var(--section-pad-y)">
+          <DitherLine style="margin:0 0 56px" />
+          <Quote variant="plain" size="lg" quote={data.testimonial.quote} name={data.testimonial.name} role={data.testimonial.title} />
+        </div>
+      )}
     </section>
 
     {/* CTA — the section itself carries the engineering-grid texture (no

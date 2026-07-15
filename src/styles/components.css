@@ -229,6 +229,7 @@
 
 /* ---- Quote ---- */
 .aol-quote{
+  margin:0; /* kill the UA's default figure margin (1em 40px) — spacing belongs to the layout */
   display:flex; flex-direction:column; justify-content:space-between; height:100%;
   background:var(--surface-card); border:1px solid var(--border-hairline);
   border-radius:var(--radius-md); color:var(--text-body);
@@ -261,6 +262,9 @@
 .aol-quote--plain.aol-quote--lg{ padding:0; }
 .aol-quote--plain .aol-quote__mark{ line-height:0.5; }
 .aol-quote--plain .aol-quote__body{ margin-bottom:16px; }
+/* Centered plain quote — for centered sections (case-study CTA). align-items
+   is required for the cite row: it's a flex row, so text-align can't center it. */
+.aol-quote--centered{ align-items:center; text-align:center; }
 .aol-quote__mark{
   font-family:var(--font-display); line-height:0.9; color:var(--blue-500);
   display:block; margin-bottom:6px; user-select:none;

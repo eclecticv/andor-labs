@@ -4,7 +4,7 @@ client:
   url: "https://www.wearefilament.com"
   industry: "Human-verified brand safety for YouTube"
 serviceLine: "Design Makeover"
-summary: "Modernizing a WordPress site into a Next.js build, with Sanity CMS, and WebGL used to render a moving prism in the hero, signifying the brand's promise of illumination."
+summary: "Modernizing a WordPress site into a Next.js build, with Sanity CMS, and WebGL used to render a moving prism in the hero section; signifying the brand's promise of illumination."
 before:
   image: "/case-studies/filament/before-hero.png"
   alt: "Filament's legacy WordPress homepage — bright purple and pink layout with a 'Reduce Wasted YouTube Ad Spend' headline"
@@ -44,20 +44,20 @@ changes:
   - before: "Static brand presentation"
     after: "Live WebGL hero animation, animated verification and stat counters"
 testimonial:
-  quote: "VJ redesigned the website and helped us reframe our GTM. He brought a thoughtful approach to the UX, positioning, and messaging—and a much-needed ‘been-there-done-that’ perspective."
+  quote: "VJ brought a thoughtful approach to the UX, positioning, and messaging during the site redesign—and a much-needed ‘been-there-done-that’ perspective to many parts of our business."
   name: "Scott Konopasek"
   title: "Co-founder & COO, Filament"
 publishedAt: 2026-07-09
 ---
 
-## The problem
+## About
 
-Filament sells human-verified brand safety—real people reviewing real inventory. Their own website was still running on WordPress. One market, zero analytics, no room for the two more markets already on the roadmap.
+Filament helps brands and agencies get more for every dollar spent on YouTube by eliminating 98% of low quality and unsuitable inventory using human-verified, daily updating exclusion lists. The WordPress site used an off-the-shelf theme that Scott Konopasek, Co-founder & COO of Filament, had to manually update and maintain. The design makeover, a focussed sprint that helps adtech startups revamp their positioning, product messaging, design system, and technical architecture, was chosen as the best-fit engagement given the scope of work.
 
-## The approach
+## What we did
 
-We started March 3. What does "rebuilt" actually mean in nine days? Next.js and Sanity live, the old WordPress content migrated structure and all, three markets with real localized pages. Then we handed the keys over.
+As part of the sprint, the founders were presented with three research-backed positioning approaches for the product, with respective pros and cons. After a choice was finalized, we drafted a wireframe, including proposed structure and order of homepage sections and secondary site pages. We chose Next.js as the dev framework for its extensive documentation, SSG with pre-rendered HTML, and vast selection of component samples. For the hero, we implemented a WebGL-based rotating prism taken from the Superdesign prompt library. A micro-animation below the fold visually demonstrates how Filament's double-sweep scan, an AI-based classification followed by human verification, works in practice.
 
 ## The result
 
-Nine days, start to handoff. Four months and sixty-one commits later, nobody's had to touch the bones—Filament's own team just keeps shipping on top of it.
+The core build for the website was completed in just under two weeks, followed by a round of feedback and QA passes for hardening, device responsiveness, and token consistency across the build. Out of the box, the site received excellent PageSpeed and CrUX scores.

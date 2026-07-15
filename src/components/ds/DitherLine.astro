@@ -10,11 +10,13 @@ interface Props {
   class?: string;
   [key: string]: any;
 }
-const { height = 14, color = "var(--ink-900)", class: className, ...rest } = Astro.props;
+// `style` is merged, not spread: a spread duplicate style attribute would be
+// DROPPED by the browser (first attribute wins), silently eating caller styles.
+const { height = 14, color = "var(--ink-900)", class: className, style, ...rest } = Astro.props;
 const patternId = `aol-dither-${crypto.randomUUID().slice(0, 8)}`;
 const cls = ["aol-ditherline", className].filter(Boolean).join(" ");
 ---
-<svg class={cls} width="100%" height={height} style={`color:${color}`} {...rest}>
+<svg class={cls} width="100%" height={height} style={`color:${color};${style ?? ""}`} {...rest}>
   <defs>
     <pattern id={patternId} x="0" y="0" width={height} height={height} patternUnits="userSpaceOnUse">
       <text x="0" y="6" fill="currentColor" font-size="12" font-family="var(--font-serif)">░</text>
