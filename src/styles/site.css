@@ -234,6 +234,7 @@ body.no-scroll { overflow: hidden; }
   /* Touch targets: enlarge footer links toward the 44px minimum. */
   .aol-flink { padding-block: 11px; }
 }
+.aol-footer-grid { grid-template-columns: 1.6fr 1fr 1fr auto; }
 @media (max-width: 720px) {
   .aol-footer-grid { grid-template-columns: 1fr 1fr; }
 }

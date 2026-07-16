@@ -14,7 +14,7 @@ const SOCIALS: [string, string][] = [
 ];
 ---
 <footer style="border-top:1px solid var(--ink-200);background:var(--surface-card)">
-  <div class="aol-footer-grid" style="max-width:var(--container-width);margin:0 auto;padding:var(--space-12) var(--gutter) var(--gutter);display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:32px;align-items:start">
+  <div class="aol-footer-grid" style="max-width:var(--container-width);margin:0 auto;padding:var(--space-12) var(--gutter) var(--gutter);display:grid;gap:32px;align-items:start">
     <div>
       <Logo size="md" />
       <p style="font-family:var(--font-mono);font-size:12px;color:var(--ink-500);line-height:1.6;margin-top:16px;max-width:30ch">
@@ -33,11 +33,14 @@ const SOCIALS: [string, string][] = [
         {SOCIALS.map(([l, href]) => <a class="aol-flink" href={href} target="_blank" rel="noopener">{l}</a>)}
       </div>
     </div>
+    <div>
+      <div class="aol-eyebrow" style="margin-bottom:14px">Partner</div>
+      <iframe src="https://app.snitcher.com/badge/andorlabs?style=light" width="128" height="60" frameborder="0" loading="lazy" title="Snitcher Bronze Partner" style="display:block;border:0"></iframe>
+    </div>
   </div>
   <div style="border-top:1px solid var(--ink-200)">
-    <div style="max-width:var(--container-width);margin:0 auto;padding:var(--space-4) var(--gutter);display:flex;flex-direction:column;gap:var(--space-4)">
-      <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-500);letter-spacing:0.04em">© 2026 And/or Labs</span>
-      <iframe src="https://app.snitcher.com/badge/andorlabs?style=light" width="128" height="60" frameborder="0" loading="lazy" title="Snitcher Bronze Partner" style="display:block;border:0"></iframe>
+    <div style="max-width:var(--container-width);margin:0 auto;padding:var(--space-4) var(--gutter);display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--ink-500);letter-spacing:0.04em">
+      <span>© 2026 And/or Labs</span>
     </div>
   </div>
 </footer>
