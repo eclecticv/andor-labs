@@ -3,7 +3,7 @@ client:
   name: "Filament"
   url: "https://www.wearefilament.com"
   industry: "Human-verified brand safety for YouTube"
-serviceLine: "Design Makeover"
+serviceLine: "Brand makeover"
 summary: "Modernizing a WordPress site into a Next.js build, with Sanity CMS, and WebGL used to render a moving prism in the hero section; signifying the brand's promise of illumination."
 ogImage: "/case-studies/filament/og.png"
 before:
