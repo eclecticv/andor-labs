@@ -10,11 +10,11 @@ const PRESS = ["Digiday", "Forbes", "Adweek", "ExchangeWire", "eMarketer"];
 const lead = (name: string) => "  " + name + " " + ".".repeat(20 - name.length) + " ";
 const BOOT_LINES: { text: string; status?: string; prompt?: boolean }[] = [
   { text: "SYSCHECK" },
-  { text: lead("design"), status: "OK" },
-  { text: lead("positioning"), status: "OK" },
-  { text: lead("distribution"), status: "OK" },
-  { text: lead("conversion funnel"), status: "OK" },
-  { text: lead("tech stack"), status: "RUNNING" },
+  { text: lead("Positioning"), status: "OK" },
+  { text: lead("Search visibility"), status: "OK" },
+  { text: lead("AI citation rank"), status: "OK" },
+  { text: lead("Social presence"), status: "OK" },
+  { text: lead("Buying signals"), status: "RECEIVING" },
   { text: " " },
   { text: "all systems operational" },
   { text: "> ", prompt: true },
@@ -34,14 +34,14 @@ const BOOT_LINES: { text: string; status?: string; prompt?: boolean }[] = [
         <div class="aol-term__screen">
           <div class="aol-term__log" aria-hidden="true">
             {BOOT_LINES.map((l) => (
-              <div class={"aol-term__line" + (l.prompt ? " aol-term__prompt" : "")}>{l.text}{l.status && <span class={"aol-term__ok" + (l.status === "RUNNING" ? " aol-term__ok--live" : "")}>{l.status}</span>}</div>
+              <div class={"aol-term__line" + (l.prompt ? " aol-term__prompt" : "")}>{l.text}{l.status && <span class={"aol-term__ok" + (l.status !== "OK" ? " aol-term__ok--live" : "")}>{l.status}</span>}</div>
             ))}
           </div>
         </div>
       </div>
     </div>
     <p class="aol-hero__subhead" data-r style="font-size:21px;line-height:1.5;color:var(--ink-600);max-width:42ch;--r:2">
-      We help early-stage adtech startups lead their category through clear positioning, organic growth, and real-time sales intelligence your competitors don't have.
+      We help adtech startups win their category through clear positioning, organic growth hacking, and real-time sales intelligence your competitors don't have.
     </p>
     <div class="aol-hero__cta" data-r style="--r:3"><Button size="lg" variant="primary" arrow href="https://calendar.app.google/X1YiTW5qcfR3WQ6LA" target="_blank" rel="noopener">Book a call</Button></div>
   </div>
