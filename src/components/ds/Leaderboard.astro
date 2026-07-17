@@ -1,0 +1,122 @@
+---
+// Leaderboard — category-sectioned ranked board in the technical-manual
+// "table of contents" idiom. Each category is a numbered section; entries are
+// sorted by score and ranked 1..N, laid out as:
+//   rank · name · dotted leader · MoM move · score
+// When an entry carries `search` + `ai` (0–10 component scores), the score cell
+// shows the breakdown `search · ai → combo`, where combo is their average
+// (one decimal). Sections flow DOWN then ACROSS `columns` via CSS multi-column.
+// Styles live in src/styles/components.css (.aol-lb__*).
+export interface LeaderboardEntry {
+  name: string;
+  /** Combined score — the rank key. Optional if `search` + `ai` are given (combo is derived). */
+  score?: number;
+  /** Component score 0–10: organic search visibility. */
+  search?: number;
+  /** Component score 0–10: AI citation rank. */
+  ai?: number;
+  /** MoM rank movement: +N up, -N down, 0 flat, "new" entrant. Omit on a baseline run. */
+  move?: number | "new";
+}
+export interface LeaderboardCategory {
+  name: string;
+  entries: LeaderboardEntry[];
+}
+interface Props {
+  categories?: LeaderboardCategory[];
+  columns?: number;
+  movementColor?: boolean;
+  title?: string;
+  subtitle?: string;
+  version?: string;
+  metaLabel?: string;
+  scoreLabel?: string;
+  heading?: boolean;
+  /** Number the category headings (1., 2., …). @default true */
+  numbered?: boolean;
+  /** Show the hairline rule between the title and the column label. @default true */
+  rule?: boolean;
+  /** Show the month-over-month move column (and its label). Off for a baseline run. @default true */
+  showMove?: boolean;
+  class?: string;
+}
+const {
+  categories = [],
+  columns = 3,
+  movementColor = true,
+  title = "Leaderboard",
+  subtitle,
+  version = "V1.0",
+  metaLabel = "MOM",
+  scoreLabel = "SCORE",
+  heading = true,
+  numbered = true,
+  rule = true,
+  showMove = true,
+  class: className,
+} = Astro.props;
+
+// Combo = average of the two component scores when present, else the given score.
+const comboOf = (e: LeaderboardEntry) =>
+  e.search != null && e.ai != null ? (e.search + e.ai) / 2 : (e.score ?? -Infinity);
+const fmt = (n?: number) => (n == null || isNaN(n) ? "—" : String(Math.round(n)));
+
+function moveInfo(move: number | "new" | undefined, colored: boolean) {
+  if (move === "new") return { cls: "aol-lb__move aol-lb__move--new", text: "NEW" };
+  if (move == null || move === 0) return { cls: "aol-lb__move", text: "—" };
+  const up = move > 0;
+  const cls = ["aol-lb__move", colored ? (up ? "aol-lb__move--up" : "aol-lb__move--down") : ""].filter(Boolean).join(" ");
+  return { cls, text: `${up ? "▴" : "▾"} ${Math.abs(move)}` };
+}
+
+const rootCls = ["aol-lb", !movementColor && "aol-lb--mono", className].filter(Boolean).join(" ");
+---
+<div class={rootCls}>
+  {heading && (
+    <header class="aol-lb__masthead">
+      <div class="aol-lb__masthead-inner">
+        {version && <div class="aol-lb__version">{version}</div>}
+        <div class="aol-lb__titlerow">
+          <h2 class="aol-lb__title">{title}</h2>
+          <span class={["aol-lb__rule", !rule && "aol-lb__rule--bare"].filter(Boolean).join(" ")} />
+          <div class="aol-lb__collabel">{showMove && metaLabel && <>{metaLabel} &middot; </>}<span class="blue">{scoreLabel}</span></div>
+        </div>
+        {subtitle && <p class="aol-lb__subtitle">{subtitle}</p>}
+      </div>
+    </header>
+  )}
+
+  <div class="aol-lb__cols" style={`column-count:${columns}`}>
+    {categories.map((cat, ci) => {
+      const ranked = [...(cat.entries || [])].sort((a, b) => comboOf(b) - comboOf(a));
+      return (
+        <section class="aol-lb__cat">
+          <h3 class="aol-lb__cathead">{numbered && <span class="num">{ci + 1}.</span>}{cat.name}</h3>
+          {ranked.map((e, r) => {
+            const mv = moveInfo(e.move, movementColor);
+            const hasParts = e.search != null && e.ai != null;
+            return (
+              <div class="aol-lb__row">
+                <span class="aol-lb__rank">{r + 1}</span>
+                <span class="aol-lb__name">{e.name}</span>
+                <span class="aol-lb__leader" />
+                {showMove && <span class={mv.cls}>{mv.text}</span>}
+                {hasParts ? (
+                  <span class="aol-lb__score aol-lb__score--parts">
+                    <span class="aol-lb__part">{e.search}</span>
+                    <span class="aol-lb__op">&times;</span>
+                    <span class="aol-lb__part">{e.ai}</span>
+                    <span class="aol-lb__arrow">&rarr;</span>
+                    <span class="aol-lb__combo">{comboOf(e).toFixed(1)}</span>
+                  </span>
+                ) : (
+                  <span class="aol-lb__score">{fmt(e.score)}</span>
+                )}
+              </div>
+            );
+          })}
+        </section>
+      );
+    })}
+  </div>
+</div>
