@@ -1,8 +1,8 @@
 ---
 import Logo from "../ds/Logo.astro";
 import Button from "../ds/Button.astro";
+import { BOOKING_URL } from "../../config";
 
-const CAL = "https://calendar.app.google/X1YiTW5qcfR3WQ6LA";
 // Homepage anchors are absolute (`/#id`) rather than relative (`#id`) so they
 // still resolve correctly from the new /work pages, not just from `/`.
 // "Work" points straight at the one live case study for now — the /work
@@ -25,7 +25,7 @@ const NAV: [string, string][] = [
       {NAV.map(([label, href]) => (
         <a class="site-nav-link" href={href}>{label}</a>
       ))}
-      <Button size="sm" variant="primary" arrow href={CAL} target="_blank" rel="noopener" class="site-header-cta">Book a call</Button>
+      <Button size="sm" variant="primary" arrow href={BOOKING_URL} target="_blank" rel="noopener" class="site-header-cta">Book a call</Button>
       <button type="button" class="site-nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
         <span></span><span></span><span></span>
       </button>
@@ -36,7 +36,7 @@ const NAV: [string, string][] = [
       <a class="site-mobilelink" href={href}>{label}</a>
     ))}
     <div class="site-mobilecta">
-      <Button variant="primary" size="md" fullWidth arrow href={CAL} target="_blank" rel="noopener">Book a call</Button>
+      <Button variant="primary" size="md" fullWidth arrow href={BOOKING_URL} target="_blank" rel="noopener">Book a call</Button>
     </div>
   </nav>
 </header>

@@ -1,6 +1,7 @@
 ---
 import Button from "../ds/Button.astro";
 import Badge from "../ds/Badge.astro";
+import { BOOKING_URL } from "../../config";
 
 const PRESS = ["Digiday", "Forbes", "Adweek", "ExchangeWire", "eMarketer"];
 
@@ -43,7 +44,7 @@ const BOOT_LINES: { text: string; status?: string; prompt?: boolean }[] = [
     <p class="aol-hero__subhead" data-r style="font-size:21px;line-height:1.5;color:var(--ink-600);max-width:42ch;--r:2">
       We help adtech startups win their category through clear positioning, organic growth hacking, and real-time sales intelligence your competitors don't have.
     </p>
-    <div class="aol-hero__cta" data-r style="--r:3"><Button size="lg" variant="primary" arrow href="https://calendar.app.google/X1YiTW5qcfR3WQ6LA" target="_blank" rel="noopener">Book a call</Button></div>
+    <div class="aol-hero__cta" data-r style="--r:3"><Button size="lg" variant="primary" arrow href={BOOKING_URL} target="_blank" rel="noopener">Book a call</Button></div>
   </div>
   <div class="aol-grid-blue" data-r style="border-top:1px solid var(--ink-200);--r:5">
     <div style="max-width:var(--container-width);width:100%;margin:0 auto;padding:var(--space-6) var(--gutter)">

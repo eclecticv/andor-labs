@@ -1,5 +1,6 @@
 ---
 import Link from "../ds/Link.astro";
+import { BOOKING_URL } from "../../config";
 
 const faqs: [string, string][] = [
   ["How is this different from a typical marketing agency?", "Agencies hand you to a junior account team and run a generic playbook. You work directly with an exited adtech operator, across the whole go-to-market — positioning, site, and content — not one isolated slice."],
@@ -15,7 +16,7 @@ const faqs: [string, string][] = [
       <div class="aol-eyebrow" style="margin-bottom:14px">ICYMI</div>
       <h2 class="aol-display" style="font-size:40px;margin:0 0 16px">Frequently asked questions.</h2>
       <p style="font-family:var(--font-serif);font-size:16.5px;line-height:1.55;color:var(--ink-600);margin:0 0 18px;max-width:32ch">Still unsure where you'd start? The audit is a great place to start for most startups.</p>
-      <Link arrow href="https://calendar.app.google/X1YiTW5qcfR3WQ6LA" target="_blank" rel="noopener">Book a call</Link>
+      <Link arrow href={BOOKING_URL} target="_blank" rel="noopener">Book a call</Link>
     </div>
 
     <div class="faq-frame">

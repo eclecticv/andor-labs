@@ -11,6 +11,7 @@ import DitherLine from "../../components/ds/DitherLine.astro";
 import SpecGrid from "../../components/ds/SpecGrid.astro";
 import Quote from "../../components/ds/Quote.astro";
 import BeforeAfterSlider from "../../components/BeforeAfterSlider.tsx";
+import { BOOKING_URL } from "../../config";
 
 export async function getStaticPaths() {
   const caseStudies = await getCollection("caseStudies");
@@ -23,8 +24,6 @@ export async function getStaticPaths() {
 const { entry } = Astro.props;
 const { data } = entry;
 const { Content } = await render(entry);
-
-const CAL = "https://calendar.app.google/X1YiTW5qcfR3WQ6LA";
 ---
 <Base title={`${data.client.name} ${data.serviceLine}, And/or Labs`} description={data.summary} ogImage={data.ogImage} ogImageAlt={data.after.alt}>
   <SiteHeader />
@@ -116,7 +115,7 @@ const CAL = "https://calendar.app.google/X1YiTW5qcfR3WQ6LA";
     <section class="aol-grid-blue" style="border-top:1px solid var(--ink-200)">
       <div style="max-width:var(--content-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter);text-align:center">
         <h2 style="font-family:var(--font-serif);font-weight:600;font-size:26px;color:var(--ink-900);margin:0 0 20px">Want a {data.serviceLine} like this?</h2>
-        <Button size="lg" variant="primary" arrow href={CAL} target="_blank" rel="noopener">Book a call</Button>
+        <Button size="lg" variant="primary" arrow href={BOOKING_URL} target="_blank" rel="noopener">Book a call</Button>
       </div>
     </section>
   </main>

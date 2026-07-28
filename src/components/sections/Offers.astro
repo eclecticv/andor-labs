@@ -3,6 +3,7 @@ import Card from "../ds/Card.astro";
 import Button from "../ds/Button.astro";
 import Link from "../ds/Link.astro";
 import StatusMark from "../ds/StatusMark.astro";
+import { BOOKING_URL } from "../../config";
 
 const plans = [
   {
@@ -53,7 +54,7 @@ const plans = [
             ))}
           </div>
           <div style="margin-top:auto">
-            <Button variant="primary" fullWidth href="https://calendar.app.google/X1YiTW5qcfR3WQ6LA" target="_blank" rel="noopener" style="padding:16px">{p.cta}</Button>
+            <Button variant="primary" fullWidth href={BOOKING_URL} target="_blank" rel="noopener" style="padding:16px">{p.cta}</Button>
             <div class="aol-grid" style="display:flex;align-items:baseline;justify-content:center;gap:8px;margin:24px -32px -32px;padding:16px 32px 28px;border-radius:0 0 var(--radius-md) var(--radius-md)">
               <span style="font-family:var(--font-display);font-size:28px;font-weight:400;color:var(--ink-900);font-variant-numeric:tabular-nums">{p.price}</span>
               <span style="font-family:var(--font-mono);font-size:12px;color:var(--ink-500)">{p.per}</span>
@@ -63,7 +64,7 @@ const plans = [
       ))}
     </div>
     <p style="font-family:var(--font-mono);font-size:15px;color:var(--ink-600);text-align:center;margin-top:30px">
-      Have a custom project? <Link arrow href="https://calendar.app.google/X1YiTW5qcfR3WQ6LA" target="_blank" rel="noopener">Let's talk</Link>
+      Have a custom project? <Link arrow href={BOOKING_URL} target="_blank" rel="noopener">Let's talk</Link>
     </p>
   </div>
 </section>
