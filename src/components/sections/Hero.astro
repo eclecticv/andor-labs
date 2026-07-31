@@ -1,6 +1,5 @@
 ---
 import Button from "../ds/Button.astro";
-import Badge from "../ds/Badge.astro";
 import { BOOKING_URL } from "../../config";
 
 const PRESS = ["Digiday", "Forbes", "Adweek", "ExchangeWire", "eMarketer"];
@@ -12,9 +11,7 @@ const lead = (name: string) => "  " + name + " " + ".".repeat(20 - name.length) 
 const BOOT_LINES: { text: string; status?: string; prompt?: boolean }[] = [
   { text: "SYSCHECK" },
   { text: lead("Positioning"), status: "OK" },
-  { text: lead("Search visibility"), status: "OK" },
   { text: lead("AI citation rank"), status: "OK" },
-  { text: lead("Social presence"), status: "OK" },
   { text: lead("Buying signals"), status: "RECEIVING" },
   { text: " " },
   { text: "all systems operational" },
@@ -24,8 +21,7 @@ const BOOT_LINES: { text: string; status?: string; prompt?: boolean }[] = [
 <section class="aol-hero" style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
   <div class="aol-hero-inner" style="max-width:var(--container-width);width:100%;margin:0 auto">
     <div class="aol-eyebrow aol-hero__eyebrow" data-r style="--r:0">Est. 2025</div>
-    <p class="aol-hero__founder" data-r style="font-family:var(--font-mono);font-size:13px;line-height:1.5;letter-spacing:0.02em;color:var(--ink-600);--r:0">Founded by former Head of Marketing at<br /><strong style="font-weight:400;color:var(--ink-900)">Blockthrough</strong> &amp; <strong style="font-weight:400;color:var(--ink-900)">AdPushup</strong> <Badge variant="tint" class="aol-founderpill">Sold for &gt;$100M</Badge></p>
-    <h1 class="aol-hero__headline" data-r style="font-family:var(--font-display);font-weight:400;font-size:42px;line-height:1.18;letter-spacing:0;max-width:30.5rem;--r:1">The go-to-market operating system for adtech startups</h1>
+    <h1 class="aol-hero__headline" data-r style="font-family:var(--font-display);font-weight:400;font-size:42px;line-height:1.18;letter-spacing:0;max-width:30.5rem;--r:1">Let's reinvent your market entry</h1>
     <div class="aol-hero__term" data-r style="--r:4">
       <div class="aol-term">
         <div class="aol-term__head" aria-hidden="true">
@@ -42,7 +38,7 @@ const BOOT_LINES: { text: string; status?: string; prompt?: boolean }[] = [
       </div>
     </div>
     <p class="aol-hero__subhead" data-r style="font-size:21px;line-height:1.5;color:var(--ink-600);max-width:42ch;--r:2">
-      We help adtech startups win their category through clear positioning, organic growth hacking, and real-time sales intelligence your competitors don't have.
+      We help AI, tech &amp; media startups lead their category through clear positioning, organic growth systems, and custom go-to-market intelligence.
     </p>
     <div class="aol-hero__cta" data-r style="--r:3"><Button size="lg" variant="primary" arrow href={BOOKING_URL} target="_blank" rel="noopener">Book a call</Button></div>
   </div>
