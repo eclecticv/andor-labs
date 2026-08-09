@@ -12,7 +12,7 @@ export const GET: APIRoute = async ({ site }) => {
   const lines = [
     "# And/or Labs",
     "",
-    "> The GTM OS for adtech startups: positioning, content engineering, and sales intelligence for early-stage adtech companies.",
+    "> The GTM OS for early-stage B2B startups: positioning, content engineering, and sales intelligence for early-stage B2B companies.",
     "",
     "## Blog",
     "",
