@@ -3,14 +3,16 @@ import Link from "../ds/Link.astro";
 import { BOOKING_URL } from "../../config";
 
 const faqs: [string, string][] = [
-  ["How is this different from a typical marketing agency?", "Agencies hand you to a junior account team and run a generic playbook. You work directly with an exited adtech operator, across the whole go-to-market — positioning, site, and content — not one isolated slice."],
+  ["How is this different from a typical marketing agency?", "Agencies hand you to a junior account team and run a generic playbook. You work directly with an exited B2B operator, across the whole go-to-market — positioning, site, and content — not one isolated slice."],
   ["What's included in Syscheck?", "Syscheck is a focused teardown of your site, positioning, and sales funnel against peer-reviewed research, plus a prioritized list of what to fix first and a 60-minute readout call. It's the recommended starting point for every engagement."],
   ["How quickly will we see results?", "Syscheck lands in days. A Reboot ships a new identity and site in a few weeks. The Heartbeat retainer compounds over months — that's why it carries a three-month minimum."],
-  ["Do you only work with adtech startups?", "Adtech is the focus, and the operator experience behind it is why the work goes deep. The underlying GTM principles travel to adjacent categories — book an intro call and we'll tell you honestly if it's a fit."],
+  ["Do you only work with early-stage B2B startups?", "B2B is the focus, and the operator experience behind it is why the work goes deep. The underlying GTM principles travel to adjacent categories — book an intro call and we'll tell you honestly if it's a fit."],
   ["Who will I actually be working with?", "The founder, directly. No layers, no handoff to an account manager — the person auditing your funnel is the person who's run marketing and sales ops through two nine-figure exits."],
 ];
 ---
-<section id="faq" class="aol-grid-blue" style="border-bottom:1px solid var(--ink-200)">
+<!-- Paper, not the blue grid: Compare now lands directly above this, and two
+     grid sections in a row collapse into one undifferentiated band. -->
+<section id="faq" style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
   <div class="aol-faq-grid" style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter);display:grid;grid-template-columns:0.82fr 1.18fr;gap:56px;align-items:start">
     <div>
       <div class="aol-eyebrow" style="margin-bottom:14px">ICYMI</div>

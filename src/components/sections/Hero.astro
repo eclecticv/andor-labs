@@ -1,5 +1,6 @@
 ---
 import Button from "../ds/Button.astro";
+import Badge from "../ds/Badge.astro";
 import { BOOKING_URL } from "../../config";
 
 const PRESS = ["Digiday", "Forbes", "Adweek", "ExchangeWire", "eMarketer"];
@@ -21,6 +22,7 @@ const BOOT_LINES: { text: string; status?: string; prompt?: boolean }[] = [
 <section class="aol-hero" style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
   <div class="aol-hero-inner" style="max-width:var(--container-width);width:100%;margin:0 auto">
     <div class="aol-eyebrow aol-hero__eyebrow" data-r style="--r:0">Est. 2025</div>
+    <p class="aol-hero__founder" data-r style="font-family:var(--font-mono);font-size:13px;line-height:1.5;letter-spacing:0.02em;color:var(--ink-600);--r:0">Founded by former Head of Marketing at<br /><strong style="font-weight:400;color:var(--ink-900)">Blockthrough</strong> &amp; <strong style="font-weight:400;color:var(--ink-900)">AdPushup</strong> <Badge variant="tint" class="aol-founderpill">Sold for &gt;$100M</Badge></p>
     <h1 class="aol-hero__headline" data-r style="font-family:var(--font-display);font-weight:400;font-size:42px;line-height:1.18;letter-spacing:0;max-width:30.5rem;--r:1">Let's reinvent your market entry</h1>
     <div class="aol-hero__term" data-r style="--r:4">
       <div class="aol-term">
@@ -34,6 +36,20 @@ const BOOT_LINES: { text: string; status?: string; prompt?: boolean }[] = [
               <div class={"aol-term__line" + (l.prompt ? " aol-term__prompt" : "")}>{l.text}{l.status && <span class={"aol-term__ok" + (l.status !== "OK" ? " aol-term__ok--live" : "")}>{l.status}</span>}</div>
             ))}
           </div>
+          <!-- NVIDIA Inception, stamped bottom-right ON the screen rather than
+               added to the credibility strip — a third cell there forced the
+               strip taller and made the logo reel outgrow its old size. Absolute
+               so the screen keeps its exact dimensions. Partner lockup: never
+               recolored or reproportioned. -->
+          <a class="aol-term__stamp" href="https://www.nvidia.com/en-us/startups/" target="_blank" rel="noopener" aria-label="NVIDIA Inception program member">
+            <!-- alt="" because the anchor's aria-label already names it — with
+                 both, the label wins and the alt is dead weight. Intrinsic
+                 dimensions match the rendered 34px height at the artwork's true
+                 2.3168 ratio, so it reserves its box and can't shift layout.
+                 NOT lazy: this is above the fold, and deferring it would flash
+                 an empty corner on the hero. -->
+            <img src="/partners/nvidia-inception.svg" alt="" width="79" height="34" decoding="async" />
+          </a>
         </div>
       </div>
     </div>

@@ -1,16 +1,8 @@
 ---
-import Button from "../ds/Button.astro";
+// This section is now just the comparison table. The quote reel lives under the
+// founder note (it corroborates his claim, not the table), and the trailing CTA
+// was cut — so there's no Button or BOOKING_URL to import.
 import ComparisonTable from "../ds/ComparisonTable.astro";
-import { BOOKING_URL } from "../../config";
-
-const quotes: [string, string, string][] = [
-  ["His work was instrumental in establishing Blockthrough as the category leader.", "Marty Kratky-Katz", "Exited tech founder"],
-  ["He brings a solutions-first mindset and a holistic view of what needs to be done.", "Goswijn Thijssen", "ex-Google/Microsoft marketing exec"],
-  ["His sales operations work drove exponential revenue growth for the company.", "Trevor Thomas", "ex-OpenX revenue executive"],
-  ["I just reviewed your profile and I'm extremely impressed with your experience.", "Adam Heimlich", "Founder & CEO, Chalice AI"],
-  ["His eye for design and detail was unlike anything I had seen before.", "Shubham Grover", "Head of Inbound Marketing, AdPushup"],
-  ["He has the uncanny ability to say the most complex thing in the most simple manner.", "Sudhiranjan Bannerjee", "Senior Trade Officer, Govt of Alberta"],
-];
 
 const columns = [
   { name: "And/or Labs", note: "", featured: true },
@@ -23,7 +15,7 @@ const rows = [
     cells: [{ mark: "yes", text: "Full-stack" }, { mark: "partial", text: "Broad but generic" }, { mark: "no", text: "Messaging/comms" }],
   },
   {
-    label: `<strong>Adtech operator experience</strong>`,
+    label: `<strong>B2B operator experience</strong>`,
     cells: [{ mark: "yes", text: "2x Exited" }, { mark: "no", text: "Generalist" }, { mark: "partial", text: "Tangential" }],
   },
   {
@@ -46,28 +38,6 @@ const rows = [
     <h2 class="aol-display" style="font-size:40px;margin:0 0 40px">Full-stack growth partner.</h2>
     <div class="aol-cmp-frame">
       <ComparisonTable columns={columns} rows={rows} />
-    </div>
-
-    <div style="margin-top:56px">
-      <div class="aol-eyebrow" style="margin-bottom:20px">what operators say</div>
-      <div class="aol-qmarquee" aria-label="What operators say about the founder">
-        <div class="aol-qmarquee__track">
-          {[...quotes, ...quotes].map(([quote, name, role], i) => (
-            <figure class="aol-qmarquee__item" aria-hidden={i >= quotes.length ? "true" : undefined}>
-              <span class="aol-qmarquee__mark" aria-hidden="true">“</span>
-              <blockquote class="aol-qmarquee__body">{quote}</blockquote>
-              <figcaption class="aol-qmarquee__cite">
-                <span class="aol-qmarquee__name">{name}</span>
-                <span class="aol-qmarquee__role">{role}</span>
-              </figcaption>
-            </figure>
-          ))}
-        </div>
-      </div>
-    </div>
-
-    <div style="display:flex;justify-content:flex-end;margin-top:40px">
-      <Button variant="primary" arrow href={BOOKING_URL} target="_blank" rel="noopener">Start with Syscheck</Button>
     </div>
   </div>
 </section>

@@ -1,0 +1,59 @@
+---
+/**
+ * "What we do" — the six focus areas as a one-open-at-a-time accordion on a
+ * raised plate. Collapsed, the whole section is six title rows instead of six
+ * full paragraphs, which is what keeps it near one screen.
+ *
+ * Native <details> with a shared [name], so the browser does the
+ * one-open-at-a-time behaviour with no JS; motion.css already animates
+ * ::details-content, and no-JS / reduced-motion both degrade to an instant open.
+ *
+ * Copy is verbatim from the vault — `andor-labs/Areas of expertise.md`. Do not
+ * paraphrase it here; edit the note and re-copy.
+ */
+const areas: [string, string][] = [
+  [
+    "Positioning & web design",
+    "Bulletproof your pitch by auditing it against peer-reviewed findings on brand, messaging, design, pricing, trial terms, etc., then pair it with a site built on modern frameworks.",
+  ],
+  [
+    "Tech stack & analytics",
+    "Get the insights you need to make better GTM investment decisions by reviewing your tech stack, tag setup, and analytics pipes to understand gaps and areas of improvement.",
+  ],
+  [
+    "Search, AI & social growth",
+    "Track and improve your share of voice in traditional search, AI citations, and social channels by producing high-quality content rooted in a deep understanding of your ICP.",
+  ],
+  [
+    "Research, data & IP creation",
+    "Establish your topical authority with custom industry reports, white papers, and thematic content series that earn press coverage, buyer attention, and sales pipeline.",
+  ],
+  [
+    "Generative media & creative",
+    "Deliver one-of-a-kind experiences in audio, video, and gamified formats that allow buyers to engage with your brand in ways that promote strong recall and product adoption.",
+  ],
+  [
+    "AI x GTM transformation",
+    "Build repeatable systems for every aspect of your GTM process including brand, creative, organic growth, analytics, sales operations, etc.—with custom skills, plugins, and AI agents.",
+  ],
+];
+---
+<section id="expertise" class="aol-grid-blue" style="border-bottom:1px solid var(--ink-200)">
+  <div style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
+    <div class="aol-eyebrow" style="margin-bottom:14px">what we do</div>
+    <h2 class="aol-display" style="font-size:40px;margin:0 0 36px">Our focus areas.</h2>
+
+    <div class="cap-frame">
+      {areas.map(([name, body], i) => (
+        <details class="cap-item" name="cap" open={i === 0}>
+          <summary class="cap-q">
+            <span class="cap-idx"><span class="cap-fig">FIG. </span>{String(i + 1).padStart(2, "0")}</span>
+            <span class="cap-text">{name}</span>
+            <span class="cap-toggle"></span>
+          </summary>
+          <div class="cap-a">{body}</div>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>

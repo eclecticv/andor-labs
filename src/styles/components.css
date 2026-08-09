@@ -364,6 +364,32 @@
   position:relative; background-color:var(--paper-pure);
   background-image:url("/texture.svg"); background-repeat:repeat;
 }
+/* Partner stamp — sits ON the screen's plotting paper, bottom-right, like a
+   certification mark in the corner of a printout. Absolutely positioned on
+   purpose: it must NOT take part in layout, so the screen keeps exactly the
+   dimensions it had before. The boot log's closing lines ("all systems
+   operational", the prompt) are short and left-aligned, so nothing collides. */
+.aol-term__stamp{
+  position:absolute; right:16px; bottom:14px;
+  display:block; line-height:0;
+  padding:5px 7px; background:var(--paper-pure);
+  border:1px solid var(--ink-200); border-radius:var(--radius-sm);
+  transition:border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+}
+.aol-term__stamp img{ display:block; height:34px; width:auto; }
+@media (hover:hover) and (pointer:fine){
+  .aol-term__stamp:hover{ border-color:var(--ink-900); box-shadow:var(--shadow-hard-sm); }
+}
+/* Narrow screens: the terminal goes full-bleed and the log's widest lines
+   ("  Positioning ......... OK") reach far enough right to slide under the
+   stamp. Reserve a strip at the foot of the screen for it instead of letting
+   them overlap. Desktop dimensions are untouched — this only bites ≤560px.
+   Padding keeps the tap target at 44px even as the artwork shrinks. */
+@media (max-width:560px){
+  .aol-term__log{ padding-bottom:62px; }
+  .aol-term__stamp{ right:12px; bottom:12px; padding:7px 9px; }
+  .aol-term__stamp img{ height:30px; }
+}
 .aol-term__log{
   padding:20px 22px; font-family:var(--font-mono); font-size:12px;
   line-height:1.9; letter-spacing:0.02em; color:var(--ink-800); white-space:pre;
@@ -644,3 +670,4 @@
   .aol-lb__titlerow{ flex-wrap:wrap; gap:8px 20px; }
   .aol-lb__rule{ display:none; }
 }
+

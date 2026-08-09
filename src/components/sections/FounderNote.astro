@@ -2,6 +2,19 @@
 import Photo from "../ds/Photo.astro";
 import StatusMark from "../ds/StatusMark.astro";
 
+// Moved here from Compare — the reel is corroboration of the founder's claim,
+// so it belongs directly under his note rather than tacked onto the
+// comparison table. The track is duplicated so the marquee can loop
+// seamlessly; the clone is aria-hidden so screen readers hear each quote once.
+const quotes: [string, string, string][] = [
+  ["His work was instrumental in establishing Blockthrough as the category leader.", "Marty Kratky-Katz", "Exited tech founder"],
+  ["He brings a solutions-first mindset and a holistic view of what needs to be done.", "Goswijn Thijssen", "ex-Google/Microsoft marketing exec"],
+  ["His sales operations work drove exponential revenue growth for the company.", "Trevor Thomas", "ex-OpenX revenue executive"],
+  ["I just reviewed your profile and I'm extremely impressed with your experience.", "Adam Heimlich", "Founder & CEO, Chalice AI"],
+  ["His eye for design and detail was unlike anything I had seen before.", "Shubham Grover", "Head of Inbound Marketing, AdPushup"],
+  ["He has the uncanny ability to say the most complex thing in the most simple manner.", "Sudhiranjan Bannerjee", "Senior Trade Officer, Govt of Alberta"],
+];
+
 const label = "a note from the founder";
 const beforeItems = ["Blends into the category", "Long sales cycle", "Scattershot efforts"];
 const afterItems = ["A distinct positioning", "Buyers show up ready to buy", "A system that compounds"];
@@ -9,7 +22,7 @@ const beforeRow = "display:flex;gap:9px;align-items:flex-start;font-family:var(-
 const afterRow = "display:flex;gap:9px;align-items:flex-start;font-family:var(--font-mono);font-size:12.5px;line-height:1.4;color:var(--ink-800)";
 ---
 <section id="founder" style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
-  <div style="max-width:var(--content-width);margin:0 auto;padding:var(--space-16) var(--gutter)">
+  <div style="max-width:var(--content-width);margin:0 auto;padding:var(--space-16) var(--gutter) var(--space-12)">
     <div class="aol-grid" style="position:relative;border:1.5px solid var(--ink-900);border-radius:var(--radius-md);box-shadow:var(--shadow-hard);background:var(--surface-card);padding:34px 36px 30px">
       <span style="position:absolute;top:0;left:24px;transform:translateY(-50%);background:var(--paper);padding:0 10px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--blue-600)">{label}</span>
       <h2 style="font-family:var(--font-display);font-weight:400;font-size:33px;line-height:1.24;letter-spacing:-0.01em;margin:6px 0 20px;color:var(--ink-900)">Most startups look the same, sound the same, and go to the same industry events.</h2>
@@ -23,7 +36,7 @@ const afterRow = "display:flex;gap:9px;align-items:flex-start;font-family:var(--
       <div style="font-family:var(--font-serif);font-size:17px;line-height:1.62;color:var(--ink-800);max-width:var(--measure)">
         <p style="margin:0 0 14px">By positioning your startup the same way as everybody else in your category, you're failing to give buyers a compelling reason to choose you.</p>
         <p style="margin:0 0 14px">When buyers are on the fence, it leads to fewer conversions, longer sales cycles, and higher churn rates. Every step of your revenue process is leaky.</p>
-        <p style="margin:0;color:var(--ink-900)">After leading marketing, content strategy, and sales ops for startups that sold for &gt;$100M, I now help adtech teams make their product the obvious category pick.</p>
+        <p style="margin:0;color:var(--ink-900)">After leading marketing, content strategy, and sales ops for startups that sold for >$100M, I now help early-stage B2B teams make their product the obvious category pick.</p>
       </div>
       <div style="margin-top:26px;border-top:1px solid var(--ink-200)"></div>
 
@@ -39,6 +52,26 @@ const afterRow = "display:flex;gap:9px;align-items:flex-start;font-family:var(--
           <div style={afterRow}>
             <span style="flex:none;position:relative;top:1px"><StatusMark kind="yes" size={16} /></span>{s}
           </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <!-- The reel runs at container width, not the note's 720px reading column —
+       it needs the room to read as a moving strip rather than a cramped list. -->
+  <div style="max-width:var(--container-width);margin:0 auto;padding:0 var(--gutter) var(--space-16)">
+    <div class="aol-eyebrow" style="margin-bottom:20px">what operators say</div>
+    <div class="aol-qmarquee" aria-label="What operators say about the founder">
+      <div class="aol-qmarquee__track">
+        {[...quotes, ...quotes].map(([quote, name, role], i) => (
+          <figure class="aol-qmarquee__item" aria-hidden={i >= quotes.length ? "true" : undefined}>
+            <span class="aol-qmarquee__mark" aria-hidden="true">“</span>
+            <blockquote class="aol-qmarquee__body">{quote}</blockquote>
+            <figcaption class="aol-qmarquee__cite">
+              <span class="aol-qmarquee__name">{name}</span>
+              <span class="aol-qmarquee__role">{role}</span>
+            </figcaption>
+          </figure>
         ))}
       </div>
     </div>

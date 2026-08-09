@@ -7,6 +7,12 @@ import sitemap from '@astrojs/sitemap';
 // https://astro.build/config
 export default defineConfig({
   site: 'https://andorlabs.ca',
+  // Allow public tunnel hosts (cloudflared/localtunnel) for phone preview on any network.
+  vite: {
+    server: {
+      allowedHosts: ['.trycloudflare.com', '.loca.lt'],
+    },
+  },
   integrations: [
     sanity({
       projectId: '2b9cfqwh',

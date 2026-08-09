@@ -192,6 +192,96 @@ body.no-scroll { overflow: hidden; }
 .faq-a { font-family: var(--font-serif); font-size: 16px; line-height: 1.62; color: var(--ink-700); margin: 0; padding: 12px 26px 22px 48px; }
 .faq-a > :last-child { margin-bottom: 0; }
 
+/* ── "What we do" accordion ───────────────────────────────────
+   Same accordion mechanics as the FAQ (native <details>, one open at a time
+   via [name]), but a deliberately different object: this one is a RAISED
+   plate — ink border + hard offset shadow, the house printed-hardware
+   elevation — where the FAQ frame is flat. That's what keeps the copy from
+   reading as text loose on the page, and one-open-at-a-time is what keeps six
+   focus areas down to roughly one screen instead of three.
+   Kept in this global sheet, not a scoped <style> — Astro doesn't reliably
+   bind scoped descendant selectors here (same trap as .aol-lbpage__note). */
+.cap-frame {
+  position: relative;
+  border: 1.5px solid var(--ink-900);
+  border-radius: var(--radius-md);
+  background: var(--paper-pure);
+  box-shadow: var(--shadow-hard);
+  overflow: hidden;
+}
+.cap-item { border-top: 1px solid var(--ink-200); }
+.cap-item:first-of-type { border-top: none; }
+.cap-q {
+  list-style: none; cursor: pointer;
+  display: grid; grid-template-columns: 58px 1fr 24px; align-items: center; gap: 16px;
+  padding: 17px 22px;
+  background: transparent;
+  /* The open row carries a blue registration rule down its left edge — the same
+     "this figure is being plotted" signal the section reveals use. It's a border,
+     not an inset box-shadow, so it can't fight :focus-visible for the shadow
+     slot (an [open] row would otherwise swallow its own focus ring). Transparent
+     by default so opening a row shifts nothing. */
+  border-left: 2px solid transparent;
+  transition: background var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
+}
+.cap-q::-webkit-details-marker { display: none; }
+.cap-q:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.cap-item[open] { background: var(--pink-050); }
+.cap-item[open] .cap-q { border-left-color: var(--blue-500); }
+@media (hover: hover) and (pointer: fine) {
+  .cap-item:not([open]) .cap-q:hover { background: var(--ink-050); }
+}
+/* Monotone + one signal: the index is ink, and blue is the only accent it ever
+   earns (on open). No copper here — warm tints are off-brand for this system. */
+.cap-idx {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em;
+  color: var(--ink-500); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.cap-item[open] .cap-idx { color: var(--blue-600); }
+/* Matches .faq-text exactly. These are two accordions on one page: they should
+   read as the same mechanism, and a 1px type delta reads as a mistake rather
+   than a decision. The plate, the blue rule and the FIG. numbering are what
+   make this section its own object. */
+.cap-text {
+  font-family: var(--font-display); font-weight: 400; font-size: 21px; line-height: 1.22;
+  letter-spacing: -0.01em; color: var(--ink-900);
+}
+.cap-toggle {
+  flex: none; width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--ink-900); border-radius: var(--radius-sm);
+  background: var(--paper-pure); color: var(--ink-900);
+  font-family: var(--font-mono); font-size: 14px; line-height: 1;
+  transition: background var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
+}
+.cap-toggle::before { content: "+"; }
+.cap-item[open] .cap-toggle { background: var(--ink-900); color: var(--paper-pure); }
+.cap-item[open] .cap-toggle::before { content: "\2212"; }
+/* Left padding hangs the answer off the title's optical left edge, not the
+   plate's: 2px border + 22px padding + 58px index column + 16px gap = 98px.
+   Right padding (62px) is the mirror — 22px padding + 24px toggle + 16px gap —
+   so the answer stops exactly where the title does. Measure is the shared
+   66ch reading column, not a one-off ch value. */
+.cap-a {
+  font-family: var(--font-serif); font-size: 16px; line-height: 1.62;
+  color: var(--ink-700); margin: 0; padding: 0 62px 22px 98px; max-width: var(--measure);
+}
+/* "FIG. 01" is ~45px of tracked mono and it is nowrap, so it would spill out of
+   a narrowed index column and shunt the title. Below 640 the "FIG." word drops
+   and the bare number carries the same meaning in a third of the space. */
+@media (max-width: 640px) {
+  .cap-fig { display: none; }
+  .cap-q { grid-template-columns: 22px 1fr 22px; gap: 12px; padding: 15px 16px; }
+  .cap-text { font-size: 19px; }
+  /* 2px border + 16px padding + 22px index + 12px gap = 52px, so the answer
+     still hangs off the title's edge. Right side is free to run wider here —
+     mirroring the 50px toggle gutter would waste a third of a 320px screen. */
+  .cap-a { padding: 0 18px 20px 52px; font-size: 15.5px; }
+}
+@media (max-width: 460px) {
+  .cap-a { padding-left: 16px; }
+}
+
 /* Mobile menu — hidden on desktop; the hamburger + dropdown appear ≤560px. */
 .site-nav-toggle { display: none; }
 .site-mobilemenu { display: none; }
