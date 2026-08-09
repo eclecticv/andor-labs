@@ -2,6 +2,12 @@
 import "../styles/main.css";
 import AgentationDevTool from "../components/Agentation.tsx";
 import CopyDiffer from "../components/CopyDiffer.astro";
+import { ICP_STARTUPS, PROMISE } from "../config";
+
+// Meta copy mirrors the hero: the title/description a buyer sees in search is
+// the same promise as the one above the fold. Both read the ICP from config so
+// they can't drift apart again.
+const SITE_TITLE = `And/or Labs — the GTM OS for ${ICP_STARTUPS}`;
 
 interface Props {
   title?: string;
@@ -12,12 +18,12 @@ interface Props {
   ogImageAlt?: string;
 }
 const {
-  title = "And/or Labs — the GTM OS for early-stage B2B startups",
-  description = "We help early-stage B2B startups win their category through clear positioning, content engineering, and sales intelligence your competitors don't have.",
+  title = SITE_TITLE,
+  description = PROMISE,
   ogType = "website",
   publishedTime,
   ogImage: ogImagePath = "/og.png",
-  ogImageAlt = "And/or Labs — the GTM OS for early-stage B2B startups",
+  ogImageAlt = SITE_TITLE,
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site).href;

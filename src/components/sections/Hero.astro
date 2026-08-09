@@ -1,29 +1,33 @@
 ---
 import Button from "../ds/Button.astro";
 import Badge from "../ds/Badge.astro";
-import { BOOKING_URL } from "../../config";
+import { BOOKING_URL, PROMISE } from "../../config";
 
 const PRESS = ["Digiday", "Forbes", "Adweek", "ExchangeWire", "eMarketer"];
 
 // ANDOR/OS boot log — server-rendered in its FINAL state (no-JS and
-// reduced-motion visitors see the completed syscheck); JS replays it as a
-// slow boot on load. Dotted leaders align every status to one column.
-const lead = (name: string) => "  " + name + " " + ".".repeat(20 - name.length) + " ";
+// reduced-motion visitors see the completed check); JS replays it as a slow
+// boot on load. Dotted leaders align every status to one column.
+//
+// No header line: every row sits at the same single indent, so the block reads
+// as one column of output rather than a heading with children. INDENT is shared
+// by the leader rows, the sign-off and the prompt for exactly that reason —
+// change it in one place or they drift apart.
+const INDENT = "  ";
+const lead = (name: string) => INDENT + name + " " + ".".repeat(20 - name.length) + " ";
 const BOOT_LINES: { text: string; status?: string; prompt?: boolean }[] = [
-  { text: "SYSCHECK" },
   { text: lead("Positioning"), status: "OK" },
   { text: lead("AI citation rank"), status: "OK" },
   { text: lead("Buying signals"), status: "RECEIVING" },
   { text: " " },
-  { text: "all systems operational" },
-  { text: "> ", prompt: true },
+  { text: INDENT + "all systems ok" },
+  { text: INDENT + "> ", prompt: true },
 ];
 ---
 <section class="aol-hero" style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
   <div class="aol-hero-inner" style="max-width:var(--container-width);width:100%;margin:0 auto">
     <div class="aol-eyebrow aol-hero__eyebrow" data-r style="--r:0">Est. 2025</div>
-    <p class="aol-hero__founder" data-r style="font-family:var(--font-mono);font-size:13px;line-height:1.5;letter-spacing:0.02em;color:var(--ink-600);--r:0">Founded by former Head of Marketing at<br /><strong style="font-weight:400;color:var(--ink-900)">Blockthrough</strong> &amp; <strong style="font-weight:400;color:var(--ink-900)">AdPushup</strong> <Badge variant="tint" class="aol-founderpill">Sold for &gt;$100M</Badge></p>
-    <h1 class="aol-hero__headline" data-r style="font-family:var(--font-display);font-weight:400;font-size:42px;line-height:1.18;letter-spacing:0;max-width:30.5rem;--r:1">Let's reinvent your market entry</h1>
+    <h1 class="aol-hero__headline" data-r style="font-family:var(--font-display);font-weight:400;font-size:42px;line-height:1.18;letter-spacing:0;max-width:30.5rem;--r:1">The operating system for startup growth</h1>
     <div class="aol-hero__term" data-r style="--r:4">
       <div class="aol-term">
         <div class="aol-term__head" aria-hidden="true">
@@ -54,9 +58,18 @@ const BOOT_LINES: { text: string; status?: string; prompt?: boolean }[] = [
       </div>
     </div>
     <p class="aol-hero__subhead" data-r style="font-size:21px;line-height:1.5;color:var(--ink-600);max-width:42ch;--r:2">
-      We help AI, tech &amp; media startups lead their category through clear positioning, organic growth systems, and custom go-to-market intelligence.
+      {PROMISE}
     </p>
-    <div class="aol-hero__cta" data-r style="--r:3"><Button size="lg" variant="primary" arrow href={BOOKING_URL} target="_blank" rel="noopener">Book a call</Button></div>
+    {/* PARKED — credibility line, hidden for now.
+        Sits between the promise and the CTA: last thing read before the ask,
+        which is where proof does the most work. DOM order matches the
+        grid-area order in site.css, so a screen reader gets the same reading
+        order as the screen — restore both together if this stays put.
+        A JSX comment, not an HTML one, so it's stripped at build rather than
+        shipped as readable source. The Badge import and the `founder` grid
+        area are deliberately left in place so uncommenting is the only step. */}
+    {/* <p class="aol-hero__founder" data-r style="font-family:var(--font-mono);font-size:13px;line-height:1.5;letter-spacing:0.02em;color:var(--ink-600);--r:3">Founded by former Head of Marketing at<br /><strong style="font-weight:400;color:var(--ink-900)">Blockthrough</strong> &amp; <strong style="font-weight:400;color:var(--ink-900)">AdPushup</strong> <Badge variant="tint" class="aol-founderpill">Sold for &gt;$100M</Badge></p> */}
+    <div class="aol-hero__cta" data-r style="--r:4"><Button size="lg" variant="primary" arrow href={BOOKING_URL} target="_blank" rel="noopener">Book a call</Button></div>
   </div>
   <div class="aol-grid-blue" data-r style="border-top:1px solid var(--ink-200);--r:5">
     <div style="max-width:var(--container-width);width:100%;margin:0 auto;padding:var(--space-6) var(--gutter)">
@@ -77,7 +90,7 @@ const BOOT_LINES: { text: string; status?: string; prompt?: boolean }[] = [
 <script>
   // ── ANDOR/OS boot — the log is server-rendered in its final state; with JS +
   // motion allowed we hide it and replay a slow, deliberate boot (line lands,
-  // beat, status lands). Final state = the completed syscheck resting on a prompt.
+  // beat, status lands). Final state = the completed check resting on a prompt.
   // Never blocks page load — it's the hero figure's own behavior, not a gate.
   const term = document.querySelector<HTMLElement>(".aol-term");
   const lines = term ? Array.from(term.querySelectorAll<HTMLElement>(".aol-term__line")) : [];
@@ -95,8 +108,8 @@ const BOOT_LINES: { text: string; status?: string; prompt?: boolean }[] = [
       l.classList.remove("is-in");
       l.querySelector(".aol-term__ok")?.classList.remove("is-in");
     });
-    // Deliberate cadence: header, pause, then each check prints and its
-    // status lands a beat later — the old-POST rhythm, unhurried.
+    // Deliberate cadence: each check prints and its status lands a beat
+    // later — the old-POST rhythm, unhurried.
     let t = 500;
     lines.forEach((l) => {
       const ok = l.querySelector<HTMLElement>(".aol-term__ok");

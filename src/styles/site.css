@@ -76,16 +76,18 @@ section[id] { scroll-margin-top: calc(57px + 24px); }
   grid-template-columns: 1.12fr 0.88fr;
   grid-template-areas:
     "eyebrow  term"
-    "founder  term"
     "headline term"
     "subhead  term"
+    "founder  term"
     "cta      term";
   column-gap: var(--space-16);
   align-items: start;
   padding: var(--space-16) var(--gutter);
 }
 .aol-hero__eyebrow  { grid-area: eyebrow;  margin: 0 0 var(--space-3); }
-.aol-hero__founder  { grid-area: founder;  margin: 0 0 var(--space-6); }
+/* Tighter below than the subhead's space-8 above it, so the credibility line
+   groups with the CTA rather than floating between the two. */
+.aol-hero__founder  { grid-area: founder;  margin: 0 0 var(--space-5); }
 .aol-hero__headline { grid-area: headline; margin: 0 0 var(--space-6); }
 .aol-hero__subhead  { grid-area: subhead;  margin: 0 0 var(--space-8); }
 .aol-hero__cta      { grid-area: cta;      margin: 0; }
@@ -107,10 +109,10 @@ section[id] { scroll-margin-top: calc(57px + 24px); }
     grid-template-columns: 1fr;
     grid-template-areas:
       "eyebrow"
-      "founder"
       "headline"
       "term"
       "subhead"
+      "founder"
       "cta";
   }
   .aol-hero__term { align-self: stretch; margin: var(--space-1) 0 var(--space-8); }
@@ -124,7 +126,13 @@ section[id] { scroll-margin-top: calc(57px + 24px); }
   .aol-hero__founder  { margin-bottom: var(--space-5); }
   .aol-hero__headline { margin-bottom: var(--space-5); }
   .aol-hero__subhead  { margin-bottom: var(--space-6); }
-  .aol-founderpill    { display: block; width: fit-content; margin: 8px 0 0; }
+  /* Stay on the same line as Blockthrough & AdPushup — the pill is a qualifier
+     on those two names, not a separate claim, and dropping it to its own row
+     read as a third bullet. Tightened a little so the whole phrase still fits
+     one line at 375px; .aol-badge's own white-space:nowrap means that if it
+     ever does wrap on a very narrow screen it moves as one unit rather than
+     splitting mid-phrase. */
+  .aol-founderpill    { display: inline-flex; margin: 0 0 0 6px; font-size: 9.5px; padding: 2px 5px; letter-spacing: 0.02em; }
   .aol-grid-2 { grid-template-columns: 1fr; }
   .aol-faq-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
 }

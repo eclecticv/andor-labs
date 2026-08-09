@@ -1,4 +1,5 @@
 ---
+import { ICP } from "../../config";
 import { sanityClient } from "sanity:client";
 import Base from "../../layouts/Base.astro";
 import SiteHeader from "../../components/sections/SiteHeader.astro";
@@ -27,7 +28,7 @@ const fmt = (d: string) =>
 
 <Base
   title="Blog — And/or Labs"
-  description="Educational content on B2B marketing, content strategy, and sales ops for early-stage B2B founders."
+  description={`Educational content on go-to-market, content strategy, and sales ops for ${ICP} founders.`}
 >
   <SiteHeader />
   <main>

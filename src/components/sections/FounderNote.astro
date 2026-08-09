@@ -1,6 +1,7 @@
 ---
 import Photo from "../ds/Photo.astro";
 import StatusMark from "../ds/StatusMark.astro";
+import { ICP } from "../../config";
 
 // Moved here from Compare — the reel is corroboration of the founder's claim,
 // so it belongs directly under his note rather than tacked onto the
@@ -36,7 +37,7 @@ const afterRow = "display:flex;gap:9px;align-items:flex-start;font-family:var(--
       <div style="font-family:var(--font-serif);font-size:17px;line-height:1.62;color:var(--ink-800);max-width:var(--measure)">
         <p style="margin:0 0 14px">By positioning your startup the same way as everybody else in your category, you're failing to give buyers a compelling reason to choose you.</p>
         <p style="margin:0 0 14px">When buyers are on the fence, it leads to fewer conversions, longer sales cycles, and higher churn rates. Every step of your revenue process is leaky.</p>
-        <p style="margin:0;color:var(--ink-900)">After leading marketing, content strategy, and sales ops for startups that sold for >$100M, I now help early-stage B2B teams make their product the obvious category pick.</p>
+        <p style="margin:0;color:var(--ink-900)">After leading marketing, content strategy, and sales ops for startups that sold for >$100M, I now help {ICP} teams make their product the obvious category pick.</p>
       </div>
       <div style="margin-top:26px;border-top:1px solid var(--ink-200)"></div>
 

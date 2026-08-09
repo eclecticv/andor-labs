@@ -337,7 +337,7 @@
 /* ---- ANDOR/OS terminal (hero) ----
    A schematic front panel in the printed-hardware language: hard 1.5px chassis,
    offset block shadow, bezel head-strip with power LED, plotting-paper screen.
-   The boot log types on the screen and rests on the completed syscheck
+   The boot log types on the screen and rests on the completed check
    (see Hero.astro + motion.css). */
 .aol-term{
   border:1.5px solid var(--ink-900); border-radius:var(--radius-md);

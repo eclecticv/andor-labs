@@ -25,7 +25,7 @@
 
   /* ── Hero terminal: boot log lines are hidden until the boot controller
      reveals them one by one (see Hero.astro). Gated on html.js AND no-preference:
-     no-JS and reduced-motion both see the server-rendered completed syscheck.
+     no-JS and reduced-motion both see the server-rendered completed check.
      Lines snap in (no fade) — terminals print, they don't ease. */
   html.js .aol-term:not(.is-booted) .aol-term__line { opacity: 0; }
   html.js .aol-term:not(.is-booted) .aol-term__ok { opacity: 0; }
@@ -117,4 +117,4 @@
 }
 
 /* (The FIG.01 growth-chart crosshair styles were retired with the chart —
-   the terminal's screen now rests on the completed syscheck log.) */
+   the terminal's screen now rests on the completed check log.) */

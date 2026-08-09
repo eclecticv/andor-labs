@@ -1,3 +1,4 @@
+import { ICP_STARTUPS } from "../config";
 import type { APIRoute } from "astro";
 import { sanityClient } from "sanity:client";
 
@@ -12,7 +13,7 @@ export const GET: APIRoute = async ({ site }) => {
   const lines = [
     "# And/or Labs",
     "",
-    "> The GTM OS for early-stage B2B startups: positioning, content engineering, and sales intelligence for early-stage B2B companies.",
+    `> The GTM OS for ${ICP_STARTUPS}: positioning, content engineering, and sales intelligence.`,
     "",
     "## Blog",
     "",
