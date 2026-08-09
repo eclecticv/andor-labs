@@ -35,6 +35,12 @@
   --blue-600: #123CE0;  /* hover */
   --blue-500: #1B4DFF;  /* primary signal */
   --blue-400: #5377FF;
+  /* The ramp used to jump 400 -> 200, but two places author against --blue-300:
+     the nav hover underline and the terminal's live-status blink. An undefined
+     var() is invalid at computed-value time — so `background` fell back to
+     transparent and the nav hover underline scaled in *invisible*, while the
+     inherited `color` blink resolved to body ink instead of a dim blue. */
+  --blue-300: #8AA3FF;
   --blue-200: #BBC8FF;
   --blue-100: #DCE4FF;  /* tint fill */
   --blue-050: #EEF1FF;  /* faint tint background */
