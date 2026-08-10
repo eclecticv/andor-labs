@@ -368,12 +368,24 @@
      of a fixed min-height so it tracks whatever width the hero column gets.
      Content-driven height still wins when the log exceeds the ratio, so this
      can never clip: on narrow screens it simply stops being the constraint.
-     Ratio is set by what sits below the log, not by taste: the log runs ~177px,
-     and the corner stamp needs ~60px of clear screen beneath it. 9/4 lands a
-     ~242px screen at the desktop column width — ~65px under the log, so the
-     stamp breathes without opening a void. Widen this (16/10 etc.) and the
-     screen becomes mostly empty paper; drop it and the stamp crowds the log. */
-  aspect-ratio: 9 / 4;
+     Ratio is applied in the desktop two-column band only (below). */
+}
+/* DESKTOP ONLY. Ratio is set by what sits below the log, not by taste: the log
+   runs ~177px, and 9/4 lands a ~242px screen at the desktop column width, so
+   the corner stamp breathes without opening a void.
+   It is scoped to >=881px on purpose: below that the hero stacks and the
+   terminal goes full-width, where 9/4 computes to a ~370px box around ~177px of
+   content. That is the same void this ratio exists to avoid, just on tablets.
+   Unscoped, the fix becomes the bug one breakpoint down. */
+@media (min-width:881px){
+  .aol-term__screen{ aspect-ratio: 9 / 4; }
+}
+/* Narrow desktop: the two-column layout survives down to 881px, where the
+   terminal column is only ~384px against a 383px line. Departure Mono advances
+   0.6364em, so 43 chars at 12px is 339px plus 44px of padding. Step the type
+   down through the tight band rather than run on a 1px margin. */
+@media (min-width:881px) and (max-width:1000px){
+  .aol-term__log{ font-size:11px; }
 }
 /* Partner stamp — sits ON the screen's plotting paper, bottom-right, like a
    certification mark in the corner of a printout. Absolutely positioned on
@@ -401,12 +413,17 @@
   .aol-term__stamp{ right:12px; bottom:12px; padding:7px 9px; }
   .aol-term__stamp img{ height:30px; }
 }
-/* Small phones: the log is `white-space:pre`, so its widest line CANNOT wrap —
-   it either fits or gets cut by the frame's overflow:hidden. The longest line
-   is ~43 mono chars, which needs ~312px at 12px and stops fitting around a
-   360px viewport. Step the type down rather than let the status word vanish. */
-@media (max-width:420px){
-  .aol-term__log{ font-size:10px; padding:16px 14px 58px; }
+/* Small screens: the log is `white-space:pre`, so its widest line CANNOT wrap.
+   It either fits or gets cut by the frame's overflow:hidden. The line is a
+   fixed 43 characters, so the constraint is continuous and a single stepped
+   breakpoint cannot satisfy it: a fixed 10px still overflowed a 320px viewport
+   by ~38px, while 12px was already clipping by 430px.
+   Size the type off the viewport instead. At 0.6564em per character (0.6364
+   advance + 0.02 tracking), 3.4vw - 3px keeps 43 chars inside the frame from
+   ~300px up, and caps back at the design's 12px by ~441px. The log is
+   aria-hidden, so shrinking it costs nothing to assistive tech. */
+@media (max-width:480px){
+  .aol-term__log{ font-size:clamp(8px, calc(3.4vw - 3px), 12px); padding:16px 14px 58px; }
 }
 .aol-term__log{
   padding:20px 22px; font-family:var(--font-mono); font-size:12px;

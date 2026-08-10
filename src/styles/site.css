@@ -53,6 +53,11 @@ section[id] { scroll-margin-top: calc(57px + 24px); }
   font-size: 13px;
   color: var(--ink-700);
   text-decoration: none;
+  /* 13px mono lands a ~19.5px tall row, under the 24px WCAG 2.5.8 target
+     minimum. These are flex items so they blockify and vertical padding
+     applies. The footer columns drop their gap 9px -> 3px to match, so the
+     28.5px pitch is unchanged and only the hit area grows. */
+  padding: 3px 0;
   transition: color var(--dur-base) var(--ease-out), text-decoration-color var(--dur-base) var(--ease-out);
 }
 @media (hover: hover) and (pointer: fine) {
