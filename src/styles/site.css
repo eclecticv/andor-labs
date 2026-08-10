@@ -84,7 +84,15 @@ section[id] { scroll-margin-top: calc(57px + 24px); }
      clipped the status word outright. An even split clears it at every width
      and stops the log hugging the frame. The text column keeps ≥488px, which
      is the headline's own max-width, so nothing reflows there. */
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0,1fr), NOT 1fr. Plain `1fr` means minmax(auto,1fr), and that `auto`
+     floors at the item's min-content width. The boot log is white-space:pre, so
+     its min-content is the whole unbroken 43-char line: the column refuses to
+     shrink under it and pushes the hero wider than the viewport.
+     overflow:hidden on .aol-term does not prevent this. The automatic-minimum-
+     size zeroing applies to a grid item whose OWN overflow is non-visible, and
+     the grid item is .aol-hero__term (overflow:visible) — the clip is cosmetic
+     while the intrinsic width still propagates up. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   grid-template-areas:
     "eyebrow  term"
     "headline term"
@@ -102,7 +110,9 @@ section[id] { scroll-margin-top: calc(57px + 24px); }
 .aol-hero__headline { grid-area: headline; margin: 0 0 var(--space-6); }
 .aol-hero__subhead  { grid-area: subhead;  margin: 0 0 var(--space-8); }
 .aol-hero__cta      { grid-area: cta;      margin: 0; }
-.aol-hero__term     { grid-area: term;     align-self: center; }
+/* min-width:0 severs the min-content dependency described above: without it the
+   non-wrapping log dictates this item's floor at every breakpoint. */
+.aol-hero__term     { grid-area: term;     align-self: center; min-width: 0; }
 .aol-founderpill    { vertical-align: middle; margin-left: 6px; font-size: 10px; padding: 2px 6px; letter-spacing: 0.04em; }
 
 /* Hero fills the first screen below the sticky header and centres its content;
@@ -117,7 +127,10 @@ section[id] { scroll-margin-top: calc(57px + 24px); }
 }
 @media (max-width: 880px) {
   .aol-hero-inner {
-    grid-template-columns: 1fr;
+    /* minmax(0,1fr) for the same reason as the desktop track: this is the
+       single-column case where the non-wrapping boot log did the most damage,
+       widening the page and dragging every section out with it. */
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       "eyebrow"
       "headline"

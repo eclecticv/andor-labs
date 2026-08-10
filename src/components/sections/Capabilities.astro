@@ -1,0 +1,77 @@
+---
+// "What we do" — the capability ledger, ported from the design system's
+// `explorations/capabilities/ledger-a2-warm-bands.html` (dsCard: "What we do —
+// A2 Warm bands"). Alternating warm/white bands inside one hard-ruled block,
+// serif titles, copper numerals on the warm rows and blue on the white ones.
+//
+// Sits between the founder note and the offers: the note frames the problem and
+// the offers ask for money, so this is where a buyer asks "what do you actually
+// do?" The block's 1.5px ink rules top and bottom are what separate it from the
+// paper section above, which is why it can share that surface without the two
+// reading as one undifferentiated stretch of white.
+//
+// Content is the full six capabilities (the DS exploration showed only four;
+// 04 Research/IP and 05 Generative media were missing there and match the
+// vault's "Areas of expertise"). The em dash in 06 is a comma here, per the
+// standing no-em-dash rule for site copy. Kickers for 04 and 05 are written to
+// match the register of the four the design supplied.
+const capabilities: { n: string; title: string; kicker: string; body: string }[] = [
+  {
+    n: "01",
+    title: "Positioning &amp; web&nbsp;design",
+    kicker: "pitch + site",
+    body: "Bulletproof your pitch by auditing it against peer-reviewed findings on brand, messaging, design, pricing, trial terms, etc., then pair it with a site built on modern frameworks.",
+  },
+  {
+    n: "02",
+    title: "Tech stack &amp; analytics",
+    kicker: "audit",
+    body: "Get the insights you need to make better GTM investment decisions by reviewing your tech stack, tag setup, and analytics pipes to understand gaps and areas of improvement.",
+  },
+  {
+    n: "03",
+    title: "Search, AI &amp; social growth",
+    kicker: "share of voice",
+    body: "Track and improve your share of voice in traditional search, AI citations, and social channels by producing high-quality content rooted in a deep understanding of your ICP.",
+  },
+  {
+    n: "04",
+    title: "Research, data &amp; IP creation",
+    kicker: "reports + IP",
+    body: "Establish your topical authority with custom industry reports, white papers, and thematic content series that earn press coverage, buyer attention, and sales pipeline.",
+  },
+  {
+    n: "05",
+    title: "Generative media &amp; creative",
+    kicker: "audio + video",
+    body: "Deliver one-of-a-kind experiences in audio, video, and gamified formats that allow buyers to engage with your brand in ways that promote strong recall and product adoption.",
+  },
+  {
+    n: "06",
+    title: "AI × GTM transformation",
+    kicker: "systems · agents",
+    body: "Build repeatable systems for every aspect of your GTM process including brand, creative, organic growth, analytics, sales operations, etc., with custom skills, plugins, and AI agents.",
+  },
+];
+---
+<!-- Paper, like the founder note above it. The ledger's own ink rules do the
+     separating work that a surface change would otherwise have to. -->
+<section id="what-we-do" style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
+  <div style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
+    <div class="aol-eyebrow" style="margin-bottom:14px">what we do</div>
+    <h2 class="aol-display" style="font-size:40px;margin:0 0 36px">Six capabilities</h2>
+
+    <div class="aol-ledger">
+      {capabilities.map((c) => (
+        <div class="aol-ledger__band">
+          <span class="aol-ledger__n">{c.n}</span>
+          <div class="aol-ledger__head">
+            <h3 class="aol-ledger__title" set:html={c.title} />
+            <span class="aol-ledger__kicker">{c.kicker}</span>
+          </div>
+          <p class="aol-ledger__body">{c.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

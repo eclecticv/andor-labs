@@ -125,8 +125,15 @@
       #copydiff-ui .cd-copy{background:#1B4DFF;border-color:#0A2EBF;}
       #copydiff-ui .cd-status{color:#52555F;background:#fff;padding:5px 8px;border-radius:5px;border:1px solid #D8DAE0;}
       body.cd-editing [data-cd]{outline:1.5px dashed rgba(27,77,255,.5);outline-offset:2px;border-radius:2px;}
-      body.cd-editing [data-cd]:hover{outline-style:solid;background:rgba(27,77,255,.05);}
-      body.cd-editing [data-cd]:focus{outline:2px solid #1B4DFF;background:rgba(27,77,255,.08);}
+      /* Tint via background-IMAGE, never background-color. The editing-hover
+         selector outranks component rules such as .aol-btn--primary:hover, so
+         setting background-color here wiped the primary button's blue fill and
+         let the pink card surface show through: the CTAs read as faint pink on
+         hover. A gradient layer sits over whatever fill the component already
+         has and leaves background-color to the component.
+         NB: no backticks in this comment. It lives inside a template literal. */
+      body.cd-editing [data-cd]:hover{outline-style:solid;background-image:linear-gradient(rgba(27,77,255,.05),rgba(27,77,255,.05));}
+      body.cd-editing [data-cd]:focus{outline:2px solid #1B4DFF;background-image:linear-gradient(rgba(27,77,255,.08),rgba(27,77,255,.08));}
     </style>`;
   const toggleBtn = document.createElement("button");
   const copyBtn = document.createElement("button");
