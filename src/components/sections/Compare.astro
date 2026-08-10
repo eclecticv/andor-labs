@@ -27,8 +27,23 @@ const rows = [
     cells: [{ mark: "yes", text: "Weeks" }, { mark: "no", text: "Months" }, { mark: "partial", text: "Varies" }],
   },
   {
-    label: `<strong>Typical cost</strong>`,
-    cells: [{ mark: "yes", text: "$$" }, { mark: "no", text: "$$$$" }, { mark: "partial", text: "$$$" }],
+    // Was "$$ / $$$$ / $$$", which asked the reader to re-derive a comparison
+    // one section after the offers state exact figures. Our own number is quoted
+    // straight from those cards. The other two columns describe the pricing
+    // MODEL rather than inventing a figure: agency and consultant rates are not
+    // ours to publish, and a made-up number would be worse than the dollar signs.
+    // The real contrast is published-vs-on-request, which is also just true.
+    label: `<strong>Pricing</strong>`,
+    cells: [
+      // Kept short on purpose: cells get ~92px of text width once the mark and
+      // padding are subtracted from the table's 640px min-width, so anything
+      // longer wraps to three lines and this row towers over the others.
+      // "Published" is redundant anyway, since ours is the only column here
+      // carrying an actual number.
+      { mark: "yes", text: "From $1,000/mo" },
+      { mark: "no", text: "Quote on request" },
+      { mark: "partial", text: "Day or project rate" },
+    ],
   },
 ];
 ---

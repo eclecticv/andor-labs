@@ -65,6 +65,9 @@
   --green-600: #1B6E45;
   --green-100: #DCEEE2;
   --amber-600: #9A6400;
+  /* Border tint for the warning callout, mirroring how --blue-200 borders the
+     info callout. Was an inline #E8CE8A, the only off-palette hex on the site. */
+  --amber-200: #E8CE8A;
   --amber-100: #F5E9CC;
   --red-600:   #C23121;
   --red-100:   #F6DAD3;
@@ -79,7 +82,15 @@
   --text-strong:  var(--ink-900);
   --text-body:    var(--ink-800);
   --text-muted:   var(--ink-500);
-  --text-faint:   var(--ink-400);
+  /* Faint text resolves to ink-500, NOT ink-400. ink-400 measures 2.90:1 on
+     paper and 2.68:1 on the warm surface: it fails AA 4.5:1 and even the 3.0
+     large-text floor. There is no room for an intermediate ramp step either —
+     every value between 400 and 500 still fails on warm, and ink-500 clears it
+     by 0.01 (4.51:1). So the "faint" tier cannot exist as body text on this
+     palette; it survives only for hairlines, borders and marks, which is what
+     ink-400 is now reserved for. Authors should reach for this token rather
+     than ink-400 whenever the value paints text. */
+  --text-faint:   var(--ink-500);
   --text-inverse: var(--paper);
   --text-link:    var(--blue-500);
 

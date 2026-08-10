@@ -111,7 +111,7 @@
 }
 .aol-divider__label{
   font-family:var(--font-mono); font-size:11px; letter-spacing:0.12em; text-transform:uppercase;
-  color:var(--ink-400); white-space:nowrap;
+  color:var(--text-faint); white-space:nowrap;
 }
 .aol-divider--vertical{ flex-direction:column; width:3px; height:100%; align-self:stretch; }
 .aol-divider--vertical .aol-divider__line{
@@ -188,7 +188,7 @@
 .aol-gridframe__dim{
   position:absolute; top:50%; right:-1px; transform:translate(50%,-50%) rotate(90deg); transform-origin:center;
   background:var(--color-surface); padding:0 7px;
-  font-family:var(--font-mono); font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-400); white-space:nowrap;
+  font-family:var(--font-mono); font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-faint); white-space:nowrap;
 }
 .aol-gridframe__cross{ position:absolute; top:50%; left:50%; width:13px; height:13px; transform:translate(-50%,-50%); pointer-events:none; opacity:0.55; }
 .aol-gridframe__cross::before,.aol-gridframe__cross::after{ content:""; position:absolute; background:var(--ink-400); }
@@ -225,6 +225,9 @@
 .aol-statusmark svg{ display:block; }
 .aol-statusmark--yes{ color:var(--blue-600); }
 .aol-statusmark--no{ color:var(--ink-300); }
+/* Stays on ink-400. These marks are supplementary: every ComparisonTable cell
+   pairs its mark with a text label, so the glyph is not the sole carrier of
+   meaning and WCAG 1.4.11 does not apply. */
 .aol-statusmark--partial{ color:var(--ink-400); }
 
 /* ---- Quote ---- */
@@ -552,6 +555,9 @@
 .aol-cmp__name{ font-family:var(--font-serif); font-size:16px; font-weight:600; color:var(--ink-600); margin-bottom:4px; }
 .aol-cmp__note{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.04em; color:var(--ink-500); }
 .aol-cmp__val{ display:flex; flex-direction:row; align-items:center; gap:9px; }
+/* The mark is a flex item, so it would shrink once a cell's text wraps. Now that
+   the Pricing row carries real copy rather than dollar signs, hold its size. */
+.aol-cmp__val .aol-statusmark{ flex:none; }
 .aol-cmp__valtext{ font-family:var(--font-mono); font-size:12.5px; line-height:1.4; color:var(--ink-600); }
 .aol-cmp__valtext--muted{ color:var(--ink-500); }
 /* Featured column: QUIET emphasis — a faint blue tint + a blue top rail, not a loud
@@ -610,7 +616,7 @@
 .aol-callout--info{ border-color:var(--blue-200); background:var(--blue-050); }
 .aol-callout--info .aol-callout__label{ color:var(--blue-700); }
 .aol-callout--info .aol-callout__swatch{ background:var(--blue-500); }
-.aol-callout--warning{ border-color:#E8CE8A; background:var(--amber-100); }
+.aol-callout--warning{ border-color:var(--amber-200); background:var(--amber-100); }
 .aol-callout--warning .aol-callout__label{ color:var(--amber-600); }
 .aol-callout--warning .aol-callout__swatch{ background:var(--amber-600); }
 .aol-callout--important{ border-color:var(--ink-900); background:var(--paper-pure); box-shadow:var(--shadow-hard-sm); }
@@ -634,9 +640,11 @@
   padding:9px 12px; width:100%;
   transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), background var(--dur-base) var(--ease-out);
 }
-.aol-control::placeholder{ color:var(--ink-400); }
+.aol-control::placeholder{ color:var(--text-faint); }
 .aol-control:hover{ border-color:var(--ink-500); }
 .aol-control:focus{ outline:none; border-color:var(--blue-500); box-shadow:0 0 0 3px var(--blue-100); }
+/* Disabled text stays on ink-400: WCAG 1.4.3 exempts inactive components, and
+   lifting it would weaken the disabled affordance. */
 .aol-control:disabled{ background:var(--ink-050); color:var(--ink-400); cursor:not-allowed; }
 .aol-control--error{ border-color:var(--red-600); }
 .aol-control--error:focus{ box-shadow:0 0 0 3px var(--red-100); }
@@ -660,7 +668,7 @@
 }
 .aol-lb--filled .aol-lb__masthead-inner{ max-width:var(--container-width); margin:0 auto; padding-inline:var(--gutter); }
 .aol-lb--filled .aol-lb__subtitle{ font-size:var(--text-md); }   /* 19px lede, like the other page headers */
-.aol-lb__version{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.14em; color:var(--ink-400); margin:0 0 2px 3px; }
+.aol-lb__version{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.14em; color:var(--text-faint); margin:0 0 2px 3px; }
 .aol-lb__titlerow{ display:flex; align-items:baseline; gap:20px; }
 .aol-lb__title{ font-family:var(--font-display); font-weight:400; font-size:42px; line-height:1; letter-spacing:-0.015em; margin:0; white-space:nowrap; }
 .aol-lb__subtitle{ font-family:var(--font-serif); font-size:16px; line-height:1.45; color:var(--ink-500); margin:13px 0 0 3px; max-width:none; text-wrap:pretty; }
@@ -675,19 +683,19 @@
 .aol-lb__cathead .num{ margin-right:6px; }
 /* ranked row */
 .aol-lb__row{ display:flex; align-items:baseline; gap:10px; padding:6px 0; }
-.aol-lb__rank{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:13px; color:var(--ink-400); min-width:1.1ch; flex:0 0 auto; }
+.aol-lb__rank{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:13px; color:var(--text-faint); min-width:1.1ch; flex:0 0 auto; }
 .aol-lb__name{ font-family:var(--font-serif); font-size:17px; line-height:1.3; color:var(--ink-900); flex:0 1 auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .aol-lb__leader{ flex:1 1 auto; min-width:16px; height:0.58em; border-bottom:1.5px dotted var(--ink-300); }
-.aol-lb__move{ font-family:var(--font-mono); font-size:11px; font-variant-numeric:tabular-nums; letter-spacing:0.02em; flex:0 0 auto; min-width:32px; text-align:right; white-space:nowrap; color:var(--ink-400); }
+.aol-lb__move{ font-family:var(--font-mono); font-size:11px; font-variant-numeric:tabular-nums; letter-spacing:0.02em; flex:0 0 auto; min-width:32px; text-align:right; white-space:nowrap; color:var(--text-faint); }
 .aol-lb__move--up{ color:var(--green-600); }
 .aol-lb__move--down{ color:var(--red-600); }
 .aol-lb__move--new{ color:var(--blue-500); }
 .aol-lb--mono .aol-lb__move--up{ color:var(--ink-900); }
-.aol-lb--mono .aol-lb__move--down{ color:var(--ink-400); }
+.aol-lb--mono .aol-lb__move--down{ color:var(--text-faint); }
 .aol-lb__score{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:14px; color:var(--ink-600); flex:0 0 auto; min-width:2.4ch; text-align:right; }
 /* score breakdown: search · ai → combo */
 .aol-lb__score--parts{ display:inline-flex; align-items:baseline; gap:5px; min-width:auto; text-align:right; white-space:nowrap; }
-.aol-lb__part{ color:var(--ink-400); }
+.aol-lb__part{ color:var(--text-faint); }
 .aol-lb__op, .aol-lb__arrow{ color:var(--ink-300); }
 .aol-lb__combo{ color:var(--ink-900); }
 
@@ -744,6 +752,10 @@
 .aol-ledger__title{
   font-family:var(--font-display); font-weight:400; font-size:var(--text-xl);
   line-height:1.08; color:var(--text-strong); margin:0;
+  /* The title track is a minmax(0,...) column, so a long unbroken word would
+     otherwise be clipped by the band rather than wrapped. Capability names are
+     editorial copy and will change. */
+  overflow-wrap:break-word;
 }
 .aol-ledger__kicker{
   display:block; font-family:var(--font-mono); font-size:var(--text-2xs);

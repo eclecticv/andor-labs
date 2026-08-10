@@ -26,8 +26,13 @@ const faqs: [string, string][] = [
       <span class="faq-crop faq-crop--tr"></span>
       <span class="faq-crop faq-crop--bl"></span>
       <span class="faq-crop faq-crop--br"></span>
+      {/* The details below carry NO `name` attribute on purpose. A shared name
+          makes the group exclusive, so opening one answer silently collapses
+          the one already open, and the two questions a buyer most wants to
+          weigh together ("Which engagement should I start with?" and "How
+          quickly will we see results?") could never be read side by side. */}
       {faqs.map(([q, a], i) => (
-        <details class="faq-item" name="faq" open={i === 0}>
+        <details class="faq-item" open={i === 0}>
           <summary class="faq-q">
             <span class="faq-idx">{String(i + 1).padStart(2, "0")}</span>
             <span class="faq-text">{q}</span>
