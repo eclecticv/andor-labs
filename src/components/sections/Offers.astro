@@ -7,27 +7,27 @@ import { BOOKING_URL } from "../../config";
 
 const plans = [
   {
-    kind: "Audit", name: "Marketing audit",
-    blurb: "A focused teardown of your site, positioning, and funnel—with a prioritized to-do list.",
-    price: "$995", per: "one-time", cta: "Book your audit",
-    feats: ["B2B SaaS benchmarking", "Positioning & funnel teardown", "SEO/AEO competitive report", "30/60/90 action plan", "45-minute readout"],
-    raised: true, flag: "Most teams start here" as string | null,
+    kind: "Advisory", name: "GTM Advisor",
+    blurb: "For idea / pre-seed stage startups who want to sharpen their pitch for investors and build their early go-to-market strategy.",
+    price: "$1,000", per: "/mo + equity", cta: "Book a call",
+    feats: ["Full audit & 30/60/90 POA", "Hands-on help with board prep, fundraising & hiring", "Monthly strategy call"],
+    raised: false,
     accent: "blue" as "blue" | "copper",
   },
   {
-    kind: "Sprint", name: "Brand makeover",
-    blurb: "Put your best foot forward with buyers by showing up with a renewed identity.",
-    price: "$14,995", per: "one-time", cta: "Reserve your sprint",
-    feats: ["Positioning rewrite", "Custom design system", "New, AI-ready site", "CMS config & walkthrough", "Social asset pack (X/LinkedIn)"],
-    raised: false, flag: null as string | null,
+    kind: "Sprint", name: "Modernization Sprint",
+    blurb: "For startups of any stage who want a modern, AI-native brand & marketing foundation to build their growth engine.",
+    price: "$10,000", per: "one-time", cta: "Book a call",
+    feats: ["Brand & positioning refresh", "New, AI-ready site you can update with Claude, Codex, etc.", "CMS & tag manager set up"],
+    raised: false,
     accent: "copper" as "blue" | "copper",
   },
   {
-    kind: "Retainer", name: "Pipeline builder",
-    blurb: "Distribution to help founders & GTM leaders build awareness and pipeline.",
-    price: "$7,995", per: "/mo · 3-month min", cta: "Book intro call",
-    feats: ["Weekly GTM strategy call", "Active SEO/AEO campaign", "Exec social content", "Bi-weekly newsletter", "1x custom content / quarter"],
-    raised: false, flag: null as string | null,
+    kind: "Fractional", name: "Fractional CMO",
+    blurb: "For seed / series A startups who have signs of product-market fit and are looking to scale to the next set of growth milestones.",
+    price: "$5,000", per: "/mo · 3-month min", cta: "Book a call",
+    feats: ["Mutually agreed GTM roadmap", "Covers product marketing, content strategy & sales operations", "Weekly strategy call"],
+    raised: false,
     accent: "copper" as "blue" | "copper",
   },
 ];
@@ -38,13 +38,10 @@ const plans = [
 <section id="how-we-work" class="aol-grid-blue" style="border-bottom:1px solid var(--ink-200)">
   <div style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
     <div class="aol-eyebrow" style="margin-bottom:14px">how we work</div>
-    <h2 class="aol-display" style="font-size:40px;margin:0 0 36px">Book a call to evaluate fit.</h2>
+    <h2 class="aol-display" style="font-size:40px;margin:0 0 36px">Book a call to evaluate fit</h2>
     <div class="aol-grid-3" style="display:grid;gap:20px;align-items:start">
       {plans.map((p) => (
-        <Card variant="flat" padding="lg" style="display:flex;flex-direction:column;position:relative;background:var(--surface-card)">
-          {p.flag && (
-            <div style="position:absolute;top:0;right:18px;transform:translateY(-50%);background:var(--blue-600);color:#fff;font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;padding:4px 10px;border-radius:var(--radius-sm)">{p.flag}</div>
-          )}
+        <Card variant={p.raised ? "raised" : "flat"} padding="lg" style="display:flex;flex-direction:column;position:relative;background:var(--surface-card)">
           <h3 style="font-family:var(--font-serif);font-weight:600;font-size:25px;letter-spacing:-0.01em;margin:14px 0 8px">{p.name}</h3>
           <p style="font-size:16px;color:var(--ink-600);line-height:1.5;margin:0 0 20px">{p.blurb}</p>
           <div style="margin-bottom:20px;background-image:radial-gradient(var(--ink-300) 0.9px, transparent 1.1px);background-size:6px 3px;background-position:left top;background-repeat:repeat-x">
@@ -67,7 +64,7 @@ const plans = [
       ))}
     </div>
     <p style="font-family:var(--font-mono);font-size:15px;color:var(--ink-600);text-align:center;margin-top:30px">
-      Have a custom project? <Link arrow href={BOOKING_URL} target="_blank" rel="noopener">Let's talk</Link>
+      Have a custom project? <Link arrow href={BOOKING_URL} target="_blank" rel="noopener">Book a call</Link>
     </p>
   </div>
 </section>

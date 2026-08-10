@@ -2,12 +2,13 @@
 import "../styles/main.css";
 import AgentationDevTool from "../components/Agentation.tsx";
 import CopyDiffer from "../components/CopyDiffer.astro";
-import { ICP_STARTUPS, PROMISE } from "../config";
+import { PROMISE } from "../config";
 
 // Meta copy mirrors the hero: the title/description a buyer sees in search is
-// the same promise as the one above the fold. Both read the ICP from config so
-// they can't drift apart again.
-const SITE_TITLE = `And/or Labs — the GTM OS for ${ICP_STARTUPS}`;
+// the same promise as the one above the fold. The title had drifted back to the
+// retired "GTM OS" line while the hero and footer moved on, so it is spelled out
+// here to match the H1 verbatim. Pipe separator, not an em dash, by request.
+const SITE_TITLE = "And/or Labs | Tactical growth partner for product builders & operators";
 
 interface Props {
   title?: string;

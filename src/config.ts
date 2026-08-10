@@ -19,7 +19,7 @@ export const BOOKING_URL = "https://cal.com/jatain/book";
  * products sold to skeptical technical people. That is what makes the operator
  * track record transferable across all three.
  */
-export const ICP = "AI, adtech and deeptech";
+export const ICP = "AI, adtech, and deeptech";
 
 /** The ICP as a noun phrase, e.g. "We help {ICP_STARTUPS} lead their category". */
 export const ICP_STARTUPS = `${ICP} startups`;
@@ -30,4 +30,4 @@ export const ICP_STARTUPS = `${ICP} startups`;
  * These were two separately-typed sentences making two different claims, so the
  * search snippet promised something the page didn't. Same phrase, one source.
  */
-export const PROMISE = `We help ${ICP_STARTUPS} lead their category through clear positioning, organic growth systems, and custom GTM intelligence.`;
+export const PROMISE = `We help ${ICP_STARTUPS} grow without burning runway through clear positioning, better market intelligence, and autonomous growth systems.`;

@@ -363,6 +363,17 @@
 .aol-term__screen{
   position:relative; background-color:var(--paper-pure);
   background-image:url("/texture.svg"); background-repeat:repeat;
+  /* The screen has no intrinsic height — six short log lines in a ~540px frame
+     collapse to a ~2.6:1 letterbox strip. Give it a real CRT proportion instead
+     of a fixed min-height so it tracks whatever width the hero column gets.
+     Content-driven height still wins when the log exceeds the ratio, so this
+     can never clip: on narrow screens it simply stops being the constraint.
+     Ratio is set by what sits below the log, not by taste: the log runs ~177px,
+     and the corner stamp needs ~60px of clear screen beneath it. 9/4 lands a
+     ~242px screen at the desktop column width — ~65px under the log, so the
+     stamp breathes without opening a void. Widen this (16/10 etc.) and the
+     screen becomes mostly empty paper; drop it and the stamp crowds the log. */
+  aspect-ratio: 9 / 4;
 }
 /* Partner stamp — sits ON the screen's plotting paper, bottom-right, like a
    certification mark in the corner of a printout. Absolutely positioned on
@@ -381,14 +392,21 @@
   .aol-term__stamp:hover{ border-color:var(--ink-900); box-shadow:var(--shadow-hard-sm); }
 }
 /* Narrow screens: the terminal goes full-bleed and the log's widest lines
-   ("  Positioning ......... OK") reach far enough right to slide under the
-   stamp. Reserve a strip at the foot of the screen for it instead of letting
+   ("  Market & buying signals ....... RECEIVING") reach far enough right to
+   slide under the stamp. Reserve a strip at the foot of the screen for it instead of letting
    them overlap. Desktop dimensions are untouched — this only bites ≤560px.
    Padding keeps the tap target at 44px even as the artwork shrinks. */
 @media (max-width:560px){
   .aol-term__log{ padding-bottom:62px; }
   .aol-term__stamp{ right:12px; bottom:12px; padding:7px 9px; }
   .aol-term__stamp img{ height:30px; }
+}
+/* Small phones: the log is `white-space:pre`, so its widest line CANNOT wrap —
+   it either fits or gets cut by the frame's overflow:hidden. The longest line
+   is ~43 mono chars, which needs ~312px at 12px and stops fitting around a
+   360px viewport. Step the type down rather than let the status word vanish. */
+@media (max-width:420px){
+  .aol-term__log{ font-size:10px; padding:16px 14px 58px; }
 }
 .aol-term__log{
   padding:20px 22px; font-family:var(--font-mono); font-size:12px;

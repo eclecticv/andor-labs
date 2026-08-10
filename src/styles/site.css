@@ -73,7 +73,13 @@ section[id] { scroll-margin-top: calc(57px + 24px); }
    between the headline and the subhead (see the 880px override below). */
 .aol-hero-inner {
   display: grid;
-  grid-template-columns: 1.12fr 0.88fr;
+  /* Even split, not the old 1.12/0.88. The boot log's widest line is ~43 mono
+     chars (~364px with the log's padding); at 0.88fr the terminal column fell
+     to ~347px between 880–1000px and `overflow:hidden` + `white-space:pre`
+     clipped the status word outright. An even split clears it at every width
+     and stops the log hugging the frame. The text column keeps ≥488px, which
+     is the headline's own max-width, so nothing reflows there. */
+  grid-template-columns: 1fr 1fr;
   grid-template-areas:
     "eyebrow  term"
     "headline term"
