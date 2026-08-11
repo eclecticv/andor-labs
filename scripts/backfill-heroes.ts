@@ -8,15 +8,33 @@
  * Run with:
  *   npx sanity exec scripts/backfill-heroes.ts --with-user-token
  *
+ * Only touches posts with no hero. To replace existing art:
+ *   npx sanity exec scripts/backfill-heroes.ts --with-user-token -- --force the-copilot-tax
+ *   npx sanity exec scripts/backfill-heroes.ts --with-user-token -- --force all
+ *
+ * Every candidate is dithered and measured before it is accepted; one that
+ * fails the quality gate is rejected and the fallback query is tried instead.
+ *
  * Idempotent: posts that already have `heroImage` are skipped, so re-running
- * only fills the gaps. Delete a hero in Studio and re-run to re-source it.
+ * only fills the gaps. Use --force (above) to replace existing art.
+ *
+ * NOT added, deliberately: a landscape-only filter on the search. It was the
+ * obvious guess for the flat-hero bug and the measurements disproved it — the
+ * offending source was already 16:9. Trimming the dead border fixed it; an
+ * aspect floor would only have thrown away usable portrait sources that trim
+ * well. The quality gate is the general safety net, and it is evidence-based.
  */
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 import type {Metadata as SharpMetadata} from "sharp";
 import { getCliClient } from "sanity/cli";
-import { ditherToDuotone, ditherPreset } from "./lib/dither";
+import {
+  ditherToDuotoneWithStats,
+  ditherPreset,
+  qualityGateFailures,
+  type DuotoneStats,
+} from "./lib/dither";
 import {
   searchImage,
   attributionLine,
@@ -212,7 +230,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  */
 async function tryCandidate(
   query: string,
-): Promise<{ result: OpenverseResult; bytes: Buffer; decodedWidth: number } | null> {
+): Promise<{ result: OpenverseResult; png: Buffer; stats: DuotoneStats } | null> {
   const result = await searchImage(query);
   if (!result) {
     console.log(`    · "${query}" → no usable result`);
@@ -239,18 +257,54 @@ async function tryCandidate(
     );
     return null;
   }
-  return { result, bytes, decodedWidth };
+
+  // Dither HERE, not in the caller. The gate below can only drive the fallback
+  // query if it runs inside the candidate loop; when this lived in main() the
+  // fallback query could never fire, and across fourteen posts it never once
+  // did — nothing was capable of rejecting a candidate.
+  const { png, stats } = await ditherToDuotoneWithStats(bytes, ditherPreset.HERO);
+  const failures = qualityGateFailures(stats);
+  if (failures.length > 0) {
+    console.log(`    · "${query}" → dithered badly (${failures.join("; ")}) — rejecting`);
+    return null;
+  }
+  console.log(
+    `    · "${query}" → ok (entropy ${stats.entropy.toFixed(3)}, flat ${(stats.flatCellPct * 100).toFixed(1)}%, shadow ${(stats.shadowPct * 100).toFixed(1)}%)`,
+  );
+  return { result, png, stats };
 }
 
 async function main() {
   fs.mkdirSync(OUT_DIR, { recursive: true });
 
+  // `--force <slug>` (repeatable, or `--force all`) re-does a post that already
+  // has a hero. Without it the only way to replace bad art was to delete the
+  // field in Studio first, which is a silly thing to ask of an editor who just
+  // wants a different picture.
+  const argv = process.argv.slice(2);
+  const forced = new Set<string>();
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === "--force" && argv[i + 1]) forced.add(argv[++i]);
+  }
+  const forceAll = forced.has("all");
+
+  const filter = forceAll
+    ? "true"
+    : forced.size > 0
+      ? "!defined(heroImage) || slug.current in $forced"
+      : "!defined(heroImage)";
+
   const posts: PostRow[] = await client.fetch(
-    `*[_type == "post" && !defined(heroImage)]{ _id, "slug": slug.current, title } | order(slug asc)`,
+    `*[_type == "post" && (${filter})]{ _id, "slug": slug.current, title } | order(slug asc)`,
+    { forced: [...forced] },
   );
 
+  if (forced.size > 0) {
+    console.log(`Forcing regeneration: ${forceAll ? "ALL posts" : [...forced].join(", ")}`);
+  }
+
   const total: number = await client.fetch(`count(*[_type == "post"])`);
-  console.log(`${total} posts total; ${posts.length} without a hero image.\n`);
+  console.log(`${total} posts total; ${posts.length} to process.\n`);
 
   const done: { slug: string; query: string; credit: string; license: string; landing: string }[] = [];
   const skipped: { slug: string; reason: string }[] = [];
@@ -284,8 +338,7 @@ async function main() {
       continue;
     }
 
-    const { result, bytes, decodedWidth } = picked;
-    const png = await ditherToDuotone(bytes, ditherPreset.HERO);
+    const { result, png, stats } = picked;
 
     const filename = `${post.slug}-hero.png`;
     fs.writeFileSync(path.join(OUT_DIR, filename), png);
@@ -311,7 +364,7 @@ async function main() {
       .commit();
 
     console.log(
-      `    ✓ "${used.query}" → ${decodedWidth}px src → ${asset._id}  [${credit}]`,
+      `    ✓ "${used.query}" → entropy ${stats.entropy.toFixed(3)} → ${asset._id}  [${credit}]`,
     );
     done.push({
       slug: post.slug,
