@@ -403,7 +403,7 @@
   .aol-term__stamp:hover{ border-color:var(--ink-900); box-shadow:var(--shadow-hard-sm); }
 }
 /* Narrow screens: the terminal goes full-bleed and the log's widest lines
-   ("  Market & buying signals ....... RECEIVING") reach far enough right to
+   ("Buying signals .......... RECEIVING") reach far enough right to
    slide under the stamp. Reserve a strip at the foot of the screen for it instead of letting
    them overlap. Desktop dimensions are untouched — this only bites ≤560px.
    Padding keeps the tap target at 44px even as the artwork shrinks. */

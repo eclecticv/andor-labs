@@ -21,12 +21,16 @@ const PRESS = ["Digiday", "Forbes", "Adweek", "eMarketer"];
 const INDENT = "";
 // Column width must clear the LONGEST label below — `repeat` throws on a
 // negative count, so a label longer than this is a build error, not a wobble.
-const LEADER_COL = 30;
+// 24 is taken from the review's own dot counts: every line there aligned at
+// label + dots = 24. Longest label is now 20 chars, so there is 4 to spare.
+const LEADER_COL = 24;
 const lead = (name: string) => INDENT + name + " " + ".".repeat(LEADER_COL - name.length) + " ";
 const BOOT_LINES: { text: string; status?: string; prompt?: boolean }[] = [
-  { text: lead("Benchmarking your SaaS"), status: "OK" },
-  { text: lead("Organic discovery score"), status: "OK" },
-  { text: lead("Market & buying signals"), status: "RECEIVING" },
+  { text: lead("Benchmarking SaaS"), status: "OK" },
+  { text: lead("Checking SEO/AEO/CEO"), status: "OK" },
+  { text: lead("Grounding the robots"), status: "OK" },
+  { text: lead("Turning it off/on"), status: "OK" },
+  { text: lead("Buying signals"), status: "RECEIVING" },
   { text: " " },
   { text: INDENT + "all systems ok" },
   { text: INDENT + "> ", prompt: true },
