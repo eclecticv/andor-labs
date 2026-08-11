@@ -127,6 +127,8 @@ const components = {
     color: var(--ink-600);
   }
   .aol-fn__list li::marker { font-family: var(--font-mono); font-size: 12px; color: var(--blue-600); }
-  .aol-fn__back { margin-left: 6px; text-decoration: none; color: var(--ink-400); }
+  /* text-faint (ink-500), not ink-400 — this is an interactive link, and
+     ink-400 fails AA at 2.90:1 on paper. */
+  .aol-fn__back { margin-left: 6px; text-decoration: none; color: var(--text-faint); }
   .aol-fn__back:hover { color: var(--blue-600); }
 </style>

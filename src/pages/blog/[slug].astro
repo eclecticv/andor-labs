@@ -15,7 +15,7 @@ import PrevNext from "../../components/blog/PrevNext.astro";
 import RelatedPosts from "../../components/blog/RelatedPosts.astro";
 import SubscribeBox from "../../components/blog/SubscribeBox.astro";
 
-import { extractHeadings, readingTime, wordCount } from "../../lib/portableText";
+import { extractHeadings, readingTime, toPlainText, wordCount } from "../../lib/portableText";
 import { imageUrl, imageDimensions, ogImageUrl, type SanityImageSource } from "../../lib/sanityImage";
 import {
   blogPostingJsonLd,
@@ -96,6 +96,21 @@ const canonical = new URL(`/blog/${post.slug}/`, Astro.site).href;
 const headings = extractHeadings(post.body);
 const minutes = readingTime(post.body);
 const words = wordCount(post.body);
+
+// The 11 legacy posts had their `standfirst` backfilled from `excerpt`, and on
+// the old site the excerpt was simply the post's opening sentences. Rendering
+// both would print the same paragraph twice, a few centimetres apart — the deck
+// says "Before you bring out the pitchforks…" and then so does the lede.
+//
+// So: only show the standfirst when it is genuinely a separate piece of writing.
+// Compared on the first 60 significant characters, because the excerpt was also
+// truncated with an ellipsis and so is a PREFIX of the lede, not an exact match.
+const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const firstParagraph = toPlainText(post.body.slice(0, 1));
+const standfirstEchoesLede =
+  !!post.standfirst &&
+  normalise(firstParagraph).startsWith(normalise(post.standfirst).slice(0, 60));
+const standfirst = standfirstEchoesLede ? null : post.standfirst;
 
 const hero = imageUrl(post.heroImage, { width: 1600, format: "auto" });
 const heroDims = imageDimensions(post.heroImage);
@@ -201,7 +216,7 @@ const tag = post.tags?.[0];
       <header>
         {tag && <p class="aol-a__eyebrow">{tag}</p>}
         <h1 class="aol-a__title">{post.title}</h1>
-        {post.standfirst && <p class="aol-a__standfirst">{post.standfirst}</p>}
+        {standfirst && <p class="aol-a__standfirst">{standfirst}</p>}
 
         <div class="aol-a__byline">
           <div class="aol-a__byline-who">

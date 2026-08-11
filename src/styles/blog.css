@@ -226,7 +226,10 @@
   gap: 10px;
   flex-wrap: wrap;
 }
-.aol-a__caption .credit { color: var(--ink-400); }
+/* ink-500, not ink-400: ink-400 measures 2.90:1 and fails AA. The credit is a
+   licence obligation, so it has to be readable — it is set apart by italics
+   rather than by being faded out. */
+.aol-a__caption .credit { color: var(--text-faint); font-style: italic; }
 .aol-a__caption a { color: inherit; text-decoration-color: var(--ink-300); }
 
 /* ============================================================
@@ -394,11 +397,14 @@
    ============================================================ */
 
 .aol-break {
-  /* Break out of the reading column, symmetrically, without knowing the page
-     width: negative margins of exactly half the overflow. Clamped at 0 so the
-     block simply sits flush once the viewport is narrower than --blog-wide. */
+  /* Break out of the reading column, symmetrically, without needing to know the
+     page width: sit the box's left edge at the column's centre, then pull it
+     back by half its own width. Works at any container size.
+
+     100vw (not 100%) so the cap is the viewport, since the column itself is
+     narrower than the box we want. The gutter subtraction keeps a scrollbar
+     from turning the breakout into horizontal overflow. */
   width: min(var(--blog-wide), 100vw - 2 * var(--gutter));
-  margin-inline: calc(min(0px, (var(--blog-col) - var(--blog-wide)) / 2));
   margin-left: 50%;
   transform: translateX(-50%);
 }
@@ -528,7 +534,7 @@
   color: var(--text-faint);
   margin: 10px 0 0;
 }
-.aol-fig figcaption .credit { color: var(--ink-400); }
+.aol-fig figcaption .credit { color: var(--text-faint); font-style: italic; }
 
 /* --- Key stat ----------------------------------------------------------- */
 .aol-stat {
