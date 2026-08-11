@@ -46,8 +46,10 @@ async function main() {
   // Sanity returns names the id rather than the title — so check first and say
   // which post is holding the reference.
   const referrers: { _id: string; title: string; refs: string[] }[] = await client.fetch(
-    `*[_type == "post" && !(_id in $ids) && count(relatedPosts[._ref in $ids]) > 0]{
-      _id, title, "refs": relatedPosts[._ref in $ids]._ref
+    // `@._ref` — inside an array filter the element is `@`; a bare leading dot
+    // is a parse error, not a shorthand.
+    `*[_type == "post" && !(_id in $ids) && count(relatedPosts[@._ref in $ids]) > 0]{
+      _id, title, "refs": relatedPosts[@._ref in $ids]._ref
     }`,
     { ids },
   );
