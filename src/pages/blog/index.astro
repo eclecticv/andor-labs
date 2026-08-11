@@ -56,7 +56,7 @@ const crumbsLd = breadcrumbJsonLd([
 const description = `Essays and explainers on GTM engineering, positioning, and content strategy for ${ICP} founders.`;
 ---
 <Base title="Field notes — And/or Labs" description={description}>
-  <script type="application/ld+json" set:html={JSON.stringify(crumbsLd)} />
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(crumbsLd)} />
   <SiteHeader />
 
   <main class="aol-blog">

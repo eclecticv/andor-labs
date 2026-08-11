@@ -201,9 +201,9 @@ const tag = post.tags?.[0];
   ogImageAlt={post.heroImage?.alt ?? post.title}
   noIndex={post.seo?.noIndex}
 >
-  <script type="application/ld+json" set:html={JSON.stringify(articleLd)} />
-  <script type="application/ld+json" set:html={JSON.stringify(crumbsLd)} />
-  {faqLd && <script type="application/ld+json" set:html={JSON.stringify(faqLd)} />}
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(articleLd)} />
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(crumbsLd)} />
+  {faqLd && <script is:inline type="application/ld+json" set:html={JSON.stringify(faqLd)} />}
 
   <SiteHeader />
 
