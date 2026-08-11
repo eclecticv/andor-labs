@@ -13,7 +13,12 @@ const PRESS = ["Digiday", "Forbes", "Adweek", "ExchangeWire", "eMarketer"];
 // as one column of output rather than a heading with children. INDENT is shared
 // by the leader rows, the sign-off and the prompt for exactly that reason —
 // change it in one place or they drift apart.
-const INDENT = "  ";
+// No leading indent. The log's left edge is set by .aol-term__log's 14px
+// padding, which matches .aol-term__head's, so the boot lines start on the same
+// vertical as the ANDOR/OS label above them. The old 2-space indent pushed them
+// ~16px further right than the header and cost 2 characters of width on every
+// line, which mattered once the widest label grew to 23 characters.
+const INDENT = "";
 // Column width must clear the LONGEST label below — `repeat` throws on a
 // negative count, so a label longer than this is a build error, not a wobble.
 const LEADER_COL = 30;
