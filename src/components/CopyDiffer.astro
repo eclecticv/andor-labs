@@ -153,4 +153,64 @@
     if (e.altKey && (e.key === "e" || e.key === "E")) setEditing(!editing);
     if (editing && e.key === "Escape") setEditing(false);
   });
+
+  // ── HMR guard ──────────────────────────────────────────────
+  // Editing happens in contenteditable, which lives only in the DOM. A Vite full
+  // reload therefore destroys in-progress copy edits with no warning. While edit
+  // mode is on we hold those reloads: throwing from the vite:beforeFullReload
+  // handler aborts the reload. CSS hot updates are deliberately NOT blocked,
+  // since they patch styles in place without touching the DOM, so style changes
+  // still appear live while you type.
+  let heldReloads = 0;
+  const reloadBtn = document.createElement("button");
+  reloadBtn.textContent = "↻ Reload";
+  reloadBtn.title = "Apply the code changes that were held back while editing";
+  reloadBtn.style.display = "none";
+  ui.appendChild(reloadBtn);
+  reloadBtn.addEventListener("click", () => location.reload());
+
+  function noteHeld() {
+    heldReloads++;
+    reloadBtn.style.display = "";
+    reloadBtn.textContent = `↻ Reload (${heldReloads} held)`;
+    flash(`reload held ×${heldReloads} — your edits are safe`);
+  }
+
+  if (import.meta.hot) {
+    import.meta.hot.on("vite:beforeFullReload", () => {
+      if (!editing) return;
+      noteHeld();
+      throw new Error("[copydiff] full reload held while editing");
+    });
+  }
+
+  // Belt and braces: if a reload happens anyway (navigation, crash, manual F5),
+  // stash the diff TEXT rather than trying to re-inject copy into the DOM.
+  // Restoring text into elements matched by position is how you end up with the
+  // right words in the wrong place; a recoverable diff loses nothing and cannot
+  // corrupt the page.
+  const STASH = "copydiff:pending";
+  addEventListener("beforeunload", () => {
+    if (!editing) return;
+    const ch = changes();
+    if (!ch.length) return;
+    const lines = [`Copy diff — ${ch.length} change${ch.length > 1 ? "s" : ""} (andorlabs.ca)`, ""];
+    ch.forEach((c, i) => { lines.push(`${i + 1}. ${label(c.el)}`, `- ${c.was}`, `+ ${c.now}`, ""); });
+    try { sessionStorage.setItem(STASH, lines.join("\n")); } catch {}
+  });
+
+  const stashed = (() => { try { return sessionStorage.getItem(STASH); } catch { return null; } })();
+  if (stashed) {
+    const recoverBtn = document.createElement("button");
+    recoverBtn.textContent = "⤺ Recover diff";
+    recoverBtn.title = "A reload interrupted an edit. Copy the diff that was in progress.";
+    recoverBtn.style.background = "#9A5A2D";
+    recoverBtn.style.borderColor = "#7E4A24";
+    ui.appendChild(recoverBtn);
+    recoverBtn.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(stashed); flash("recovered ✓"); } catch { flash("clipboard blocked"); }
+      try { sessionStorage.removeItem(STASH); } catch {}
+      recoverBtn.remove();
+    });
+  }
 </script>

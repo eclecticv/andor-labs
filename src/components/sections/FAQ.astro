@@ -3,16 +3,16 @@ import Link from "../ds/Link.astro";
 import { BOOKING_URL, ICP_STARTUPS } from "../../config";
 
 const faqs: [string, string][] = [
-  ["How is this different from a typical marketing agency?", "Agencies staff you with a junior account team and run the same playbook they shipped to nine other clients. Here you work directly with an operator who has taken two startups through exits above $100M. The work also spans the whole go-to-market rather than one slice of it, so positioning, site, analytics, and content move together."],
+  ["How is this different from a typical marketing agency?", "Agencies staff you with a junior account team and run the same playbook. Here you work directly with an operator who has taken two startups through exits. The work spans the whole GTM rather than one slice of it."],
   ["Which engagement should I start with?", "It depends on the stage you are at. GTM Advisor at $1,000/mo plus equity if you are pre-seed and still sharpening the pitch for investors. Modernization Sprint at $10,000 if the product is further along than the brand. Fractional CMO at $5,000/mo once you have product-market fit signals and need someone to own the roadmap. If none of those obviously fit, book a call and we will figure it out on the call."],
   ["How quickly will we see results?", "The Modernization Sprint ships a new site and refreshed positioning in weeks. Advisory work runs on a monthly cadence and compounds from there. The Fractional CMO engagement carries a three-month minimum because pipeline built faster than that is usually borrowed rather than earned."],
   [`Do you only work with ${ICP_STARTUPS}?`, "Those three share a buyer: technically literate, hard to impress, quick to spot a bluff. That shared buyer is what makes the experience transfer between them. Adjacent categories often work fine, so book a call and you will get an honest read on fit before anyone signs anything."],
   ["Who will I actually be working with?", "The founder, directly. No account layers and no handoff once the pitch is over. The person auditing your funnel is the same person who ran product marketing and sales operations through two exits above $100M."],
 ];
 ---
-<!-- Back on the grid: Compare is paper again, so the alternation resolves here
-     the way it originally did. -->
-<section id="faq" class="aol-grid-blue" style="border-bottom:1px solid var(--ink-200)">
+<!-- Paper. Compare above is grid now, so the alternation closes on white here
+     before the warm footer. -->
+<section id="faq" style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
   <div class="aol-faq-grid" style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter);display:grid;grid-template-columns:0.82fr 1.18fr;gap:56px;align-items:start">
     <div>
       <div class="aol-eyebrow" style="margin-bottom:14px">ICYMI</div>

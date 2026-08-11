@@ -3,19 +3,26 @@ import Card from "../ds/Card.astro";
 import Button from "../ds/Button.astro";
 import Link from "../ds/Link.astro";
 import StatusMark from "../ds/StatusMark.astro";
+import PixelIcon from "../ds/PixelIcon.astro";
 import { BOOKING_URL } from "../../config";
 
+// Icons key off STAGE, the axis that actually separates the tiers: seedlings for
+// idea/pre-seed, refresh for renewing an identity that already exists, and a
+// crowned group for the role a fractional CMO is hired to play.
+// Placement is deliberately unlike the capability ledger above (30px blue mark
+// in an open left rail); here it is centred in a dotted rule above the name, so
+// the two sections do not rhyme.
 const plans = [
   {
-    kind: "Advisory", name: "GTM Advisor",
+    kind: "Advisory", icon: "seedlings" as const, name: "GTM Advisor",
     blurb: "For idea / pre-seed stage startups who want to sharpen their pitch for investors and build their early go-to-market strategy.",
     price: "$1,000", per: "/mo + equity", cta: "Book a call",
-    feats: ["Full audit & 30/60/90 POA", "Hands-on help with board prep, fundraising & hiring", "Monthly strategy call"],
+    feats: ["Full audit & 30/60/90 POA", "Hands-on assistance with board prep, fundraising & hiring", "Monthly strategy call"],
     raised: false,
     accent: "blue" as "blue" | "copper",
   },
   {
-    kind: "Sprint", name: "Modernization Sprint",
+    kind: "Sprint", icon: "refresh" as const, name: "Modernization Sprint",
     blurb: "For startups of any stage who want a modern, AI-native brand & marketing foundation to build their growth engine.",
     price: "$10,000", per: "one-time", cta: "Book a call",
     feats: ["Brand & positioning refresh", "New, AI-ready site you can update with Claude, Codex, etc.", "CMS & tag manager set up"],
@@ -23,32 +30,42 @@ const plans = [
     accent: "copper" as "blue" | "copper",
   },
   {
-    kind: "Fractional", name: "Fractional CMO",
+    kind: "Fractional", icon: "users-crown" as const, name: "Fractional CMO",
     blurb: "For seed / series A startups who have signs of product-market fit and are looking to scale to the next set of growth milestones.",
     price: "$5,000", per: "/mo · 3-month min", cta: "Book a call",
-    feats: ["Mutually agreed GTM roadmap", "Covers product marketing, content strategy & sales operations", "Weekly strategy call"],
+    feats: ["GTM roadmap development", "Covers product marketing, content strategy & sales enablement", "Weekly strategy call"],
     raised: false,
     accent: "copper" as "blue" | "copper",
   },
 ];
 ---
-<!-- Grid, not paper: Offers and Compare swapped positions when the page was
-     reordered, so they swap surfaces too — otherwise this sits white-on-white
-     against the founder note above it. -->
-<section id="how-we-work" class="aol-grid-blue" style="border-bottom:1px solid var(--ink-200)">
+<!-- Paper. The capability ledger above is now the grid section, so this flips to
+     white to keep the alternation running. The offer cards carry their own warm
+     fill, so they still read as objects on the surface rather than dissolving
+     into it. -->
+<section id="how-we-work" style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
   <div style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
     <div class="aol-eyebrow" style="margin-bottom:14px">how we work</div>
-    <h2 class="aol-display" style="font-size:40px;margin:0 0 36px">Book a call to evaluate fit</h2>
+    <h2 class="aol-display" style="font-size:40px;margin:0 0 36px">We've got something for every stage.</h2>
     <div class="aol-grid-3" style="display:grid;gap:20px;align-items:start">
       {plans.map((p) => (
         <Card variant={p.raised ? "raised" : "flat"} padding="lg" style="display:flex;flex-direction:column;position:relative;background:var(--surface-card)">
-          <h3 style="font-family:var(--font-serif);font-weight:600;font-size:25px;letter-spacing:-0.01em;margin:14px 0 8px">{p.name}</h3>
-          <p style="font-size:16px;color:var(--ink-600);line-height:1.5;margin:0 0 20px">{p.blurb}</p>
+          <div class="aol-offer__ruled">
+            <span class="aol-offer__rule"></span>
+            <span class="aol-offer__icon"><PixelIcon name={p.icon} size={26} /></span>
+            <span class="aol-offer__rule"></span>
+          </div>
+          <h3 style="font-family:var(--font-serif);font-weight:600;font-size:25px;letter-spacing:-0.01em;margin:0 0 8px;text-align:center">{p.name}</h3>
+          <p style="font-size:16px;color:var(--ink-600);line-height:1.5;margin:0 0 20px;text-align:center">{p.blurb}</p>
           <div style="margin-bottom:20px;background-image:radial-gradient(var(--ink-300) 0.9px, transparent 1.1px);background-size:6px 3px;background-position:left top;background-repeat:repeat-x">
             {p.feats.map((f) => (
               <div style="display:flex;gap:10px;align-items:flex-start;font-family:var(--font-mono);font-size:13px;font-weight:400;color:var(--ink-900);padding:10px 0;background-image:radial-gradient(var(--ink-300) 0.9px, transparent 1.1px);background-size:6px 3px;background-position:left bottom;background-repeat:repeat-x">
                 <span style="flex:none;position:relative;top:1px">
-                  <StatusMark kind="yes" size={15} style={`color:${p.accent === "blue" ? "var(--blue-600)" : "var(--copper-600)"}`} />
+                  {/* Filled disc, one blue for every card. The per-card accent
+                      is retired here: these are inclusions, not a comparison,
+                      so alternating the mark colour was spending the warm
+                      accent on a list that all means the same thing. */}
+                  <StatusMark kind="yes" variant="filled" size={16} style="color:var(--blue-500)" />
                 </span>{f}
               </div>
             ))}

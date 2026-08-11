@@ -13,7 +13,7 @@ export const GET: APIRoute = async ({ site }) => {
   const lines = [
     "# And/or Labs",
     "",
-    `> Tactical growth partner for ${ICP_STARTUPS}: clear positioning, custom market intelligence, and autonomous growth systems.`,
+    `> Full-stack GTM for ${ICP_STARTUPS}: clear positioning, deep market intelligence, and autonomous growth systems.`,
     "",
     "## Blog",
     "",

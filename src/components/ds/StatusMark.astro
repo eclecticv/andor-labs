@@ -1,11 +1,31 @@
 ---
-interface Props { kind?: "yes" | "no" | "partial"; size?: number; class?: string; [key: string]: any; }
-const { kind = "yes", size = 18, class: className, ...rest } = Astro.props;
-const cls = ["aol-statusmark", `aol-statusmark--${kind}`, className].filter(Boolean).join(" ");
+// `variant` defaults to "line", so every existing caller (ComparisonTable, the
+// founder note's before/after list) keeps the bare stroked mark it already had.
+// "filled" draws a solid disc in currentColor with the check knocked out in
+// paper — used by the offer cards, where the list is a set of inclusions rather
+// than a yes/no comparison and the mark is doing affirmation, not adjudication.
+interface Props {
+  kind?: "yes" | "no" | "partial";
+  variant?: "line" | "filled";
+  size?: number;
+  class?: string;
+  [key: string]: any;
+}
+const { kind = "yes", variant = "line", size = 18, class: className, ...rest } = Astro.props;
+const cls = ["aol-statusmark", `aol-statusmark--${kind}`, variant === "filled" && "aol-statusmark--filled", className].filter(Boolean).join(" ");
 ---
 <span class={cls} {...rest}>
   <svg width={size} height={size} viewBox="0 0 32 32" fill="none" role="img" aria-label={kind}>
-    {kind === "yes" && (
+    {variant === "filled" && kind === "yes" && (
+      <>
+        <circle cx="16" cy="16" r="16" fill="currentColor" />
+        {/* Check is inset ~7px so it reads inside the disc rather than filling
+            it, and stroked in paper rather than #fff so it tracks the surface
+            token if the palette ever moves. */}
+        <path d="M9.5 16.5L14 21L22.5 11.5" stroke="var(--paper-pure)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+      </>
+    )}
+    {variant === "line" && kind === "yes" && (
       <path d="M7 16.5L13.5 23L25 9.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
     )}
     {kind === "no" && (

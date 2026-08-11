@@ -1,0 +1,167 @@
+---
+// DEV-ONLY design lab. Icon treatments for the three offer cards.
+// Redirects in production; delete once a direction is picked.
+// 302, NOT 301. The condition is environment-dependent, so the redirect is
+// temporary by definition. A 301 is cached permanently by the browser and
+// survives a hard reload, which makes this page unreachable in dev forever once
+// the browser has seen the production build even once.
+if (!import.meta.env.DEV) return Astro.redirect("/", 302);
+
+import Base from "../../layouts/Base.astro";
+import PixelIcon from "../../components/ds/PixelIcon.astro";
+import Button from "../../components/ds/Button.astro";
+import StatusMark from "../../components/ds/StatusMark.astro";
+import { BOOKING_URL } from "../../config";
+
+// Icons key off STAGE, which is the real axis separating the three tiers.
+// seedlings  -> "idea / pre-seed stage" is literally what the card says
+// refresh    -> modernization; renewing an identity that already exists
+// users-crown-> leading a team, which is what a fractional CMO is hired to do
+const plans = [
+  { kind: "Advisory", icon: "seedlings", name: "GTM Advisor",
+    blurb: "For idea / pre-seed stage startups who want to sharpen their pitch for investors and build their early go-to-market strategy.",
+    price: "$1,000", per: "/mo + equity", cta: "Book a call",
+    feats: ["Full audit & 30/60/90 POA", "Hands-on help with board prep, fundraising & hiring", "Monthly strategy call"] },
+  { kind: "Sprint", icon: "refresh", name: "Modernization Sprint",
+    blurb: "For startups of any stage who want a modern, AI-native brand & marketing foundation to build their growth engine.",
+    price: "$10,000", per: "one-time", cta: "Book a call",
+    feats: ["Brand & positioning refresh", "New, AI-ready site you can update with Claude, Codex, etc.", "CMS & tag manager set up"] },
+  { kind: "Fractional", icon: "users-crown", name: "Fractional CMO",
+    blurb: "For seed / series A startups who have signs of product-market fit and are looking to scale to the next set of growth milestones.",
+    price: "$5,000", per: "/mo · 3-month min", cta: "Book a call",
+    feats: ["Mutually agreed GTM roadmap", "Covers product marketing, content strategy & sales operations", "Weekly strategy call"] },
+] as const;
+
+const OPTIONS = [
+  { id: "a", name: "Option A — Kind chip", note: "Icon boxed in a small square, inline with the tier label as a mono eyebrow. Finally uses the `kind` field, which has rendered nowhere since the cards were built. Enclosed and small, so it reads nothing like the ledger's open left rail." },
+  { id: "b", name: "Option B — Corner stamp", note: "Large quiet mark in the top-right, echoing the NVIDIA stamp on the hero terminal. Same language as an existing element on the page rather than a new one. Ink, not blue, so it stays background." },
+  { id: "c", name: "Option C — Price band mark", note: "Icon sits in the bottom price band beside the figure, reading as a unit marker. Puts the mark at the decision point and nowhere near where the ledger puts its icons." },
+  { id: "d", name: "Option D — Ruled header  ✳ CHOSEN, now live", note: "Icon centred above the name with a dotted rule running through it, figure-style. Most symmetrical and most 'plate'; the only centred composition on the page. This is what the real Offers section now renders." },
+];
+---
+<Base title="LAB — pricing card icons">
+  <div class="lab">
+    <header class="lab__head">
+      <div class="aol-eyebrow" style="color:var(--copper-600)">dev only · not linked from the site</div>
+      <h1 class="aol-display" style="font-size:38px;margin:10px 0 8px">Pricing card icons</h1>
+      <p class="lab__lede">
+        Same Pixel Icon Library, deliberately different placement from the capability ledger so the
+        two sections do not rhyme. The ledger puts a 30px blue mark in an open left rail; none of
+        these do that.
+      </p>
+      <p class="lab__lede" style="color:var(--copper-700)">
+        Option D is chosen and already live on the real Offers section. All four below now use the
+        filled blue tick so the comparison stays honest; the live cards use the same mark.
+      </p>
+      <nav class="lab__nav">{OPTIONS.map((o) => <a class="aol-flink" href={`#opt-${o.id}`}>{o.name.split(" — ")[0]}</a>)}</nav>
+    </header>
+
+    {OPTIONS.map((o) => (
+      <section class="lab__opt" id={`opt-${o.id}`}>
+        <div class="lab__opthead">
+          <h2 class="lab__optname">{o.name}</h2>
+          <p class="lab__optnote">{o.note}</p>
+        </div>
+
+        <div class="grid3">
+          {plans.map((p) => (
+            <div class={`pc pc--${o.id}`}>
+              {o.id === "b" && <span class="pc__stamp"><PixelIcon name={p.icon} size={40} /></span>}
+
+              {o.id === "a" && (
+                <div class="pc__chiprow">
+                  <span class="pc__chip"><PixelIcon name={p.icon} size={15} /></span>
+                  <span class="pc__kind">{p.kind}</span>
+                </div>
+              )}
+
+              {o.id === "d" && (
+                <div class="pc__ruled">
+                  <span class="pc__rule"></span>
+                  <span class="pc__ruledicon"><PixelIcon name={p.icon} size={26} /></span>
+                  <span class="pc__rule"></span>
+                </div>
+              )}
+
+              <h3 class={o.id === "d" ? "pc__name pc__name--c" : "pc__name"}>{p.name}</h3>
+              <p class={o.id === "d" ? "pc__blurb pc__blurb--c" : "pc__blurb"}>{p.blurb}</p>
+
+              <div class="pc__feats">
+                {p.feats.map((f) => (
+                  <div class="pc__feat">
+                    <span style="flex:none;position:relative;top:1px"><StatusMark kind="yes" variant="filled" size={16} style="color:var(--blue-500)" /></span>{f}
+                  </div>
+                ))}
+              </div>
+
+              <div class="pc__foot">
+                <Button variant="primary" fullWidth href={BOOKING_URL} target="_blank" rel="noopener" style="padding:16px">{p.cta}</Button>
+                <div class="pc__band aol-grid">
+                  {o.id === "c" && <span class="pc__bandicon"><PixelIcon name={p.icon} size={22} /></span>}
+                  <span class="pc__price">{p.price}</span>
+                  <span class="pc__per">{p.per}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    ))}
+  </div>
+</Base>
+
+<style>
+  .lab { max-width: var(--container-width); margin: 0 auto; padding: var(--space-12) var(--gutter) var(--space-24); }
+  .lab__head { margin-bottom: var(--space-12); }
+  .lab__lede { font-family: var(--font-serif); font-size: 17px; line-height: 1.6; color: var(--ink-600); max-width: 64ch; margin: 0 0 16px; }
+  .lab__nav { display: flex; gap: 18px; flex-wrap: wrap; }
+  .lab__opt { margin-bottom: var(--space-20); scroll-margin-top: 24px; }
+  .lab__opthead { margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px dotted var(--ink-300); }
+  .lab__optname { font-family: var(--font-display); font-weight: 400; font-size: 26px; margin: 0 0 6px; color: var(--ink-900); }
+  .lab__optnote { font-family: var(--font-mono); font-size: 12px; line-height: 1.6; color: var(--ink-600); margin: 0; max-width: 84ch; }
+
+  .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 20px; align-items: start; }
+
+  .pc {
+    position: relative; display: flex; flex-direction: column;
+    background: var(--surface-card); border: 1px solid var(--border-hairline);
+    border-radius: var(--radius-md); padding: 32px;
+  }
+
+  /* A — kind chip */
+  .pc__chiprow { display: flex; align-items: center; gap: 9px; margin-bottom: 16px; }
+  .pc__chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; flex: none;
+    border: 1px solid var(--ink-900); border-radius: var(--radius-xs);
+    background: var(--paper-pure); color: var(--signal);
+  }
+  .pc__kind { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-600); }
+
+  /* B — corner stamp */
+  .pc--b { padding-top: 34px; }
+  .pc__stamp { position: absolute; top: 20px; right: 20px; color: var(--ink-300); display: block; }
+
+  /* C — price band mark */
+  .pc__bandicon { color: var(--signal); display: block; margin-right: 2px; }
+
+  /* D — ruled header */
+  .pc__ruled { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .pc__rule { flex: 1; height: 3px; background-image: radial-gradient(var(--ink-300) 0.9px, transparent 1.1px); background-size: 6px 3px; background-repeat: repeat-x; background-position: center; }
+  .pc__ruledicon { color: var(--signal); flex: none; display: block; }
+
+  .pc__name { font-family: var(--font-serif); font-weight: 600; font-size: 25px; letter-spacing: -0.01em; margin: 0 0 8px; }
+  .pc__name--c { text-align: center; }
+  .pc__blurb { font-size: 16px; color: var(--ink-600); line-height: 1.5; margin: 0 0 20px; }
+  .pc__blurb--c { text-align: center; }
+  .pc__feats { margin-bottom: 20px; background-image: radial-gradient(var(--ink-300) 0.9px, transparent 1.1px); background-size: 6px 3px; background-position: left top; background-repeat: repeat-x; }
+  .pc__feat { display: flex; gap: 10px; align-items: flex-start; font-family: var(--font-mono); font-size: 13px; color: var(--ink-900); padding: 10px 0; background-image: radial-gradient(var(--ink-300) 0.9px, transparent 1.1px); background-size: 6px 3px; background-position: left bottom; background-repeat: repeat-x; }
+  .pc__foot { margin-top: auto; }
+  .pc__band { display: flex; align-items: baseline; justify-content: center; gap: 8px; margin: 24px -32px -32px; padding: 16px 32px 28px; border-radius: 0 0 var(--radius-md) var(--radius-md); }
+  .pc__bandicon { align-self: center; }
+  .pc__price { font-family: var(--font-display); font-size: 28px; color: var(--ink-900); font-variant-numeric: tabular-nums; }
+  .pc__per { font-family: var(--font-mono); font-size: 12px; color: var(--ink-500); }
+
+  @media (max-width: 960px) { .grid3 { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+  @media (max-width: 640px) { .grid3 { grid-template-columns: minmax(0,1fr); } }
+</style>

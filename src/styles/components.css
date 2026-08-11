@@ -733,15 +733,14 @@
 
 
 /* ---- Capability ledger — "What we do", DS variant A2 (warm bands) ----
-   One hard-ruled block of alternating warm/white rows. Odd rows take the warm
-   surface and copper numerals; even rows stay on paper with the blue signal, so
-   the two inks alternate with the two surfaces rather than fighting them.
-   Copper is a MARK here, never an action: the DS reserves links, buttons and
-   focus for blue, and nothing in this block is interactive. */
-.aol-ledger{
-  border-top:1.5px solid var(--ink-900);
-  border-bottom:1.5px solid var(--ink-900);
-}
+   Alternating warm/white rows with a blue pixel icon in the left rail.
+   The block is framed at the SAME weight as the lines between its rows: one
+   1px hairline, not the 1.5px ink rules the DS exploration used. The frame and
+   the row rules are then a single system rather than a heavy bracket around
+   quiet dividers, which is what made the old version shout.
+   The neutral hairline is used all the way round because the frame crosses both
+   surfaces; --border-warm is reserved for the rules that sit ON a warm row. */
+.aol-ledger{ border:1px solid var(--border-hairline); }
 .aol-ledger__band{
   display:grid;
   /* minmax(0,...) on both flexible tracks. The body copy wraps freely, but the
@@ -754,15 +753,26 @@
 }
 .aol-ledger__band + .aol-ledger__band{ border-top:1px solid var(--border-hairline); }
 .aol-ledger__band:nth-child(odd){ background:var(--surface-warm); }
+/* Even rows must be painted, not left transparent. The section sits on the
+   engineering grid now, so an unpainted row would let the dot texture through
+   and the warm/white alternation would read as warm/dotted instead. Painting
+   both also lets the block sit on the grid as one solid object, which is what
+   replaced the ink rules that used to bracket it. */
+.aol-ledger__band:nth-child(even){ background:var(--paper-pure); }
 /* A hairline BELOW a warm row is drawn on warm paper, so it takes the warm
    border token; the cool ink-200 hairline reads dirty against pink. */
 .aol-ledger__band:nth-child(odd) + .aol-ledger__band{ border-top-color:var(--border-warm); }
-.aol-ledger__n{
-  font-family:var(--font-mono); font-size:var(--text-2xs);
-  letter-spacing:var(--tracking-tick); color:var(--accent-warm);
-  font-variant-numeric:tabular-nums; padding-top:7px;
+/* Icon rail. One signal colour for every row, warm or white: the brand keeps
+   copper for partner and status marks, so alternating the icons copper/blue
+   would spend the warm accent on decoration. Blue on the pink surface still
+   clears AA comfortably.
+   Sized in CSS rather than only on the element so it can step down with the
+   rail; the width/height attributes stay on the SVG so it reserves its box and
+   cannot shift layout while the page paints. */
+.aol-ledger__icon{
+  color:var(--signal); display:block; padding-top:2px;
 }
-.aol-ledger__band:nth-child(even) .aol-ledger__n{ color:var(--signal); }
+.aol-ledger__icon svg{ display:block; width:30px; height:30px; }
 .aol-ledger__title{
   font-family:var(--font-display); font-weight:400; font-size:var(--text-xl);
   line-height:1.08; color:var(--text-strong); margin:0;
@@ -777,7 +787,10 @@
   color:var(--text-faint); margin-top:6px;
 }
 .aol-ledger__body{
-  margin:2px 0 0; font-family:var(--font-serif); font-size:var(--text-sm);
+  /* 16px sits between --text-sm (14) and --text-base (17); the scale has no step
+     there. Set literally rather than rounded to a token so the requested size is
+     what ships. If this recurs elsewhere it earns a token. */
+  margin:2px 0 0; font-family:var(--font-serif); font-size:16px;
   line-height:1.5; color:var(--text-on-warm-muted); text-wrap:pretty;
 }
 .aol-ledger__band:nth-child(even) .aol-ledger__body{ color:var(--text-muted); }
@@ -793,8 +806,25 @@
     padding:16px 16px 17px;
   }
   .aol-ledger__body{ grid-column:2; margin-top:8px; }
+  .aol-ledger__icon svg{ width:26px; height:26px; }
 }
 @media (max-width:480px){
-  .aol-ledger__band{ grid-template-columns:32px minmax(0,1fr); gap:0 10px; padding:14px 12px 15px; }
+  /* Rail widened from 32px to 34px so the icon keeps its presence rather than
+     shrinking to a bullet; the title steps down to pay for it. */
+  .aol-ledger__band{ grid-template-columns:34px minmax(0,1fr); gap:0 10px; padding:14px 12px 15px; }
   .aol-ledger__title{ font-size:22px; }
+  .aol-ledger__icon svg{ width:24px; height:24px; }
 }
+
+/* ---- Offer card ruled header (variant D) ----
+   Icon centred in a dotted rule above the card name. Deliberately unlike the
+   capability ledger's open left rail so the two sections do not read as the
+   same component twice; the dotted rule is the same one used by the divider and
+   the feature-list separators, so the treatment is new but the parts are not. */
+.aol-offer__ruled{ display:flex; align-items:center; gap:12px; margin:0 0 16px; }
+.aol-offer__rule{
+  flex:1; height:3px;
+  background-image:radial-gradient(var(--ink-300) 0.9px, transparent 1.1px);
+  background-size:6px 3px; background-repeat:repeat-x; background-position:center;
+}
+.aol-offer__icon{ color:var(--signal); flex:none; display:block; }

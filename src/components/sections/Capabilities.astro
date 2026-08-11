@@ -15,56 +15,60 @@
 // vault's "Areas of expertise"). The em dash in 06 is a comma here, per the
 // standing no-em-dash rule for site copy. Kickers for 04 and 05 are written to
 // match the register of the four the design supplied.
-const capabilities: { n: string; title: string; kicker: string; body: string }[] = [
+import PixelIcon from "../ds/PixelIcon.astro";
+
+// Icons come from the HackerNoon Pixel Icon Library (24px grid, the same pixel
+// logic as Departure Mono, which is why they read as type rather than clip-art).
+// They take the left rail in place of the numerals. All blue, deliberately: the
+// brand reserves copper for partner and status marks, so a single signal colour
+// across the whole ledger is the more correct reading of the system.
+const capabilities: { icon: "pencil-ruler" | "analytics" | "newspaper" | "trending" | "robot"; title: string; kicker: string; body: string }[] = [
   {
-    n: "01",
+    icon: "pencil-ruler",
     title: "Positioning &amp; web&nbsp;design",
     kicker: "pitch + site",
-    body: "Bulletproof your pitch by auditing it against peer-reviewed findings on brand, messaging, design, pricing, trial terms, etc., then pair it with a site built on modern frameworks.",
+    body: "Bulletproof your pitch by auditing it against peer-reviewed findings on brand, messaging, design, pricing, etc., then pair it with a site built on modern frameworks.",
   },
   {
-    n: "02",
+    icon: "analytics",
     title: "Tech stack &amp; analytics",
     kicker: "audit",
-    body: "Get the insights you need to make better GTM investment decisions by reviewing your tech stack, tag setup, and analytics pipes to understand gaps and areas of improvement.",
+    body: "Get the insights you need to make better GTM decisions by reviewing your tech stack, tag setup, and analytics pipes to understand gaps and areas of improvement.",
   },
   {
-    n: "03",
-    title: "Search, AI &amp; social growth",
-    kicker: "share of voice",
-    body: "Track and improve your share of voice in traditional search, AI citations, and social channels by producing high-quality content rooted in a deep understanding of your ICP.",
-  },
-  {
-    n: "04",
+    icon: "newspaper",
     title: "Research, data &amp; IP creation",
     kicker: "reports + IP",
     body: "Establish your topical authority with custom industry reports, white papers, and thematic content series that earn press coverage, buyer attention, and sales pipeline.",
   },
   {
-    n: "05",
-    title: "Generative media &amp; creative",
-    kicker: "audio + video",
-    body: "Deliver one-of-a-kind experiences in audio, video, and gamified formats that allow buyers to engage with your brand in ways that promote strong recall and product adoption.",
+    icon: "trending",
+    title: "Search, AI &amp; social growth",
+    kicker: "share of voice",
+    body: "Track and improve your share of voice in search, AI citations, and social channels by producing high-quality content rooted in a deep understanding of your ICP.",
   },
   {
-    n: "06",
+    icon: "robot",
     title: "AI × GTM transformation",
     kicker: "systems · agents",
-    body: "Build repeatable systems for every aspect of your GTM process including brand, creative, organic growth, analytics, sales operations, etc., with custom skills, plugins, and AI agents.",
+    body: "Build repeatable systems for every aspect of your GTM process including brand, creative, growth, analytics, operations, etc., with custom skills, plugins, and AI agents.",
   },
 ];
 ---
-<!-- Paper, like the founder note above it. The ledger's own ink rules do the
-     separating work that a surface change would otherwise have to. -->
-<section id="what-we-do" style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
+<!-- Grid. This section is what re-starts the page's grid<->white alternation:
+     the founder note above is paper, so this has to be grid, and everything
+     downstream flips to keep the rhythm (Offers paper, Compare grid, FAQ paper).
+     Sitting this on paper was what broke it, since it made three white sections
+     in a row from the hero down. -->
+<section id="what-we-do" class="aol-grid-blue" style="border-bottom:1px solid var(--ink-200)">
   <div style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
     <div class="aol-eyebrow" style="margin-bottom:14px">what we do</div>
-    <h2 class="aol-display" style="font-size:40px;margin:0 0 36px">Six capabilities</h2>
+    <h2 class="aol-display" style="font-size:40px;margin:0 0 36px">(Stakeholder management not included.)</h2>
 
     <div class="aol-ledger">
       {capabilities.map((c) => (
         <div class="aol-ledger__band">
-          <span class="aol-ledger__n">{c.n}</span>
+          <span class="aol-ledger__icon"><PixelIcon name={c.icon} size={30} /></span>
           <div class="aol-ledger__head">
             <h3 class="aol-ledger__title" set:html={c.title} />
             <span class="aol-ledger__kicker">{c.kicker}</span>

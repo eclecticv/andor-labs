@@ -30,4 +30,4 @@ export const ICP_STARTUPS = `${ICP} startups`;
  * These were two separately-typed sentences making two different claims, so the
  * search snippet promised something the page didn't. Same phrase, one source.
  */
-export const PROMISE = `We help ${ICP_STARTUPS} win their category through clear positioning, custom market intelligence, and autonomous growth systems.`;
+export const PROMISE = `We help ${ICP_STARTUPS} win their category through clear positioning, deep market intelligence, and autonomous growth systems.`;

@@ -1,0 +1,46 @@
+---
+// Pixel Icon Library (HackerNoon), 24px grid — the same pixel logic as Departure
+// Mono, which is why this set sits inside the brand instead of on top of it.
+// Geometry is inlined rather than fetched so the marks take `currentColor` and
+// follow the ink/blue rules like any other glyph. Source icons ship with no fill
+// attribute, so they would default to black; fill is set on the <svg> here.
+//
+// Licence: the npm package ships MIT (Copyright 2023 HackerNoon) while the
+// website states CC BY 4.0. MIT is the more permissive reading and is what the
+// distributed artefact carries. Attribution is retained in this comment either
+// way; see the note in the lab page before shipping to production.
+interface Props {
+  name:
+    | "pencil-ruler" | "analytics" | "newspaper" | "trending" | "robot"
+    | "seedlings" | "refresh" | "users-crown" | "handshake" | "bolt";
+  size?: number;
+  class?: string;
+  [key: string]: any;
+}
+const { name, size = 24, class: className, ...rest } = Astro.props;
+
+const PATHS: Record<string, string> = {
+  "pencil-ruler": `<path d="m19,11v-1h1v-1h1v-1h1v-1h1v-3h-1v-1h-1v-1h-1v-1h-3v1h-1v1h-1v1h-1v1h-1v1h-2v-1h-1v-1h-1v-1h-1v-1h-1v-1h-2v1h-1v1h-1v1h-1v1h-1v2h1v1h1v1h1v1h1v1h1v2h-1v1h-1v1h-1v1h-1v1h-1v6h6v-1h1v-1h1v-1h1v-1h1v-1h2v1h1v1h1v1h1v1h1v1h2v-1h1v-1h1v-1h1v-1h1v-2h-1v-1h-1v-1h-1v-1h-1v-1h-1v-2h1Zm-12-1v-1h-1v-1h-1v-1h-1v-2h1v-1h2v1h1v1h-1v1h1v1h1v-1h1v2h-1v1h-2Zm6,3v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-3v-3h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v1h1v1h1v1h-1v1h-1v1h-1v1h-1Zm6,3v1h1v2h-1v1h-2v-1h-1v-1h-1v-1h-1v-2h1v-1h2v1h-1v1h1v1h1v-1h1Zm-2-9v-1h-1v-1h1v-1h1v-1h1v1h1v1h1v1h-1v1h-1v1h-1v-1h-1Z"/>`,
+  analytics: `<rect x="2" y="15" width="2" height="7"/><rect x="8" y="10" width="2" height="12"/><rect x="14" y="14" width="2" height="8"/><rect x="20" y="10" width="2" height="12"/><rect x="18" y="5" width="1" height="1"/><rect x="17" y="6" width="1" height="1"/><rect x="14" y="7" width="2" height="1"/><rect x="14" y="10" width="2" height="1"/><rect x="13" y="8" width="1" height="2"/><rect x="16" y="8" width="1" height="2"/><rect x="12" y="6" width="1" height="1"/><rect x="11" y="5" width="1" height="1"/><rect x="8" y="4" width="2" height="1"/><rect x="8" y="1" width="2" height="1"/><rect x="10" y="2" width="1" height="2"/><rect x="7" y="2" width="1" height="2"/><rect x="20" y="4" width="2" height="1"/><rect x="19" y="2" width="1" height="2"/><rect x="20" y="1" width="2" height="1"/><rect x="22" y="2" width="1" height="2"/><rect x="6" y="6" width="1" height="1"/><rect x="5" y="7" width="1" height="1"/><rect x="4" y="9" width="1" height="2"/><rect x="1" y="9" width="1" height="2"/><rect x="2" y="8" width="2" height="1"/><rect x="2" y="11" width="2" height="1"/>`,
+  newspaper: `<path d="m22,6v-1H3v1h-1v1h-1v11h1v1h20v-1h1V6h-1ZM4,17h-1V7h1v10Zm17,0H6V7h15v10Z"/><rect x="14" y="14" width="5" height="2"/><rect x="14" y="11" width="5" height="2"/><rect x="14" y="8" width="5" height="2"/><path d="m7,8v5h6v-5h-6Zm4,3h-2v-1h2v1Z"/><rect x="7" y="14" width="6" height="2"/>`,
+  trending: `<polygon points="23 5 23 14 22 14 22 13 21 13 21 12 20 12 20 11 18 11 18 12 17 12 17 13 16 13 16 14 15 14 15 15 14 15 14 16 13 16 13 17 12 17 12 18 10 18 10 17 9 17 9 16 8 16 8 15 7 15 7 14 5 14 5 15 4 15 4 16 3 16 3 17 1 17 1 15 2 15 2 14 3 14 3 13 4 13 4 12 5 12 5 11 7 11 7 12 8 12 8 13 9 13 9 14 10 14 10 15 12 15 12 14 13 14 13 13 14 13 14 12 15 12 15 11 16 11 16 10 17 10 17 8 16 8 16 7 15 7 15 6 14 6 14 5 23 5"/>`,
+  robot: `<rect x="14" y="15" width="3" height="1"/><rect x="11" y="15" width="2" height="1"/><rect x="7" y="15" width="3" height="1"/><path d="m19,7h-1v-1h-5v-3h-2v3h-5v1h-1v1h-1v10h1v1h1v1h12v-1h1v-1h1v-10h-1v-1Zm-2,10v1H7v-1h-1v-8h1v-1h10v1h1v8h-1Z"/><polygon points="23 11 23 16 22 16 22 17 21 17 21 10 22 10 22 11 23 11"/><polygon points="2 10 3 10 3 17 2 17 2 16 1 16 1 11 2 11 2 10"/><rect x="14" y="10" width="3" height="3"/><rect x="7" y="10" width="3" height="3"/>`,
+  seedlings: `<path d="m18,2v1h-2v1h-2v1h-1v1h-1v2h1v2h1v2h2v-1h2v-1h2v-1h1v-1h1v-2h1V2h-5Zm2,4v2h-2v1h-2v1h-1v-2h-1v-2h2v-1h2v-1h3v2h-1Z"/><path d="m12,9h-1v-1h-1v-1h-2v-1h-2v-1H1v3h1v2h1v2h1v1h1v1h2v1h4v7h2v-11h-1v-2Zm-7,3v-2h-1v-2h-1v-1h3v1h2v1h2v2h1v2h-4v-1h-2Z"/>`,
+  refresh: `<polygon points="23 14 23 15 22 15 22 17 21 17 21 19 20 19 20 20 19 20 19 21 17 21 17 22 15 22 15 23 9 23 9 22 7 22 7 21 5 21 5 20 3 20 3 21 2 21 2 22 1 22 1 15 8 15 8 16 7 16 7 17 6 17 6 19 7 19 7 20 9 20 9 21 15 21 15 20 17 20 17 19 19 19 19 17 20 17 20 14 23 14"/><polygon points="23 2 23 9 16 9 16 8 17 8 17 7 18 7 18 5 17 5 17 4 15 4 15 3 9 3 9 4 7 4 7 5 5 5 5 7 4 7 4 10 1 10 1 9 2 9 2 7 3 7 3 5 4 5 4 4 5 4 5 3 7 3 7 2 9 2 9 1 15 1 15 2 17 2 17 3 19 3 19 4 21 4 21 3 22 3 22 2 23 2"/>`,
+  "users-crown": `<polygon points="13 12 13 11 14 11 14 5 18 5 18 6 19 6 19 11 18 11 18 12 13 12"/><path d="m13,3h-1v1h-1v1h-1v-1h-1v-1h-1v1h-1v1h-1v-1h-1v-1h-1v7h1v1h1v1h5v-1h1v-1h1V3Zm-2,6h-1v1h-3v-1h-1v-2h5v2Z"/><polygon points="23 17 23 20 22 20 22 21 16 21 16 20 17 20 17 16 16 16 16 15 15 15 15 14 20 14 20 15 21 15 21 16 22 16 22 17 23 17"/><path d="m15,17v-1h-1v-1h-1v-1H4v1h-1v1h-1v1h-1v3h1v1h13v-1h1v-3h-1Zm-11,0v-1h9v1h1v2H3v-2h1Z"/>`,
+  handshake: `<polygon points="18 8 18 7 11 7 11 8 10 8 10 9 9 9 9 10 8 10 8 12 11 12 11 11 12 11 12 10 13 10 13 9 15 9 15 10 16 10 16 11 17 11 17 12 18 12 18 13 19 13 19 14 21 14 21 13 23 13 23 15 22 15 22 16 20 16 20 17 19 17 19 18 18 18 18 19 17 19 17 20 14 20 14 21 8 21 8 20 6 20 6 19 5 19 5 18 4 18 4 17 3 17 3 16 2 16 2 15 1 15 1 13 3 13 3 14 4 14 4 15 5 15 5 16 6 16 6 17 7 17 7 18 8 18 8 19 9 19 9 18 8 18 8 17 7 17 7 16 9 16 9 17 10 17 10 18 11 18 11 19 13 19 13 18 12 18 12 17 11 17 11 16 10 16 10 15 12 15 12 16 13 16 13 17 14 17 14 18 17 18 17 17 15 17 15 16 14 16 14 15 13 15 13 14 15 14 15 15 16 15 16 16 18 16 18 15 17 15 17 14 16 14 16 13 15 13 15 12 13 12 13 13 11 13 11 14 8 14 8 13 7 13 7 12 6 12 6 10 7 10 7 9 8 9 8 8 9 8 9 7 6 7 6 8 5 8 5 7 3 7 3 6 1 6 1 4 3 4 3 5 5 5 5 6 6 6 6 5 18 5 18 6 19 6 19 5 21 5 21 4 23 4 23 6 21 6 21 7 19 7 19 8 18 8"/>`,
+  bolt: `<path d="m14,10v-4h1v-3h1V1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h7v4h-1v3h-1v2h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h-7Zm4,2h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v-5h-5v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v5h5v1Z"/>`,
+};
+---
+<svg
+  class={className}
+  width={size}
+  height={size}
+  viewBox="0 0 24 24"
+  fill="currentColor"
+  aria-hidden="true"
+  focusable="false"
+  shape-rendering="crispEdges"
+  {...rest}
+  set:html={PATHS[name]}
+/>

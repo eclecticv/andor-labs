@@ -23,6 +23,9 @@ export default defineConfig({
     }),
     // React powers the embedded Studio and the dev-only Agentation island (see Base.astro).
     react(),
-    sitemap({ filter: (page) => !page.includes('/admin') }),
+    // /lab/* are dev-only design comparison pages. In production they build to
+    // a redirect stub, so listing them in the sitemap submits redirects to
+    // Google. Excluded alongside /admin.
+    sitemap({ filter: (page) => !page.includes('/admin') && !page.includes('/lab/') }),
   ],
 });

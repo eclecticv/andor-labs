@@ -47,12 +47,13 @@ const rows = [
   },
 ];
 ---
-<!-- Paper: see the note in Offers.astro — the two swapped surfaces along with
-     their positions, so the page keeps alternating grid <-> white. -->
-<section id="compare" style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
+<!-- Grid. Offers above is paper now, so this takes the grid. It also restores
+     what the .aol-cmp-frame note in components.css already assumed: the white
+     comparison table reads as a card sitting on the engineering grid. -->
+<section id="compare" class="aol-grid-blue" style="border-bottom:1px solid var(--ink-200)">
   <div style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
     <div class="aol-eyebrow" style="margin-bottom:14px">the alternatives</div>
-    <h2 class="aol-display" style="font-size:40px;margin:0 0 40px">Full-stack growth partner</h2>
+    <h2 class="aol-display" style="font-size:40px;margin:0 0 40px">Shipping work, not just words.</h2>
     <div class="aol-cmp-frame">
       <ComparisonTable columns={columns} rows={rows} />
     </div>
