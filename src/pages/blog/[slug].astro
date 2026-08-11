@@ -97,20 +97,33 @@ const headings = extractHeadings(post.body);
 const minutes = readingTime(post.body);
 const words = wordCount(post.body);
 
-// The 11 legacy posts had their `standfirst` backfilled from `excerpt`, and on
-// the old site the excerpt was simply the post's opening sentences. Rendering
-// both would print the same paragraph twice, a few centimetres apart — the deck
-// says "Before you bring out the pitchforks…" and then so does the lede.
+// Show the deck only when it is genuinely a separate piece of writing.
 //
-// So: only show the standfirst when it is genuinely a separate piece of writing.
-// Compared on the first 60 significant characters, because the excerpt was also
-// truncated with an ellipsis and so is a PREFIX of the lede, not an exact match.
+// The 11 legacy posts had `standfirst` backfilled from `excerpt`, and on the old
+// site the excerpt was just the post's opening sentences, machine-truncated to
+// fit a meta description. Rendered as a deck that produces two bad outcomes: the
+// same paragraph printed twice a few centimetres apart, or a deck that stops
+// mid-word — "…I'm starting to see the merit of that pa…".
+//
+// Two tests, both cheap:
+//   truncated — ends in an ellipsis, so it was cut by a script, not written.
+//   echoes    — the body's opening repeats it. Compared over the first 900
+//               characters of the WHOLE body rather than the first block,
+//               because these excerpts frequently run across two or three
+//               opening paragraphs. 45 significant characters is enough to
+//               identify a match while still catching near-echoes that were
+//               lightly reworded ("coined 'enshittification'" vs "coined the
+//               term 'Enshittification'").
+//
+// Four posts have a real deck and keep it. The other ten simply go without,
+// which is the honest outcome — a deck is worth writing, not worth faking.
 const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-const firstParagraph = toPlainText(post.body.slice(0, 1));
-const standfirstEchoesLede =
-  !!post.standfirst &&
-  normalise(firstParagraph).startsWith(normalise(post.standfirst).slice(0, 60));
-const standfirst = standfirstEchoesLede ? null : post.standfirst;
+const rawStandfirst = post.standfirst?.trim() ?? "";
+const isTruncated = /(…|\.\.\.)$/.test(rawStandfirst);
+const echoesOpening =
+  !!rawStandfirst &&
+  normalise(toPlainText(post.body).slice(0, 900)).startsWith(normalise(rawStandfirst).slice(0, 45));
+const standfirst = rawStandfirst && !isTruncated && !echoesOpening ? rawStandfirst : null;
 
 const hero = imageUrl(post.heroImage, { width: 1600, format: "auto" });
 const heroDims = imageDimensions(post.heroImage);

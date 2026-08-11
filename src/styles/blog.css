@@ -765,6 +765,7 @@
 .aol-rel a { text-decoration: none; display: block; }
 .aol-rel__thumb {
   width: 100%;
+  height: auto;
   aspect-ratio: 16 / 10;
   object-fit: cover;
   border: 1px solid var(--ink-200);
@@ -840,9 +841,19 @@
   border-bottom: 1px solid var(--ink-900);
   text-decoration: none;
 }
+/* `display: grid` above beats the [hidden] attribute's UA `display: none`, so
+   without this the tag filter would hide every row and leave the lead story
+   sitting there regardless of which tag was picked. */
+.aol-lead[hidden] { display: none; }
 .aol-lead__media { margin: 0; }
+  /* height:auto is REQUIRED, not decorative. The <img> carries width/height
+     attributes so the browser can reserve space before the bytes land; those
+     attributes also set a used height, and aspect-ratio is ignored unless the
+     height is auto. Without this the box renders at the attribute's height and
+     the ratio is silently discarded. */
 .aol-lead__media img {
   width: 100%;
+  height: auto;
   aspect-ratio: 16 / 10;
   object-fit: cover;
   border: 1px solid var(--ink-900);
@@ -912,6 +923,7 @@
 .aol-row:hover { background: var(--ink-050); }
 .aol-row__thumb {
   width: 132px;
+  height: auto;
   aspect-ratio: 4 / 3;
   object-fit: cover;
   border: 1px solid var(--ink-200);
@@ -997,6 +1009,7 @@
 .aol-recent a { text-decoration: none; display: block; }
 .aol-recent__thumb {
   width: 100%;
+  height: auto;
   aspect-ratio: 16 / 10;
   object-fit: cover;
   border: 1px solid var(--ink-900);
