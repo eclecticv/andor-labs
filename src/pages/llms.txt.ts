@@ -37,7 +37,7 @@ export const GET: APIRoute = async ({ site }) => {
     "published writing so an answer engine can locate the right source without",
     "crawling every page.",
     "",
-    "## Field notes",
+    "## Writing",
     "",
   ];
 

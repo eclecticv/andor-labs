@@ -50,23 +50,24 @@ const tags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeC
 
 const crumbsLd = breadcrumbJsonLd([
   { name: "Home", url: new URL("/", Astro.site).href },
-  { name: "Field notes", url: new URL("/blog/", Astro.site).href },
+  { name: "Writing", url: new URL("/blog/", Astro.site).href },
 ]);
 
 const description = `Essays and explainers on GTM engineering, positioning, and content strategy for ${ICP} founders.`;
 ---
-<Base title="Field notes — And/or Labs" description={description}>
+<Base title="Writing | And/or Labs" description={description}>
   <script is:inline type="application/ld+json" set:html={JSON.stringify(crumbsLd)} />
   <SiteHeader />
 
   <main class="aol-blog">
     <div style="max-width:var(--container-width);margin:0 auto;padding:0 var(--gutter)">
       <header class="aol-blog-head">
-        <p class="aol-a__eyebrow">Field notes</p>
+        <p class="aol-a__eyebrow">Writing</p>
         <h1 class="aol-blog-head__h">Written from inside the machine.</h1>
         <p class="aol-blog-head__sub">
-          Essays and explainers on GTM engineering, positioning, and content strategy — the
-          things we actually build for {ICP} founders, not commentary about them.
+          Three things get published here. A weekly AI newsletter written by machines.
+          Occasional posts written by hand. Explainers, for questions that deserve a
+          straight answer.
         </p>
         {tags.length > 1 && (
           <div class="aol-tagbar" role="group" aria-label="Filter posts by topic">

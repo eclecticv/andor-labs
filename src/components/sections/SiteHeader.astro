@@ -9,14 +9,14 @@ import { BOOKING_URL } from "../../config";
 // listing page is parked (index.astro.parked) until a few more exist.
 const NAV: [string, string][] = [
   // Order tracks the page order (founder → what we do → pricing → compare → FAQ),
-  // with the two real destinations — Work and Field notes — last, since they
+  // with the two real destinations, Work and Writing, last, since they
   // leave the homepage rather than scrolling within it.
   ["About", "/#founder"],
   ["Pricing", "/#how-we-work"],
   ["Why us", "/#compare"],
   ["FAQ", "/#faq"],
   ["Work", "/work/filament"],
-  ["Field notes", "/blog/"],
+  ["Writing", "/blog/"],
 ];
 ---
 <header style="position:sticky;top:0;z-index:20;background:rgba(255,255,255,0.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--ink-200)">

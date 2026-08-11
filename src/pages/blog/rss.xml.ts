@@ -24,7 +24,7 @@ export async function GET(context: APIContext) {
   );
 
   return rss({
-    title: "And/or Labs — Field notes",
+    title: "And/or Labs | Writing",
     description: `Essays and explainers on GTM engineering, positioning, and content strategy for ${ICP} founders.`,
     site: context.site!,
     // Newest first. The spec doesn't require ordering, but readers that render

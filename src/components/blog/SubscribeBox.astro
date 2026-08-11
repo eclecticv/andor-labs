@@ -2,50 +2,93 @@
 /**
  * Newsletter capture, posting to /api/subscribe → Loops.
  *
- * `source` is passed through so list growth is attributable per surface
- * (blog post vs blog index vs homepage) — otherwise every signup looks the
- * same in Loops and there is no way to tell what is actually working.
+ * Shows the reader what they are actually joining. The previous version was
+ * headed "Field notes, straight to your inbox" while the endpoint subscribed
+ * them to both lists — so anyone who typed their address in and then received
+ * `{ignore all previous instructions}` had been signed up for something they
+ * were never shown. The list names and descriptions here are VJ's own, copied
+ * from Loops, so the promise is identical wherever a reader meets it.
+ *
+ * `source` is passed through so list growth is attributable per surface.
  */
 import Button from "../ds/Button.astro";
 import Input from "../ds/Input.astro";
+import { SUBSCRIBABLE, type CategoryKey } from "../../lib/categories";
 
 interface Props {
   source: "homepage" | "blog-post" | "blog-index" | "footer";
+  /**
+   * Which lists to pre-tick. Defaults to all of them, which is what the reader
+   * gets on a surface that isn't about one category in particular.
+   */
+  preselect?: CategoryKey[];
   heading?: string;
   blurb?: string;
   compact?: boolean;
 }
 const {
   source,
-  heading = "Field notes, straight to your inbox",
-  blurb = "Essays on GTM engineering, positioning, and the machinery underneath. One a week. Unsubscribe anytime.",
+  preselect,
+  heading = "Two lists. One signup.",
+  blurb = "One is written by AI agents. The other is handwritten. Take both, or take one.",
   compact = false,
 } = Astro.props;
+
+const checked = (key: CategoryKey) => !preselect || preselect.includes(key);
 ---
 <section class={`aol-sub${compact ? " aol-sub--compact" : ""}`}>
   <div class="aol-sub__inner">
     <span class="aol-sub__tag">Newsletter</span>
     <h2 class="aol-sub__h">{heading}</h2>
     <p class="aol-sub__blurb">{blurb}</p>
+
     <form data-subscribe data-source={source} novalidate>
-      <Input
-        type="email"
-        name="email"
-        required
-        autocomplete="email"
-        placeholder="you@company.com"
-        aria-label="Email address"
-        style="flex:1 1 240px"
-      />
-      <Button type="submit" variant="primary" size="lg" arrow>Subscribe</Button>
+      <fieldset class="aol-sub__lists">
+        <legend class="sr-only">Choose which lists to join</legend>
+        {SUBSCRIBABLE.map((c) => (
+          <label class="aol-sub__list">
+            <input type="checkbox" name="list" value={c.key} checked={checked(c.key)} />
+            <span>
+              <span class="aol-sub__list-name">{c.label}</span>
+              <span class="aol-sub__list-blurb">{c.blurb}</span>
+            </span>
+          </label>
+        ))}
+      </fieldset>
+
+      <div class="aol-sub__row">
+        <Input
+          type="email"
+          name="email"
+          required
+          autocomplete="email"
+          placeholder="you@company.com"
+          aria-label="Email address"
+          style="flex:1 1 240px"
+        />
+        <Button type="submit" variant="primary" size="lg" arrow>Subscribe</Button>
+      </div>
     </form>
     <p class="aol-sub__msg" role="status" aria-live="polite"></p>
   </div>
 </section>
 
 <style>
-  .aol-sub { margin: var(--space-16) 0; }
-  .aol-sub--compact { margin: var(--space-10) 0; }
+  .aol-sub {
+    margin-block: var(--space-16);
+    margin-inline: auto;
+    /* width:100% is load-bearing, not belt-and-braces. Inside a post this is a
+       GRID item, and a grid item with auto inline margins sizes to its content
+       instead of stretching — without this the box shrank to 519px in the
+       article column while correctly filling 672px everywhere else. */
+    width: 100%;
+    /* 672px is the article's own content measure, so inside a post this is a
+       no-op. On /blog/ and the homepage the box sits in the 1200px container,
+       where it was rendering 1152px wide with a 919px email field — a text
+       input eight times longer than anything anyone types into it. */
+    max-width: 672px;
+  }
+  .aol-sub--compact { margin-block: var(--space-10); }
   .aol-sub__inner {
     position: relative;
     border: var(--border-width) solid var(--ink-900);
@@ -83,10 +126,50 @@ const {
     font-size: 16px;
     line-height: 1.55;
     color: var(--text-on-warm-muted);
-    margin: 0 0 var(--space-6);
+    margin: 0 0 var(--space-5);
     max-width: 50ch;
   }
-  .aol-sub form { display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center; }
+
+  .aol-sub__lists {
+    border: 0;
+    margin: 0 0 var(--space-5);
+    padding: 0;
+    display: grid;
+    gap: var(--space-3);
+  }
+  .aol-sub__list {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    cursor: pointer;
+  }
+  .aol-sub__list input {
+    /* 16px box on an 18px line — optically centred against the first line of
+       the label rather than the middle of a two-line block. */
+    margin: 3px 0 0;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--blue-600);
+    flex: none;
+  }
+  .aol-sub__list-name {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-mono);
+    color: var(--text-on-warm);
+  }
+  .aol-sub__list-blurb {
+    display: block;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-on-warm-muted);
+    margin-top: 2px;
+  }
+
+  .aol-sub__row { display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center; }
+
   .aol-sub__msg {
     font-family: var(--font-mono);
     font-size: var(--text-xs);
@@ -96,6 +179,15 @@ const {
     color: var(--blue-700);
   }
   .aol-sub__msg[data-error] { color: var(--red-600); }
+
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 </style>
 
 <script>
@@ -114,12 +206,19 @@ const {
       e.preventDefault();
       const input = form.querySelector<HTMLInputElement>('input[name="email"]');
       const email = input?.value.trim() ?? "";
+      const lists = [...form.querySelectorAll<HTMLInputElement>('input[name="list"]:checked')].map(
+        (el) => el.value,
+      );
 
       // Validate before the round trip so an obvious typo gets an instant
       // answer instead of a 400 from the edge.
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
         say("That doesn't look like an email address.", true);
         input?.focus();
+        return;
+      }
+      if (lists.length === 0) {
+        say("Pick at least one list.", true);
         return;
       }
 
@@ -131,7 +230,7 @@ const {
         const res = await fetch("/api/subscribe", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ email, source: form.dataset.source ?? "unknown" }),
+          body: JSON.stringify({ email, source: form.dataset.source ?? "unknown", lists }),
         });
         if (res.ok) {
           form.reset();

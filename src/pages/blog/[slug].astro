@@ -182,13 +182,13 @@ const articleLd = blogPostingJsonLd({
 
 const crumbsLd = breadcrumbJsonLd([
   { name: "Home", url: new URL("/", Astro.site).href },
-  { name: "Field notes", url: new URL("/blog/", Astro.site).href },
+  { name: "Writing", url: new URL("/blog/", Astro.site).href },
   { name: post.title, url: canonical },
 ]);
 
 const faqLd = faqJsonLd(post.faq ?? []);
 
-const metaTitle = post.seo?.metaTitle || `${post.title} — And/or Labs`;
+const metaTitle = post.seo?.metaTitle || `${post.title} | And/or Labs`;
 const metaDescription = post.seo?.metaDescription || post.excerpt;
 const tag = post.tags?.[0];
 ---
@@ -221,7 +221,7 @@ const tag = post.tags?.[0];
       <nav class="aol-a__crumbs" aria-label="Breadcrumb">
         <a href="/">Home</a>
         <span aria-hidden="true">/</span>
-        <a href="/blog/">Field notes</a>
+        <a href="/blog/">Writing</a>
         <span aria-hidden="true">/</span>
         <span aria-current="page">{post.title}</span>
       </nav>
