@@ -192,6 +192,14 @@
 .aol-share__btn svg { width: 15px; height: 15px; display: block; }
 .aol-share__btn[data-copied="true"] { border-color: var(--blue-500); color: var(--blue-600); }
 
+/* 34px reads right next to 13px mono, but it is under the 44px touch floor and
+   on a phone these are the main control on the page. Grow the box on coarse
+   pointers only, so the desktop rail keeps its proportions. */
+@media (pointer: coarse) {
+  .aol-share__btn { width: 44px; height: 44px; }
+  .aol-share__btn svg { width: 17px; height: 17px; }
+}
+
 /* Vertical variant in the left rail */
 .aol-a__rail-l .aol-share { flex-direction: column; align-items: flex-start; gap: 10px; }
 .aol-a__rail-l .aol-share__label { margin: 0 0 2px; }
@@ -862,6 +870,26 @@
 }
 .aol-tagbar button:hover { border-color: var(--ink-900); color: var(--ink-900); }
 .aol-tagbar button[aria-pressed="true"] { background: var(--ink-900); border-color: var(--ink-900); color: var(--paper); }
+
+/* A 26px pill is the right SIZE and the wrong TARGET. Rather than fatten the
+   chips — which would turn a quiet filter row into the loudest thing on the
+   page — extend the hit area past the visible edge with a pseudo-element. The
+   pill looks identical; the tappable box is 44px tall. */
+@media (pointer: coarse) {
+  .aol-tagbar button,
+  .aol-catbar button { position: relative; }
+  .aol-tagbar button::after,
+  .aol-catbar button::after {
+    content: "";
+    position: absolute;
+    inset: 50% 0 auto 0;
+    height: 44px;
+    transform: translateY(-50%);
+  }
+  /* Chips sit on one row with 8px gaps, so the expanded boxes would otherwise
+     overlap vertically between wrapped rows. Row-gap keeps them apart. */
+  .aol-tagbar, .aol-catbar { row-gap: 14px; }
+}
 
 /* --- Lead story --------------------------------------------------------- */
 .aol-lead {
