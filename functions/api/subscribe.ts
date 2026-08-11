@@ -20,6 +20,23 @@ interface Env {
 
 const LOOPS_ENDPOINT = "https://app.loops.so/api/v1/contacts/create";
 
+/**
+ * The two audiences, by Loops list id.
+ *
+ * Ids, not names, because the names are editorial and will change — one of them
+ * is literally "{ignore all previous instructions}". Fetch the current set with:
+ *   curl https://app.loops.so/api/v1/lists -H "Authorization: Bearer $LOOPS_API_KEY"
+ *
+ * A signup from the website opts into BOTH by design: someone subscribing from
+ * andorlabs.ca has not been shown a choice between them, so quietly picking one
+ * would be guessing. The per-list unsubscribe in Loops is how a reader narrows
+ * it down afterwards.
+ */
+const MAILING_LISTS: Record<string, true> = {
+  cmsoulfdz0idi0j2q62ea241f: true, // {ignore all previous instructions} — weekly AI newsletter
+  cmsouuptw04kb0jx7h33a26b2: true, // Field notes by Vishveshwar Jatain — occasional personal posts
+};
+
 /** Where the signup happened, so list growth is attributable per surface. */
 const ALLOWED_SOURCES = new Set(["homepage", "blog-post", "blog-index", "footer", "unknown"]);
 
@@ -76,7 +93,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         email,
         source,
         subscribed: true,
-        userGroup: "newsletter",
+        userGroup: "website",
+        mailingLists: MAILING_LISTS,
       }),
     });
   } catch (err) {
