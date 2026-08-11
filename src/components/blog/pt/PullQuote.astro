@@ -1,0 +1,30 @@
+---
+/**
+ * Editorial pull quote — a sentence lifted OUT of the running text for
+ * emphasis, as distinct from `blockquote`, which cites someone else.
+ *
+ * Framed top and bottom by the house dither rule rather than a coloured left
+ * bar: the bar reads as an alert/callout and would collide with the callout
+ * block's own meaning, and it makes the quote left-heavy on a centred column.
+ */
+import type { Props as $ } from "astro-portabletext/types";
+import DitherLine from "../../ds/DitherLine.astro";
+
+interface PullQuoteNode {
+  _type: "pullQuote";
+  text?: string;
+  attribution?: string;
+}
+export type Props = $<PullQuoteNode & { _type: string }>;
+
+const { node } = Astro.props;
+const { text, attribution } = node as unknown as PullQuoteNode;
+---
+{text && (
+  <figure class="aol-pq aol-break">
+    <DitherLine height={10} color="var(--ink-300)" class="aol-pq__rule" />
+    <blockquote class="aol-pq__text">{text}</blockquote>
+    {attribution && <figcaption class="aol-pq__attr">{attribution}</figcaption>}
+    <DitherLine height={10} color="var(--ink-300)" class="aol-pq__rule" style="margin-top:18px" />
+  </figure>
+)}

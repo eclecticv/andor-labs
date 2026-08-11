@@ -1,0 +1,1071 @@
+/* ============================================================
+   And/or Labs — Editorial blog
+   The reading surface. Everything here is scoped under .aol-blog or a
+   .aol-a-* article class so it cannot leak into the marketing pages.
+
+   Layout model: ONE 720px reading column (--content-width). Elements that
+   earn it — figures, pull quotes, code, the gist box — break OUT of that
+   column to --blog-wide. Nothing breaks out arbitrarily; the breakout is
+   the emphasis, so overusing it flattens the hierarchy back out.
+   ============================================================ */
+
+:root {
+  --blog-col:    var(--content-width);  /* 720 — the reading column */
+  --blog-wide:   880px;                 /* breakout: figures, pull quotes */
+  --blog-rail:   200px;                 /* TOC / share rails either side */
+  --blog-gap:    48px;                  /* column ↔ rail gutter */
+
+  /* Long-form reads a step larger than UI prose. 17px is right for a landing
+     page you scan; it is tiring for 2,000 words you actually read. */
+  --blog-body-size: 19px;
+  --blog-body-lead: 1.68;
+}
+
+/* ============================================================
+   1. Article shell + optional rails
+   ============================================================ */
+
+.aol-a {
+  max-width: var(--blog-col);
+  margin: 0 auto;
+  padding: var(--space-12) var(--gutter) var(--space-20);
+}
+
+/* The three-column reading view only assembles when there is genuinely room
+   for it: 720 column + two 200 rails + two 48 gutters + page gutters = 1216.
+   Below that the rails collapse back inline rather than squeezing the column,
+   because a narrowed reading measure costs more than a missing TOC. */
+@media (min-width: 1280px) {
+  .aol-a--railed {
+    max-width: calc(var(--blog-col) + 2 * (var(--blog-rail) + var(--blog-gap)));
+    display: grid;
+    grid-template-columns: var(--blog-rail) minmax(0, 1fr) var(--blog-rail);
+    column-gap: var(--blog-gap);
+    align-items: start;
+  }
+  .aol-a--railed > * { grid-column: 2; }
+  .aol-a__rail-l { grid-column: 1; grid-row: 1 / span 99; position: sticky; top: 96px; }
+  .aol-a__rail-r { grid-column: 3; grid-row: 1 / span 99; position: sticky; top: 96px; }
+}
+.aol-a__rail-l, .aol-a__rail-r { display: none; }
+@media (min-width: 1280px) { .aol-a__rail-l, .aol-a__rail-r { display: block; } }
+
+/* ============================================================
+   2. Reading-progress bar
+   ============================================================ */
+
+.aol-a__progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 2px;
+  z-index: 30;
+  background: transparent;
+  pointer-events: none;
+}
+.aol-a__progress i {
+  display: block;
+  height: 100%;
+  width: var(--p, 0%);
+  background: var(--blue-500);
+  transition: width 80ms linear;
+}
+@media (prefers-reduced-motion: reduce) { .aol-a__progress i { transition: none; } }
+
+/* ============================================================
+   3. Masthead — breadcrumb, eyebrow, H1, standfirst, byline
+   ============================================================ */
+
+.aol-a__crumbs {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-mono);
+  color: var(--text-faint);
+  margin: 0 0 var(--space-6);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.aol-a__crumbs a { color: var(--text-faint); text-decoration: none; border-bottom: 1px solid var(--ink-200); }
+.aol-a__crumbs a:hover { color: var(--ink-900); border-bottom-color: var(--ink-900); }
+.aol-a__crumbs span[aria-hidden] { color: var(--ink-300); }
+
+.aol-a__eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--blue-600);
+  margin: 0 0 var(--space-4);
+}
+
+.aol-a__title {
+  font-family: var(--font-display);
+  font-weight: var(--weight-regular);
+  font-size: clamp(38px, 6vw, 60px);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--ink-900);
+  margin: 0 0 var(--space-5);
+}
+
+/* The deck. Newsreader italic at 21px — the one place italic body type earns
+   its keep, because it visually separates "the paper's voice introducing the
+   piece" from the author's own prose below. */
+.aol-a__standfirst {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 21px;
+  line-height: 1.5;
+  color: var(--ink-600);
+  margin: 0 0 var(--space-8);
+  max-width: 40ch;
+  text-wrap: pretty;
+}
+
+.aol-a__byline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--ink-200);
+  border-bottom: 1px solid var(--ink-200);
+  margin: 0 0 var(--space-8);
+}
+.aol-a__byline-who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.aol-a__byline-name {
+  font-family: var(--font-serif);
+  font-weight: var(--weight-semibold);
+  font-size: 15px;
+  color: var(--ink-900);
+  text-decoration: none;
+}
+.aol-a__byline-name:hover { color: var(--blue-600); }
+.aol-a__byline-meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-mono);
+  color: var(--text-faint);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.aol-a__byline-meta .sep { color: var(--ink-300); }
+
+/* ============================================================
+   4. Share — inline row on narrow, sticky rail on wide
+   ============================================================ */
+
+.aol-share { display: flex; align-items: center; gap: 8px; }
+.aol-share__label {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-right: 4px;
+}
+.aol-share__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--ink-200);
+  border-radius: var(--radius-sm);
+  background: var(--paper-pure);
+  color: var(--ink-700);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+  transition: border-color var(--dur-base) var(--ease-out),
+              color var(--dur-base) var(--ease-out),
+              box-shadow var(--dur-base) var(--ease-out),
+              transform var(--dur-base) var(--ease-out);
+}
+.aol-share__btn:hover {
+  border-color: var(--ink-900);
+  color: var(--ink-900);
+  box-shadow: var(--shadow-hard-sm);
+  transform: translate(-1px, -1px);
+}
+.aol-share__btn svg { width: 15px; height: 15px; display: block; }
+.aol-share__btn[data-copied="true"] { border-color: var(--blue-500); color: var(--blue-600); }
+
+/* Vertical variant in the left rail */
+.aol-a__rail-l .aol-share { flex-direction: column; align-items: flex-start; gap: 10px; }
+.aol-a__rail-l .aol-share__label { margin: 0 0 2px; }
+
+/* ============================================================
+   5. Hero figure
+   ============================================================ */
+
+.aol-a__hero { margin-block: 0 var(--space-10); }
+.aol-a__hero img {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--ink-900);
+  border-radius: var(--radius-sm);
+  /* The dither is baked into the asset as a 2-colour PNG. Pixelated rendering
+     keeps the ordered-dither grid crisp when the browser scales it, instead of
+     smoothing it into mush at fractional widths. */
+  image-rendering: pixelated;
+  background: var(--ink-050);
+}
+.aol-a__caption {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+  letter-spacing: var(--tracking-mono);
+  color: var(--text-faint);
+  margin: 10px 0 0;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+/* ink-500, not ink-400: ink-400 measures 2.90:1 and fails AA. The credit is a
+   licence obligation, so it has to be readable — it is set apart by italics
+   rather than by being faded out. */
+.aol-a__caption .credit { color: var(--text-faint); font-style: italic; }
+.aol-a__caption a { color: inherit; text-decoration-color: var(--ink-300); }
+
+/* ============================================================
+   6. "The gist" — key takeaways
+   The single highest-value block on the page for answer engines: it states
+   the post's conclusions as discrete, liftable sentences above the fold.
+   ============================================================ */
+
+.aol-gist {
+  position: relative;
+  border: var(--border-width) solid var(--ink-900);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-hard);
+  background: var(--surface-warm);
+  padding: var(--space-8) var(--space-8) var(--space-6);
+  margin: 0 0 var(--space-10);
+}
+.aol-gist__label {
+  position: absolute;
+  top: 0;
+  left: 22px;
+  transform: translateY(-50%);
+  background: var(--paper-pure);
+  padding: 0 10px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--blue-600);
+}
+.aol-gist ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.aol-gist li {
+  position: relative;
+  padding-left: 22px;
+  font-family: var(--font-serif);
+  font-size: 17px;
+  line-height: 1.55;
+  /* ink-900, not the muted tier: on the warm surface ink-500 goes hazy. */
+  color: var(--text-on-warm);
+  text-wrap: pretty;
+}
+.aol-gist li::before {
+  content: "▪";
+  position: absolute;
+  left: 2px;
+  top: 0;
+  color: var(--blue-500);
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+/* ============================================================
+   7. Article prose
+   ============================================================ */
+
+.aol-prose {
+  font-family: var(--font-serif);
+  font-size: var(--blog-body-size);
+  line-height: var(--blog-body-lead);
+  color: var(--ink-800);
+}
+.aol-prose > p { margin: 0 0 var(--space-6); text-wrap: pretty; }
+
+/* Lead paragraph — a half-step up, no drop cap. It signals "start here"
+   without the Victorian flourish a drop cap brings to a tech publication. */
+.aol-prose > p:first-of-type { font-size: 21px; line-height: 1.6; color: var(--ink-900); }
+
+.aol-prose h2,
+.aol-prose h3,
+.aol-prose h4 { scroll-margin-top: 96px; /* clears the sticky header on anchor jumps */ }
+
+.aol-prose h2 {
+  font-family: var(--font-display);
+  font-size: 34px;
+  line-height: 1.15;
+  letter-spacing: var(--tracking-tight);
+  color: var(--ink-900);
+  margin: var(--space-16) 0 var(--space-5);
+}
+.aol-prose h3 {
+  font-family: var(--font-serif);
+  font-weight: var(--weight-semibold);
+  font-size: 22px;
+  line-height: 1.3;
+  color: var(--ink-900);
+  margin: var(--space-12) 0 var(--space-4);
+}
+.aol-prose h4 {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--blue-600);
+  margin: var(--space-10) 0 var(--space-3);
+}
+/* A heading immediately after another heading should not carry a full stack gap. */
+.aol-prose h2 + h3, .aol-prose h3 + h4 { margin-top: var(--space-5); }
+
+/* Anchor affordance — the ¶ mark appears on hover, so headings stay clean
+   while still being linkable. Hidden from AT and from print. */
+.aol-prose .aol-anchor {
+  margin-left: 8px;
+  color: var(--ink-300);
+  text-decoration: none;
+  opacity: 0;
+  font-size: 0.7em;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+.aol-prose :is(h2, h3):hover .aol-anchor { opacity: 1; }
+.aol-prose .aol-anchor:focus-visible { opacity: 1; }
+.aol-prose .aol-anchor:hover { color: var(--blue-500); }
+
+.aol-prose ul, .aol-prose ol { margin: 0 0 var(--space-6); padding-left: 0; list-style: none; }
+.aol-prose li { position: relative; padding-left: 26px; margin-bottom: var(--space-3); text-wrap: pretty; }
+.aol-prose ul > li::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 0.62em;
+  width: 6px;
+  height: 6px;
+  background: var(--blue-500);
+  /* Square marker, not a disc — the house motif is printed/technical. */
+}
+.aol-prose ol { counter-reset: aol-ol; }
+.aol-prose ol > li { counter-increment: aol-ol; }
+.aol-prose ol > li::before {
+  content: counter(aol-ol) ".";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--blue-600);
+  line-height: 1.9;
+}
+.aol-prose li > ul, .aol-prose li > ol { margin: var(--space-3) 0 0; }
+
+.aol-prose strong { font-weight: var(--weight-semibold); color: var(--ink-900); }
+.aol-prose em { font-style: italic; }
+.aol-prose code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--ink-050);
+  border: 1px solid var(--ink-100);
+  border-radius: var(--radius-xs);
+  padding: 1px 5px;
+  color: var(--ink-900);
+  /* Inline code must not wrap mid-token — a broken identifier is unreadable. */
+  white-space: nowrap;
+}
+
+/* Real quotation (a source being cited), as distinct from a pull quote. */
+.aol-prose blockquote {
+  margin: var(--space-8) 0;
+  padding: 0 0 0 var(--space-6);
+  border-left: 2px solid var(--ink-200);
+  font-style: italic;
+  color: var(--ink-600);
+}
+.aol-prose blockquote p:last-child { margin-bottom: 0; }
+
+/* ============================================================
+   8. Breakout blocks
+   ============================================================ */
+
+.aol-break {
+  /* Break out of the reading column, symmetrically, without needing to know the
+     page width: sit the box's left edge at the column's centre, then pull it
+     back by half its own width. Works at any container size.
+
+     100vw (not 100%) so the cap is the viewport, since the column itself is
+     narrower than the box we want. The gutter subtraction keeps a scrollbar
+     from turning the breakout into horizontal overflow. */
+  width: min(var(--blog-wide), 100vw - 2 * var(--gutter));
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+@media (max-width: 900px) { .aol-break { width: 100%; margin-left: 0; transform: none; } }
+
+/* NOTE for anyone adding a new breakout block below: use `margin-block`, never
+   the `margin` shorthand. Every rule here is a single class, so it has the same
+   specificity as .aol-break and — being later in the file — wins. A `margin:
+   32px auto` shorthand silently resets the `margin-left: 50%` that .aol-break
+   relies on, and the block slams to the left edge instead of centring. */
+/* --- Pull quote --------------------------------------------------------- */
+.aol-pq {
+  margin-block: var(--space-16);
+  text-align: center;
+  padding: var(--space-8) var(--space-6);
+}
+/* A pull quote is marked up as <blockquote>, so `.aol-prose blockquote` above
+   lands on it and draws the citation rail down its left side. That selector is
+   (0,1,1) and a bare `.aol-pq__text` is (0,1,0), so it loses — hence the
+   `.aol-prose` prefix here rather than a bare class. */
+.aol-prose .aol-pq__text,
+.aol-pq__text {
+  border-left: 0;
+  padding-left: 0;
+  font-style: normal;
+  font-family: var(--font-display);
+  font-weight: var(--weight-regular);
+  font-size: clamp(26px, 3.6vw, 36px);
+  line-height: 1.24;
+  letter-spacing: var(--tracking-tight);
+  color: var(--ink-900);
+  margin: 0;
+  text-wrap: balance;
+}
+.aol-pq__attr {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin: var(--space-5) 0 0;
+}
+/* Dither rules top and bottom instead of a coloured left rail — the house
+   divider motif, and it frames the quote symmetrically. */
+.aol-pq__rule { display: block; width: 100%; height: 14px; color: var(--ink-300); }
+
+/* --- Divider ------------------------------------------------------------ */
+.aol-div { margin-block: var(--space-16); }
+.aol-div--rule { border-top: 1px solid var(--ink-200); }
+.aol-div--asterism {
+  text-align: center;
+  font-family: var(--font-serif);
+  color: var(--ink-400);
+  letter-spacing: 0.5em;
+  font-size: 14px;
+}
+.aol-div--dither { color: var(--ink-300); }
+
+/* --- Callout ------------------------------------------------------------ */
+.aol-callout {
+  margin-block: var(--space-10);
+  border: 1px solid var(--ink-900);
+  border-radius: var(--radius-md);
+  padding: var(--space-6) var(--space-6) var(--space-5);
+  background: var(--paper-pure);
+  box-shadow: var(--shadow-hard-sm);
+  font-size: 17px;
+  line-height: 1.6;
+}
+.aol-callout__title {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  margin: 0 0 var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.aol-callout__title::before { content: ""; width: 7px; height: 7px; flex: none; }
+.aol-callout p:last-child { margin-bottom: 0; }
+.aol-callout--note  { background: var(--paper-pure); }
+.aol-callout--note  .aol-callout__title { color: var(--blue-600); }
+.aol-callout--note  .aol-callout__title::before { background: var(--blue-500); }
+.aol-callout--key   { background: var(--surface-warm); color: var(--text-on-warm); box-shadow: var(--shadow-hard); }
+.aol-callout--key   .aol-callout__title { color: var(--copper-700); }
+.aol-callout--key   .aol-callout__title::before { background: var(--copper-600); }
+.aol-callout--warning { background: var(--paper-pure); }
+.aol-callout--warning .aol-callout__title { color: var(--amber-700, #92400e); }
+.aol-callout--warning .aol-callout__title::before { background: var(--amber-600, #d97706); }
+
+/* --- Code block --------------------------------------------------------- */
+.aol-code {
+  margin-block: var(--space-10);
+  border: 1px solid var(--ink-900);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--ink-900);
+}
+.aol-code__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--ink-700);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-mono);
+  color: var(--ink-300);
+}
+.aol-code__lang { color: var(--blue-300); text-transform: uppercase; letter-spacing: var(--tracking-label); }
+.aol-code pre {
+  margin: 0;
+  padding: var(--space-5) var(--space-6);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--ink-050);
+  -webkit-overflow-scrolling: touch;
+}
+.aol-code pre code { background: none; border: 0; padding: 0; white-space: pre; color: inherit; }
+
+/* --- Figure ------------------------------------------------------------- */
+.aol-fig { margin-block: var(--space-12); }
+.aol-fig img {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--ink-900);
+  border-radius: var(--radius-sm);
+  background: var(--ink-050);
+}
+.aol-fig--dithered img { image-rendering: pixelated; }
+.aol-fig figcaption {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+  letter-spacing: var(--tracking-mono);
+  color: var(--text-faint);
+  margin: 10px 0 0;
+}
+.aol-fig figcaption .credit { color: var(--text-faint); font-style: italic; }
+
+/* --- Key stat ----------------------------------------------------------- */
+.aol-stat {
+  margin-block: var(--space-12);
+  text-align: center;
+  padding: var(--space-8) var(--space-6);
+  border-top: 1px solid var(--ink-200);
+  border-bottom: 1px solid var(--ink-200);
+}
+.aol-stat__value {
+  font-family: var(--font-display);
+  font-size: clamp(48px, 8vw, 76px);
+  line-height: 1;
+  letter-spacing: var(--tracking-tight);
+  color: var(--blue-600);
+  display: block;
+}
+.aol-stat__label {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  color: var(--ink-700);
+  margin: var(--space-4) 0 0;
+  max-width: 34ch;
+  margin-inline: auto;
+  text-wrap: pretty;
+}
+.aol-stat__source {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-mono);
+  color: var(--text-faint);
+  margin: var(--space-3) 0 0;
+}
+
+/* ============================================================
+   9. Table of contents (right rail)
+   ============================================================ */
+
+.aol-toc__label {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin: 0 0 var(--space-4);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--ink-200);
+}
+.aol-toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.aol-toc li.lvl-3 { padding-left: 14px; }
+.aol-toc a {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--ink-500);
+  text-decoration: none;
+  display: block;
+  border-left: 2px solid transparent;
+  padding-left: 10px;
+  margin-left: -12px;
+  transition: color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
+}
+.aol-toc a:hover { color: var(--ink-900); }
+.aol-toc a[aria-current="true"] { color: var(--ink-900); border-left-color: var(--blue-500); }
+
+/* ============================================================
+   10. Author card
+   ============================================================ */
+
+.aol-authorcard {
+  display: flex;
+  gap: var(--space-5);
+  align-items: flex-start;
+  margin: var(--space-16) 0 var(--space-12);
+  padding: var(--space-6);
+  border: 1px solid var(--ink-200);
+  border-radius: var(--radius-md);
+  background: var(--surface-warm);
+}
+.aol-authorcard__body { min-width: 0; }
+.aol-authorcard__kicker {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--accent-warm);
+  margin: 0 0 6px;
+}
+.aol-authorcard__name {
+  font-family: var(--font-serif);
+  font-weight: var(--weight-semibold);
+  font-size: 18px;
+  color: var(--text-on-warm);
+  margin: 0 0 2px;
+}
+.aol-authorcard__role {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-mono);
+  color: var(--text-on-warm-muted);
+  margin: 0 0 var(--space-3);
+}
+.aol-authorcard__bio {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-on-warm-muted);
+  margin: 0 0 var(--space-3);
+}
+.aol-authorcard__bio p { margin: 0 0 var(--space-2); }
+.aol-authorcard__creds {
+  list-style: none;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+}
+.aol-authorcard__creds li {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-mono);
+  color: var(--text-on-warm-muted);
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-xs);
+  padding: 3px 8px;
+  background: var(--paper-pure);
+}
+.aol-authorcard__links { display: flex; gap: 14px; flex-wrap: wrap; }
+.aol-authorcard__links a {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-mono);
+  color: var(--text-warm);
+  text-decoration-color: var(--accent-warm-faint);
+}
+@media (max-width: 560px) { .aol-authorcard { flex-direction: column; gap: var(--space-4); } }
+
+/* ============================================================
+   11. FAQ
+   ============================================================ */
+
+.aol-afaq { margin: var(--space-16) 0; }
+.aol-afaq__h {
+  font-family: var(--font-display);
+  font-size: 30px;
+  color: var(--ink-900);
+  margin: 0 0 var(--space-6);
+}
+.aol-afaq dl { margin: 0; border-top: 1px solid var(--ink-200); }
+.aol-afaq dt {
+  font-family: var(--font-serif);
+  font-weight: var(--weight-semibold);
+  font-size: 18px;
+  color: var(--ink-900);
+  margin: 0;
+  padding: var(--space-5) 0 var(--space-2);
+}
+.aol-afaq dd {
+  margin: 0;
+  padding: 0 0 var(--space-5);
+  border-bottom: 1px solid var(--ink-200);
+  color: var(--ink-700);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+/* ============================================================
+   12. Prev / next
+   ============================================================ */
+
+.aol-pn {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--ink-900);
+  border-bottom: 1px solid var(--ink-200);
+  margin: var(--space-12) 0;
+}
+.aol-pn__item {
+  display: block;
+  padding: var(--space-6) var(--space-5);
+  text-decoration: none;
+  min-width: 0;
+  transition: background var(--dur-base) var(--ease-out);
+}
+.aol-pn__item:hover { background: var(--ink-050); }
+.aol-pn__item + .aol-pn__item { border-left: 1px solid var(--ink-200); }
+.aol-pn__item--next { text-align: right; }
+.aol-pn__dir {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--blue-600);
+  margin: 0 0 8px;
+}
+.aol-pn__title {
+  font-family: var(--font-serif);
+  font-weight: var(--weight-semibold);
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--ink-900);
+  margin: 0;
+  text-wrap: pretty;
+}
+.aol-pn__empty { padding: var(--space-6) var(--space-5); }
+@media (max-width: 560px) {
+  .aol-pn { grid-template-columns: 1fr; }
+  .aol-pn__item + .aol-pn__item { border-left: 0; border-top: 1px solid var(--ink-200); }
+  .aol-pn__item--next { text-align: left; }
+}
+
+/* ============================================================
+   13. Related posts
+   ============================================================ */
+
+.aol-rel { margin: var(--space-12) 0 0; }
+.aol-rel__h {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin: 0 0 var(--space-5);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--ink-200);
+}
+.aol-rel ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-5); grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.aol-rel a { text-decoration: none; display: block; }
+.aol-rel__thumb {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border: 1px solid var(--ink-200);
+  border-radius: var(--radius-sm);
+  image-rendering: pixelated;
+  background: var(--ink-050);
+  margin-bottom: 10px;
+}
+.aol-rel__title {
+  font-family: var(--font-serif);
+  font-weight: var(--weight-semibold);
+  font-size: 16px;
+  line-height: 1.32;
+  color: var(--ink-900);
+  margin: 0;
+  text-wrap: pretty;
+}
+.aol-rel a:hover .aol-rel__title { color: var(--blue-600); }
+.aol-rel__date {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+  margin: 6px 0 0;
+}
+
+/* ============================================================
+   14. Index — featured lead + ruled list
+   ============================================================ */
+
+.aol-blog-head { padding: var(--space-16) 0 var(--space-10); }
+.aol-blog-head__h {
+  font-family: var(--font-display);
+  font-size: clamp(42px, 7vw, 64px);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  margin: 0 0 var(--space-4);
+  color: var(--ink-900);
+}
+.aol-blog-head__sub {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  line-height: 1.55;
+  color: var(--ink-600);
+  max-width: 52ch;
+  margin: 0;
+}
+
+.aol-tagbar { display: flex; flex-wrap: wrap; gap: 8px; margin: var(--space-8) 0 0; }
+.aol-tagbar button {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-mono);
+  text-transform: lowercase;
+  border: 1px solid var(--ink-200);
+  border-radius: var(--radius-pill);
+  background: var(--paper-pure);
+  color: var(--ink-600);
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all var(--dur-base) var(--ease-out);
+}
+.aol-tagbar button:hover { border-color: var(--ink-900); color: var(--ink-900); }
+.aol-tagbar button[aria-pressed="true"] { background: var(--ink-900); border-color: var(--ink-900); color: var(--paper); }
+
+/* --- Lead story --------------------------------------------------------- */
+.aol-lead {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: var(--space-10);
+  align-items: center;
+  padding: var(--space-12) 0;
+  border-top: var(--border-thick) solid var(--ink-900);
+  border-bottom: 1px solid var(--ink-900);
+  text-decoration: none;
+}
+/* `display: grid` above beats the [hidden] attribute's UA `display: none`, so
+   without this the tag filter would hide every row and leave the lead story
+   sitting there regardless of which tag was picked. */
+.aol-lead[hidden] { display: none; }
+.aol-lead__media { margin: 0; }
+  /* height:auto is REQUIRED, not decorative. The <img> carries width/height
+     attributes so the browser can reserve space before the bytes land; those
+     attributes also set a used height, and aspect-ratio is ignored unless the
+     height is auto. Without this the box renders at the attribute's height and
+     the ratio is silently discarded. */
+.aol-lead__media img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border: 1px solid var(--ink-900);
+  border-radius: var(--radius-sm);
+  image-rendering: pixelated;
+  background: var(--ink-050);
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+.aol-lead:hover .aol-lead__media img { transform: translate(-2px, -2px); box-shadow: var(--shadow-hard); }
+.aol-lead__eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--blue-600);
+  margin: 0 0 var(--space-3);
+}
+.aol-lead__title {
+  font-family: var(--font-display);
+  font-size: clamp(30px, 4.2vw, 44px);
+  line-height: 1.1;
+  letter-spacing: var(--tracking-tight);
+  color: var(--ink-900);
+  margin: 0 0 var(--space-4);
+  text-wrap: pretty;
+}
+.aol-lead:hover .aol-lead__title { color: var(--blue-700); }
+.aol-lead__dek {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--ink-600);
+  margin: 0 0 var(--space-5);
+  max-width: 46ch;
+}
+.aol-lead__meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-mono);
+  color: var(--text-faint);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.aol-lead__meta .sep { color: var(--ink-300); }
+@media (max-width: 820px) {
+  .aol-lead { grid-template-columns: 1fr; gap: var(--space-6); }
+  /* Image first on narrow — it is the hook, and a headline stranded above a
+     picture reads as a caption for it. */
+  .aol-lead__media { order: -1; }
+}
+
+/* --- Ruled list --------------------------------------------------------- */
+.aol-list { list-style: none; margin: 0; padding: 0; }
+.aol-list > li { border-bottom: 1px solid var(--ink-200); }
+.aol-list > li[hidden] { display: none; }
+.aol-row {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr) auto;
+  gap: var(--space-6);
+  align-items: start;
+  padding: var(--space-6) 0;
+  text-decoration: none;
+  transition: background var(--dur-base) var(--ease-out);
+}
+.aol-row:hover { background: var(--ink-050); }
+.aol-row__thumb {
+  width: 132px;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border: 1px solid var(--ink-200);
+  border-radius: var(--radius-sm);
+  image-rendering: pixelated;
+  background: var(--ink-050);
+}
+.aol-row__eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--blue-600);
+  margin: 0 0 6px;
+}
+.aol-row__title {
+  font-family: var(--font-serif);
+  font-weight: var(--weight-semibold);
+  font-size: 21px;
+  line-height: 1.28;
+  color: var(--ink-900);
+  margin: 0 0 6px;
+  text-wrap: pretty;
+}
+.aol-row:hover .aol-row__title { color: var(--blue-700); }
+.aol-row__dek {
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink-600);
+  margin: 0;
+  max-width: 62ch;
+  text-wrap: pretty;
+}
+.aol-row__meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-mono);
+  color: var(--text-faint);
+  white-space: nowrap;
+  text-align: right;
+  padding-top: 2px;
+}
+@media (max-width: 720px) {
+  .aol-row { grid-template-columns: 84px minmax(0, 1fr); gap: var(--space-4); }
+  .aol-row__thumb { width: 84px; }
+  /* The date moves under the deck rather than being squeezed into a third
+     column that has no room left. */
+  .aol-row__meta { grid-column: 2; text-align: left; padding-top: 8px; }
+}
+
+/* ============================================================
+   15. Homepage — recent stories strip
+   ============================================================ */
+
+.aol-recent__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--ink-900);
+  margin-bottom: var(--space-8);
+  flex-wrap: wrap;
+}
+.aol-recent__h {
+  font-family: var(--font-display);
+  font-size: 34px;
+  line-height: 1.1;
+  color: var(--ink-900);
+  margin: 0;
+}
+.aol-recent__all {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--blue-600);
+  text-decoration: none;
+  border-bottom: 1px solid var(--blue-200);
+}
+.aol-recent__all:hover { border-bottom-color: var(--blue-600); }
+.aol-recent ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-8); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.aol-recent a { text-decoration: none; display: block; }
+.aol-recent__thumb {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border: 1px solid var(--ink-900);
+  border-radius: var(--radius-sm);
+  image-rendering: pixelated;
+  background: var(--ink-050);
+  margin-bottom: var(--space-4);
+  transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+}
+.aol-recent a:hover .aol-recent__thumb { transform: translate(-2px, -2px); box-shadow: var(--shadow-hard-sm); }
+.aol-recent__eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--blue-600);
+  margin: 0 0 8px;
+}
+.aol-recent__title {
+  font-family: var(--font-serif);
+  font-weight: var(--weight-semibold);
+  font-size: 19px;
+  line-height: 1.3;
+  color: var(--ink-900);
+  margin: 0 0 8px;
+  text-wrap: pretty;
+}
+.aol-recent a:hover .aol-recent__title { color: var(--blue-700); }
+.aol-recent__meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+  margin: 0;
+}
+
+/* ============================================================
+   16. Print — people do print long reads
+   ============================================================ */
+
+@media print {
+  .aol-a__progress, .aol-a__rail-l, .aol-a__rail-r,
+  .aol-share, .aol-pn, .aol-rel, .aol-newsletter { display: none !important; }
+  .aol-a { max-width: none; padding: 0; }
+  .aol-prose { font-size: 11pt; }
+  .aol-prose a::after { content: " (" attr(href) ")"; font-family: var(--font-mono); font-size: 9pt; color: #555; }
+}

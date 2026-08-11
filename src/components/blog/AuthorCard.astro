@@ -1,0 +1,68 @@
+---
+/**
+ * The EEAT block. A byline is a string; this is the evidence behind it —
+ * who they are, what they've done, and where else they exist on the web.
+ * `sameAs` links are the same ones emitted in Person JSON-LD, so the on-page
+ * claim and the structured-data claim cannot drift apart.
+ */
+import { PortableText } from "astro-portabletext";
+import type { PortableTextBlock } from "@portabletext/types";
+import { imageUrl, type SanityImageSource } from "../../lib/sanityImage";
+
+export interface AuthorLike {
+  name: string;
+  role?: string;
+  photo?: SanityImageSource;
+  bio?: PortableTextBlock[];
+  credentials?: string[];
+  sameAs?: string[];
+}
+interface Props {
+  author: AuthorLike;
+  kicker?: string;
+}
+const { author, kicker = "Written by" } = Astro.props;
+
+// 2x for the retina case — the card photo is small enough that the extra
+// bytes are trivial and a soft avatar next to crisp dithered art looks broken.
+const photo = imageUrl(author.photo, { width: 144, height: 144, fit: "crop", format: "auto" });
+
+/** Turn a profile URL into something a human reads: "linkedin.com/in/vjatain". */
+const pretty = (u: string) => u.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
+---
+<aside class="aol-authorcard">
+  {photo && (
+    <img
+      src={photo}
+      alt=""
+      width="72"
+      height="72"
+      loading="lazy"
+      decoding="async"
+      style="width:72px;height:72px;flex:none;border-radius:50%;object-fit:cover;border:1px solid var(--border-warm)"
+    />
+  )}
+  <div class="aol-authorcard__body">
+    <p class="aol-authorcard__kicker">{kicker}</p>
+    <p class="aol-authorcard__name">{author.name}</p>
+    {author.role && <p class="aol-authorcard__role">{author.role}</p>}
+
+    {author.bio?.length ? (
+      <div class="aol-authorcard__bio"><PortableText value={author.bio} /></div>
+    ) : null}
+
+    {author.credentials?.length ? (
+      <ul class="aol-authorcard__creds">
+        {author.credentials.map((c) => <li>{c}</li>)}
+      </ul>
+    ) : null}
+
+    {author.sameAs?.length ? (
+      <div class="aol-authorcard__links">
+        {author.sameAs.map((u) => (
+          <a href={u} target="_blank" rel="noopener noreferrer me">{pretty(u)}</a>
+        ))}
+      </div>
+    ) : null}
+  </div>
+</aside>

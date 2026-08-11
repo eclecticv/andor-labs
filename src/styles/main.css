@@ -6,5 +6,6 @@
 @import "./tokens/effects.css";
 @import "./tokens/base.css";
 @import "./components.css";
+@import "./blog.css";
 @import "./site.css";
 @import "./motion.css";

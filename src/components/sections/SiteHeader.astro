@@ -8,12 +8,15 @@ import { BOOKING_URL } from "../../config";
 // "Work" points straight at the one live case study for now — the /work
 // listing page is parked (index.astro.parked) until a few more exist.
 const NAV: [string, string][] = [
-  // Order tracks the page order (founder → what we do → pricing → compare → FAQ).
+  // Order tracks the page order (founder → what we do → pricing → compare → FAQ),
+  // with the two real destinations — Work and Field notes — last, since they
+  // leave the homepage rather than scrolling within it.
   ["About", "/#founder"],
   ["Pricing", "/#how-we-work"],
   ["Why us", "/#compare"],
-  ["Work", "/work/filament"],
   ["FAQ", "/#faq"],
+  ["Work", "/work/filament"],
+  ["Field notes", "/blog/"],
 ];
 ---
 <header style="position:sticky;top:0;z-index:20;background:rgba(255,255,255,0.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--ink-200)">

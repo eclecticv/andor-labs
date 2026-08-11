@@ -1,0 +1,29 @@
+---
+/**
+ * Footnote reference — the superscript number in the text.
+ *
+ * The number is NOT counted here. PostBody pre-walks the body and stamps
+ * `_footnoteIndex` onto each footnote markDef, because numbering is a
+ * document-level sequence: a per-mark component has no idea whether it is the
+ * first footnote or the ninth. It also renders the matching list at the foot
+ * of the article, which is what `href` points at.
+ */
+import type { Props as $, Mark } from "astro-portabletext/types";
+
+export type Props = $<Mark<{ text?: string; _footnoteIndex?: number }>>;
+
+const { node } = Astro.props;
+const n = node.markDef?._footnoteIndex;
+---
+{n ? (
+  <>
+    <slot />
+    <sup class="aol-fn-ref"><a id={`fnref-${n}`} href={`#fn-${n}`} aria-label={`Footnote ${n}`}>{n}</a></sup>
+  </>
+) : <slot />}
+
+<style>
+  .aol-fn-ref { font-family: var(--font-mono); font-size: 0.62em; line-height: 0; margin-left: 1px; }
+  .aol-fn-ref a { text-decoration: none; color: var(--blue-600); }
+  .aol-fn-ref a:hover { text-decoration: underline; }
+</style>

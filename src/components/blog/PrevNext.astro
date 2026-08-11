@@ -1,0 +1,40 @@
+---
+/**
+ * Chronological neighbours. "Previous" means older, "next" means newer, which
+ * matches how the index is ordered — the alternative (reading order within a
+ * series) would need an explicit sequence field the content model doesn't have.
+ *
+ * When a post is at either end, the slot renders as an empty cell rather than
+ * collapsing, so the remaining link keeps its half of the grid instead of
+ * stretching across the full width and looking like the only option.
+ */
+export interface NeighbourPost {
+  title: string;
+  slug: string;
+}
+interface Props {
+  previous?: NeighbourPost | null;
+  next?: NeighbourPost | null;
+}
+const { previous, next } = Astro.props;
+---
+{(previous || next) && (
+  <nav class="aol-pn" aria-label="More posts">
+    {previous ? (
+      <a class="aol-pn__item aol-pn__item--prev" href={`/blog/${previous.slug}/`} rel="prev">
+        <p class="aol-pn__dir">← Previous</p>
+        <p class="aol-pn__title">{previous.title}</p>
+      </a>
+    ) : (
+      <div class="aol-pn__empty" aria-hidden="true"></div>
+    )}
+    {next ? (
+      <a class="aol-pn__item aol-pn__item--next" href={`/blog/${next.slug}/`} rel="next">
+        <p class="aol-pn__dir">Next →</p>
+        <p class="aol-pn__title">{next.title}</p>
+      </a>
+    ) : (
+      <div class="aol-pn__empty" aria-hidden="true"></div>
+    )}
+  </nav>
+)}

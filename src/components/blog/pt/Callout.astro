@@ -1,0 +1,37 @@
+---
+/**
+ * Aside box — a note, a caveat, or the one thing to remember.
+ *
+ * Its body is itself Portable Text (paragraphs and lists, no headings), so it
+ * renders through a nested PortableText pass. The schema forbids headings
+ * inside a callout precisely so this nesting cannot inject an h2 that would
+ * then appear in the table of contents as if it were a top-level section.
+ */
+import type { Props as $ } from "astro-portabletext/types";
+import { PortableText } from "astro-portabletext";
+import type { PortableTextBlock } from "@portabletext/types";
+
+interface CalloutNode {
+  _type: "callout";
+  tone?: "note" | "warning" | "key";
+  title?: string;
+  body?: PortableTextBlock[];
+}
+export type Props = $<CalloutNode & { _type: string }>;
+
+const { node } = Astro.props;
+const { tone = "note", title, body } = node as unknown as CalloutNode;
+
+const DEFAULT_TITLE: Record<string, string> = {
+  note: "Note",
+  warning: "Caveat",
+  key: "The point",
+};
+const heading = title || DEFAULT_TITLE[tone] || "Note";
+---
+{body?.length ? (
+  <aside class={`aol-callout aol-callout--${tone}`}>
+    <p class="aol-callout__title">{heading}</p>
+    <PortableText value={body} />
+  </aside>
+) : null}

@@ -26,12 +26,14 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
+    "@astrojs/rss": "^4.0.19",
     "@sanity/block-tools": "^3.70.0",
     "@sanity/schema": "^6.4.0",
     "@types/jsdom": "^28.0.3",
     "gray-matter": "^4.0.3",
     "jsdom": "^29.1.1",
     "marked": "^18.0.6",
+    "sharp": "^0.35.3",
     "typescript": "^6.0.3"
   }
 }

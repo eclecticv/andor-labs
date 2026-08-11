@@ -1,77 +1,365 @@
 ---
 import { sanityClient } from "sanity:client";
-import { PortableText } from "astro-portabletext";
+import type { PortableTextBlock } from "@portabletext/types";
+
 import Base from "../../layouts/Base.astro";
 import SiteHeader from "../../components/sections/SiteHeader.astro";
 import SiteFooter from "../../components/sections/SiteFooter.astro";
 import SiteMotion from "../../components/SiteMotion.astro";
-import Badge from "../../components/ds/Badge.astro";
-import Link from "../../components/ds/Link.astro";
 
-interface PostDetail {
+import PostBody from "../../components/blog/PostBody.astro";
+import ShareBar from "../../components/blog/ShareBar.astro";
+import AuthorCard from "../../components/blog/AuthorCard.astro";
+import TableOfContents from "../../components/blog/TableOfContents.astro";
+import PrevNext from "../../components/blog/PrevNext.astro";
+import RelatedPosts from "../../components/blog/RelatedPosts.astro";
+import SubscribeBox from "../../components/blog/SubscribeBox.astro";
+
+import { extractHeadings, readingTime, toPlainText, wordCount } from "../../lib/portableText";
+import { imageUrl, imageDimensions, ogImageUrl, type SanityImageSource } from "../../lib/sanityImage";
+import {
+  blogPostingJsonLd,
+  breadcrumbJsonLd,
+  faqJsonLd,
+  type SeoAuthor,
+} from "../../lib/seo";
+
+interface AuthorDoc {
+  name: string;
+  slug?: string;
+  role?: string;
+  photo?: SanityImageSource;
+  bio?: PortableTextBlock[];
+  credentials?: string[];
+  sameAs?: string[];
+}
+interface PostDoc {
   title: string;
   slug: string;
+  standfirst?: string;
   excerpt: string;
   publishedAt: string;
+  updatedAt?: string;
   tags?: string[];
   targetQuery?: string;
-  body: import("@portabletext/types").PortableTextBlock[];
+  keyTakeaways?: string[];
+  faq?: { question: string; answer: string }[];
+  heroImage?: SanityImageSource & { alt?: string; caption?: string; credit?: string };
+  body: PortableTextBlock[];
+  author?: AuthorDoc | null;
+  seo?: { metaTitle?: string; metaDescription?: string; noIndex?: boolean };
+  relatedPosts?: { title: string; slug: string; publishedAt: string; heroImage?: SanityImageSource }[];
 }
 
 export async function getStaticPaths() {
-  const posts = await sanityClient.fetch<PostDetail[]>(
-    `*[_type == "post" && defined(slug.current)]{
-      title, "slug": slug.current, excerpt, publishedAt, tags, targetQuery, body
-    }`
+  // One query, resolving the author reference and the related-post references
+  // inline. Fetching per-post in the template would issue 14 extra round trips
+  // during the build for data that is identical every time.
+  const posts = await sanityClient.fetch<PostDoc[]>(
+    `*[_type == "post" && defined(slug.current)] | order(publishedAt desc){
+      title, "slug": slug.current, standfirst, excerpt, publishedAt, updatedAt,
+      tags, targetQuery, keyTakeaways, faq, heroImage, body, seo,
+      author->{name, "slug": slug.current, role, photo, bio, credentials, sameAs},
+      relatedPosts[]->{title, "slug": slug.current, publishedAt, heroImage}
+    }`,
   );
-  return posts.map((post) => ({ params: { slug: post.slug }, props: { post } }));
+
+  return posts.map((post, i) => ({
+    params: { slug: post.slug },
+    props: {
+      post,
+      // The list is ordered newest-first, so the NEXT item in the array is the
+      // OLDER post. Naming them by time rather than by array position is the
+      // difference between correct navigation and a subtly reversed one.
+      newer: i > 0 ? posts[i - 1] : null,
+      older: i < posts.length - 1 ? posts[i + 1] : null,
+      siblings: posts.map((p) => ({
+        title: p.title,
+        slug: p.slug,
+        publishedAt: p.publishedAt,
+        tags: p.tags ?? [],
+        heroImage: p.heroImage,
+      })),
+    },
+  }));
 }
 
-const { post } = Astro.props;
+const { post, newer, older, siblings } = Astro.props as {
+  post: PostDoc;
+  newer: PostDoc | null;
+  older: PostDoc | null;
+  siblings: { title: string; slug: string; publishedAt: string; tags: string[]; heroImage?: SanityImageSource }[];
+};
+
+const canonical = new URL(`/blog/${post.slug}/`, Astro.site).href;
+
+const headings = extractHeadings(post.body);
+const minutes = readingTime(post.body);
+const words = wordCount(post.body);
+
+// Show the deck only when it is genuinely a separate piece of writing.
+//
+// The 11 legacy posts had `standfirst` backfilled from `excerpt`, and on the old
+// site the excerpt was just the post's opening sentences, machine-truncated to
+// fit a meta description. Rendered as a deck that produces two bad outcomes: the
+// same paragraph printed twice a few centimetres apart, or a deck that stops
+// mid-word — "…I'm starting to see the merit of that pa…".
+//
+// Two tests, both cheap:
+//   truncated — ends in an ellipsis, so it was cut by a script, not written.
+//   echoes    — the body's opening repeats it. Compared over the first 900
+//               characters of the WHOLE body rather than the first block,
+//               because these excerpts frequently run across two or three
+//               opening paragraphs. 45 significant characters is enough to
+//               identify a match while still catching near-echoes that were
+//               lightly reworded ("coined 'enshittification'" vs "coined the
+//               term 'Enshittification'").
+//
+// Four posts have a real deck and keep it. The other ten simply go without,
+// which is the honest outcome — a deck is worth writing, not worth faking.
+const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const rawStandfirst = post.standfirst?.trim() ?? "";
+const isTruncated = /(…|\.\.\.)$/.test(rawStandfirst);
+const echoesOpening =
+  !!rawStandfirst &&
+  normalise(toPlainText(post.body).slice(0, 900)).startsWith(normalise(rawStandfirst).slice(0, 45));
+const standfirst = rawStandfirst && !isTruncated && !echoesOpening ? rawStandfirst : null;
+
+const hero = imageUrl(post.heroImage, { width: 1600, format: "auto" });
+const heroDims = imageDimensions(post.heroImage);
+const ogImage = ogImageUrl(post.heroImage);
+
+const author = post.author ?? null;
+const authorPhoto = imageUrl(author?.photo, { width: 64, height: 64, fit: "crop", format: "auto" });
 
 const fmt = (d: string) =>
   new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Article",
-  headline: post.title,
-  description: post.excerpt,
-  datePublished: post.publishedAt,
-  ...(post.tags?.length ? { keywords: post.tags.join(", ") } : {}),
-  author: { "@type": "Person", name: "Vishveshwar Jatain", url: "https://andorlabs.ca" },
-  publisher: { "@type": "Organization", name: "And/or Labs", url: "https://andorlabs.ca" },
-  mainEntityOfPage: new URL(`/blog/${post.slug}/`, Astro.site).href,
+// --- Related --------------------------------------------------------------
+// Editor's picks win. Failing that, fall back to posts sharing the most tags,
+// tie-broken by recency, so an untagged post still gets sensible neighbours
+// rather than an empty section.
+const relatedFallback = () => {
+  const tags = new Set(post.tags ?? []);
+  return siblings
+    .filter((p) => p.slug !== post.slug)
+    .map((p) => ({ p, score: p.tags.filter((t) => tags.has(t)).length }))
+    .sort((a, b) => b.score - a.score || +new Date(b.p.publishedAt) - +new Date(a.p.publishedAt))
+    .slice(0, 3)
+    .map(({ p }) => ({ title: p.title, slug: p.slug, publishedAt: p.publishedAt, heroImage: p.heroImage }));
 };
----
+const related = post.relatedPosts?.length ? post.relatedPosts : relatedFallback();
 
-<Base title={`${post.title} — And/or Labs`} description={post.excerpt} ogType="article" publishedTime={post.publishedAt}>
-  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+// --- Structured data ------------------------------------------------------
+const seoAuthor: SeoAuthor | null = author
+  ? {
+      name: author.name,
+      slug: author.slug,
+      role: author.role,
+      credentials: author.credentials,
+      sameAs: author.sameAs,
+      photoUrl: authorPhoto ? new URL(authorPhoto, Astro.site).href : undefined,
+    }
+  : null;
+
+const articleLd = blogPostingJsonLd({
+  post: {
+    title: post.title,
+    slug: post.slug,
+    excerpt: post.excerpt,
+    standfirst: post.standfirst,
+    publishedAt: post.publishedAt,
+    updatedAt: post.updatedAt,
+    tags: post.tags,
+    seo: post.seo,
+  },
+  author: seoAuthor,
+  url: canonical,
+  imageUrl: hero ? new URL(hero, Astro.site).href : undefined,
+  wordCount: words,
+  readingTimeMinutes: minutes,
+});
+
+const crumbsLd = breadcrumbJsonLd([
+  { name: "Home", url: new URL("/", Astro.site).href },
+  { name: "Field notes", url: new URL("/blog/", Astro.site).href },
+  { name: post.title, url: canonical },
+]);
+
+const faqLd = faqJsonLd(post.faq ?? []);
+
+const metaTitle = post.seo?.metaTitle || `${post.title} — And/or Labs`;
+const metaDescription = post.seo?.metaDescription || post.excerpt;
+const tag = post.tags?.[0];
+---
+<Base
+  title={metaTitle}
+  description={metaDescription}
+  ogType="article"
+  publishedTime={post.publishedAt}
+  ogImage={ogImage}
+  ogImageAlt={post.heroImage?.alt ?? post.title}
+  noIndex={post.seo?.noIndex}
+>
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(articleLd)} />
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(crumbsLd)} />
+  {faqLd && <script is:inline type="application/ld+json" set:html={JSON.stringify(faqLd)} />}
+
   <SiteHeader />
-  <main class="blog-post">
-    <section style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
-      <div style="max-width:var(--content-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
-        <Link href="/blog/" variant="quiet" class="aol-mono" style="display:inline-block;margin-bottom:22px">&larr; Field notes</Link>
-        <article>
-          <header>
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-              {post.tags?.[0] && <Badge variant="outline" dot>{post.tags[0]}</Badge>}
-              <time datetime={post.publishedAt} class="aol-mono" style="color:var(--ink-500)">{fmt(post.publishedAt)}</time>
-            </div>
-            <h1 class="aol-display" style="font-size:42px;margin:0 0 18px">{post.title}</h1>
-            {/* Answer-first: the excerpt is the on-page answer engines lift — it
-                renders directly under the H1, before the body, every time. */}
-            <p class="excerpt" style="font-family:var(--font-serif);font-size:19px;line-height:1.55;color:var(--ink-600);margin:0 0 36px">
-              {post.excerpt}
-            </p>
-          </header>
-          <div class="aol-article-body">
-            <PortableText value={post.body} />
-          </div>
-        </article>
+
+  <div class="aol-a__progress" aria-hidden="true"><i data-progress></i></div>
+
+  <main>
+    <article class="aol-a aol-a--railed" data-article>
+      <div class="aol-a__rail-l">
+        <ShareBar url={canonical} title={post.title} orientation="vertical" />
       </div>
-    </section>
+      <div class="aol-a__rail-r">
+        <TableOfContents headings={headings} />
+      </div>
+
+      <nav class="aol-a__crumbs" aria-label="Breadcrumb">
+        <a href="/">Home</a>
+        <span aria-hidden="true">/</span>
+        <a href="/blog/">Field notes</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{post.title}</span>
+      </nav>
+
+      <header>
+        {tag && <p class="aol-a__eyebrow">{tag}</p>}
+        <h1 class="aol-a__title">{post.title}</h1>
+        {standfirst && <p class="aol-a__standfirst">{standfirst}</p>}
+
+        <div class="aol-a__byline">
+          <div class="aol-a__byline-who">
+            {authorPhoto && (
+              <img
+                src={authorPhoto}
+                alt=""
+                width="32"
+                height="32"
+                loading="eager"
+                decoding="async"
+                style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--ink-200)"
+              />
+            )}
+            <span>
+              <span class="aol-a__byline-name">{author?.name ?? "And/or Labs"}</span>
+              {author?.role && <span class="aol-a__byline-meta" style="margin:0 0 0 8px">{author.role}</span>}
+            </span>
+          </div>
+          <div class="aol-a__byline-meta">
+            <time datetime={post.publishedAt}>{fmt(post.publishedAt)}</time>
+            {post.updatedAt && (
+              <>
+                <span class="sep">·</span>
+                <span>Updated <time datetime={post.updatedAt}>{fmt(post.updatedAt)}</time></span>
+              </>
+            )}
+            <span class="sep">·</span>
+            <span>{minutes} min read</span>
+          </div>
+        </div>
+
+        {/* Inline share for anything narrower than the railed layout. Hidden
+            at ≥1280px, where the sticky left rail takes over. */}
+        <div class="aol-a__share-inline">
+          <ShareBar url={canonical} title={post.title} />
+        </div>
+      </header>
+
+      {hero && (
+        <figure class="aol-a__hero aol-break">
+          <img
+            src={hero}
+            alt={post.heroImage?.alt ?? ""}
+            width={heroDims?.width ?? 1600}
+            height={heroDims?.height ?? 900}
+            fetchpriority="high"
+            loading="eager"
+            decoding="async"
+          />
+          {(post.heroImage?.caption || post.heroImage?.credit) && (
+            <figcaption class="aol-a__caption">
+              {post.heroImage?.caption && <span>{post.heroImage.caption}</span>}
+              {post.heroImage?.credit && <span class="credit">{post.heroImage.credit}</span>}
+            </figcaption>
+          )}
+        </figure>
+      )}
+
+      {post.keyTakeaways?.length ? (
+        <section class="aol-gist" aria-labelledby="gist-heading">
+          <span class="aol-gist__label" id="gist-heading">The gist</span>
+          <ul>{post.keyTakeaways.map((t) => <li>{t}</li>)}</ul>
+        </section>
+      ) : null}
+
+      <PostBody body={post.body} />
+
+      {author && <AuthorCard author={author} />}
+
+      {post.faq?.length ? (
+        <section class="aol-afaq" aria-labelledby="faq-heading">
+          <h2 class="aol-afaq__h" id="faq-heading">Common questions</h2>
+          <dl>
+            {post.faq.map((f) => (
+              <>
+                <dt>{f.question}</dt>
+                <dd>{f.answer}</dd>
+              </>
+            ))}
+          </dl>
+        </section>
+      ) : null}
+
+      <SubscribeBox source="blog-post" />
+
+      <PrevNext previous={older} next={newer} />
+
+      <RelatedPosts posts={related} />
+    </article>
   </main>
+
   <SiteFooter />
   <SiteMotion />
 </Base>
+
+<style>
+  .aol-a__share-inline { margin: 0 0 var(--space-10); }
+  @media (min-width: 1280px) { .aol-a__share-inline { display: none; } }
+</style>
+
+<script>
+  // Reading progress. Measured against the ARTICLE's scroll range, not the
+  // document's: the footer and related posts are not part of the read, and
+  // including them means the bar never reaches 100% at the last paragraph.
+  const bar = document.querySelector<HTMLElement>("[data-progress]");
+  const article = document.querySelector<HTMLElement>("[data-article]");
+
+  if (bar && article) {
+    let ticking = false;
+
+    const update = () => {
+      ticking = false;
+      const rect = article.getBoundingClientRect();
+      const scrolled = -rect.top;
+      const range = rect.height - window.innerHeight;
+      // A short article that fits on screen has no range to scroll through;
+      // dividing by it would yield Infinity and paint a full bar immediately.
+      const pct = range <= 0 ? 0 : Math.min(100, Math.max(0, (scrolled / range) * 100));
+      bar.style.setProperty("--p", `${pct}%`);
+    };
+
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(update);
+    };
+
+    addEventListener("scroll", onScroll, { passive: true });
+    addEventListener("resize", onScroll, { passive: true });
+    update();
+  }
+</script>

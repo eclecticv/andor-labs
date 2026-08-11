@@ -1,0 +1,28 @@
+---
+/**
+ * A single number, given a whole band to itself.
+ *
+ * The value is rendered as a <p> pair rather than a heading, deliberately:
+ * "3.4x" is not a section of the document, and putting it in the heading
+ * hierarchy would corrupt both the outline and the generated TOC.
+ */
+import type { Props as $ } from "astro-portabletext/types";
+
+interface KeyStatNode {
+  _type: "keyStat";
+  value?: string;
+  label?: string;
+  source?: string;
+}
+export type Props = $<KeyStatNode & { _type: string }>;
+
+const { node } = Astro.props;
+const { value, label, source } = node as unknown as KeyStatNode;
+---
+{value && (
+  <figure class="aol-stat aol-break">
+    <strong class="aol-stat__value">{value}</strong>
+    {label && <p class="aol-stat__label">{label}</p>}
+    {source && <figcaption class="aol-stat__source">{source}</figcaption>}
+  </figure>
+)}

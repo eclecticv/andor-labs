@@ -1,0 +1,44 @@
+---
+/**
+ * Three more posts. Editor-picked when `relatedPosts` is set; otherwise the
+ * page passes a tag-overlap fallback, so this component just renders — it
+ * never decides relatedness itself.
+ */
+import { imageUrl, type SanityImageSource } from "../../lib/sanityImage";
+
+export interface RelatedPost {
+  title: string;
+  slug: string;
+  publishedAt: string;
+  heroImage?: SanityImageSource;
+}
+interface Props {
+  posts: RelatedPost[];
+  heading?: string;
+}
+const { posts, heading = "Keep reading" } = Astro.props;
+
+const fmt = (d: string) =>
+  new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
+---
+{posts.length > 0 && (
+  <section class="aol-rel" aria-labelledby="related-heading">
+    <h2 class="aol-rel__h" id="related-heading">{heading}</h2>
+    <ul>
+      {posts.map((p) => (
+        <li>
+          <a href={`/blog/${p.slug}/`}>
+            {(() => {
+              const thumb = imageUrl(p.heroImage, { width: 480, height: 300, fit: "crop", format: "auto" });
+              return thumb ? (
+                <img class="aol-rel__thumb" src={thumb} alt="" width="480" height="300" loading="lazy" decoding="async" />
+              ) : null;
+            })()}
+            <p class="aol-rel__title">{p.title}</p>
+            <p class="aol-rel__date">{fmt(p.publishedAt)}</p>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+)}

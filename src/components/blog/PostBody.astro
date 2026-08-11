@@ -1,0 +1,134 @@
+---
+/**
+ * Renders a post body and owns the two passes that need to see the WHOLE
+ * document before any block can be rendered:
+ *
+ *   1. Heading ids — must be de-duplicated across the document, and must match
+ *      the ids the table of contents links to, exactly.
+ *   2. Footnote numbering — a sequence, and the collected list rendered at the
+ *      foot of the article.
+ *
+ * Both stamp a private `_`-prefixed field onto a COPY of the affected node.
+ * The source array is never mutated: it is shared with the JSON-LD builders and
+ * the reading-time calculation on the page, and a mutation here would leak into
+ * both.
+ */
+import type { PortableTextBlock } from "@portabletext/types";
+import { PortableText } from "astro-portabletext";
+import { extractHeadings } from "../../lib/portableText";
+
+import Heading from "./pt/Heading.astro";
+import PullQuote from "./pt/PullQuote.astro";
+import Divider from "./pt/Divider.astro";
+import Callout from "./pt/Callout.astro";
+import CodeBlock from "./pt/CodeBlock.astro";
+import Figure from "./pt/Figure.astro";
+import KeyStat from "./pt/KeyStat.astro";
+import LinkMark from "./pt/LinkMark.astro";
+import FootnoteMark from "./pt/FootnoteMark.astro";
+
+interface Props {
+  body: PortableTextBlock[];
+}
+const { body } = Astro.props;
+
+// --- Pass 1 + 2 -----------------------------------------------------------
+// `extractHeadings` is the single source of truth for ids, and it is also what
+// the TOC renders from. Consuming its output in document order here — rather
+// than re-slugifying — is what guarantees the two agree even when a post has
+// two identically-worded headings.
+const headingIds = extractHeadings(body).map((h) => h.id);
+let headingCursor = 0;
+
+const footnotes: { n: number; text: string }[] = [];
+let footnoteCursor = 0;
+
+const prepared = body.map((block) => {
+  if (block._type !== "block") return block;
+
+  let next: PortableTextBlock = block;
+  const style = (block as { style?: string }).style;
+
+  if (style === "h2" || style === "h3") {
+    next = { ...next, _headingId: headingIds[headingCursor++] } as PortableTextBlock;
+  }
+
+  const markDefs = (block as { markDefs?: { _type?: string; text?: string }[] }).markDefs;
+  if (markDefs?.some((d) => d._type === "footnote")) {
+    next = {
+      ...next,
+      markDefs: markDefs.map((def) => {
+        if (def._type !== "footnote") return def;
+        const n = ++footnoteCursor;
+        footnotes.push({ n, text: def.text ?? "" });
+        return { ...def, _footnoteIndex: n };
+      }),
+    } as PortableTextBlock;
+  }
+
+  return next;
+});
+
+const components = {
+  block: {
+    h2: Heading,
+    h3: Heading,
+    h4: Heading,
+  },
+  type: {
+    pullQuote: PullQuote,
+    divider: Divider,
+    callout: Callout,
+    codeBlock: CodeBlock,
+    figure: Figure,
+    keyStat: KeyStat,
+  },
+  mark: {
+    link: LinkMark,
+    footnote: FootnoteMark,
+  },
+};
+---
+<div class="aol-prose">
+  <PortableText value={prepared} components={components} />
+</div>
+
+{footnotes.length > 0 && (
+  <section class="aol-fn" aria-labelledby="footnotes-heading">
+    <h2 id="footnotes-heading" class="aol-fn__h">Notes</h2>
+    <ol class="aol-fn__list">
+      {footnotes.map(({ n, text }) => (
+        <li id={`fn-${n}`}>
+          <span>{text}</span>
+          {/* Back-reference: without it a reader who jumps to a note has no way
+              back to the sentence that sent them there. */}
+          <a href={`#fnref-${n}`} class="aol-fn__back" aria-label={`Back to reference ${n}`}>↩</a>
+        </li>
+      ))}
+    </ol>
+  </section>
+)}
+
+<style>
+  .aol-fn { margin: var(--space-16) 0 0; padding-top: var(--space-6); border-top: 1px solid var(--ink-200); }
+  .aol-fn__h {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 0 0 var(--space-4);
+  }
+  .aol-fn__list { margin: 0; padding-left: 1.4em; display: grid; gap: var(--space-3); }
+  .aol-fn__list li {
+    font-family: var(--font-serif);
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink-600);
+  }
+  .aol-fn__list li::marker { font-family: var(--font-mono); font-size: 12px; color: var(--blue-600); }
+  /* text-faint (ink-500), not ink-400 — this is an interactive link, and
+     ink-400 fails AA at 2.90:1 on paper. */
+  .aol-fn__back { margin-left: 6px; text-decoration: none; color: var(--text-faint); }
+  .aol-fn__back:hover { color: var(--blue-600); }
+</style>
