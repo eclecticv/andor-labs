@@ -51,7 +51,8 @@ export const GET: APIRoute = async ({ site }) => {
     lines.push(`- Summary: ${p.excerpt}`);
     if (p.keyTakeaways?.length) {
       lines.push("- Key points:");
-      for (const t of p.keyTakeaways) lines.push(`  - ${t}`);
+      // Same three as the on-page gist — the two must not disagree.
+      for (const t of p.keyTakeaways.slice(0, 3)) lines.push(`  - ${t}`);
     }
     lines.push("");
   }

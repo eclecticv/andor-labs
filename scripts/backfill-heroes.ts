@@ -58,42 +58,42 @@ interface HeroCandidate {
 const PLANS: Record<string, [HeroCandidate, HeroCandidate]> = {
   "content-engineering-not-content-marketing": [
     {
-      query: "electricity pylon lattice tower sky",
-      alt: "A steel lattice transmission tower standing against open sky.",
+      query: "railway viaduct arches",
+      alt: "A stone viaduct arch framing an expanse of open sky.",
     },
     {
-      query: "railway viaduct arches",
-      alt: "The repeating arches of a stone railway viaduct.",
+      query: "electricity pylon lattice tower sky",
+      alt: "A steel lattice transmission tower standing against open sky.",
     },
   ],
   "death-of-the-mql": [
     {
-      query: "rotary dial telephone",
-      alt: "An obsolete rotary dial telephone.",
+      query: "bakelite telephone museum",
+      alt: "A Bakelite rotary-dial telephone with its handset resting in the cradle.",
     },
     {
-      query: "abandoned telephone booth",
-      alt: "A derelict telephone booth standing alone.",
+      query: "rotary dial telephone",
+      alt: "An obsolete rotary dial telephone.",
     },
   ],
   "distribution-is-the-new-moat": [
     {
-      query: "container port gantry cranes silhouette",
-      alt: "A row of container-port gantry cranes silhouetted against the sky.",
+      query: "harbour crane silhouette sky",
+      alt: "A harbour skyline with a distant crane, seen through the mesh of a net.",
     },
     {
-      query: "harbour crane silhouette sky",
-      alt: "A harbour crane silhouetted against a bright sky.",
+      query: "container port gantry cranes silhouette",
+      alt: "A row of container-port gantry cranes silhouetted against the sky.",
     },
   ],
   "doomsday-prepping-for-the-post-software-era": [
     {
-      query: "concrete bunker entrance",
-      alt: "A concrete bunker entrance set into bare ground.",
+      query: "thunderstorm supercell",
+      alt: "A bank of storm cloud spread across the sky above a dark, open field.",
     },
     {
-      query: "storm clouds over empty field",
-      alt: "Heavy storm clouds massing over an empty field.",
+      query: "bunker beach sea",
+      alt: "A wartime bunker half-buried in a coastal dune under an empty sky.",
     },
   ],
   "how-to-get-started-with-claude-code": [
@@ -108,28 +108,28 @@ const PLANS: Record<string, [HeroCandidate, HeroCandidate]> = {
   ],
   "how-to-think-about-effort": [
     {
-      query: "steep stone steps",
-      alt: "A steep stone path climbing a bare rocky hillside.",
+      query: "lighthouse spiral staircase",
+      alt: "Looking down the well of a lighthouse's spiral staircase, treads radiating around the centre.",
     },
     {
-      query: "mountain trail switchbacks",
-      alt: "A mountain trail switchbacking up a hillside.",
+      query: "steep stone steps",
+      alt: "A steep stone path climbing a bare rocky hillside.",
     },
   ],
   "human-in-the-loop-is-the-moat": [
     {
-      query: "silhouette person large window",
-      alt: "A single figure silhouetted against a tall, bright window.",
+      query: "lone figure silhouette horizon",
+      alt: "A small boat at sea in silhouette, a single figure seated at the helm.",
     },
     {
-      query: "lone figure silhouette horizon",
-      alt: "A lone figure silhouetted against an open horizon.",
+      query: "silhouette person large window",
+      alt: "A single figure silhouetted against a tall, bright window.",
     },
   ],
   netflixification: [
     {
       query: "abandoned cinema",
-      alt: "The empty, decaying interior of an abandoned cinema.",
+      alt: "The street frontage of a long-closed cinema standing empty.",
     },
     {
       query: "derelict theatre",
@@ -138,28 +138,28 @@ const PLANS: Record<string, [HeroCandidate, HeroCandidate]> = {
   ],
   "the-copilot-tax": [
     {
-      query: "airplane wing above clouds",
-      alt: "An aircraft wing above an unbroken bank of cloud.",
+      query: "arcade cabinets",
+      alt: "A single upright arcade cabinet standing alone against a plain background.",
     },
     {
-      query: "aircraft wing sky clouds",
-      alt: "An aircraft wing against a cloudy sky.",
+      query: "pinball machine",
+      alt: "A pinball machine seen from above.",
     },
   ],
   "what-is-gtm-engineering": [
     {
-      query: "large industrial gears machinery",
-      alt: "The interlocking teeth of two large industrial gears.",
+      query: "steam locomotive wheels",
+      alt: "A steam locomotive in profile, its driving wheels and coupling rods catching the light.",
     },
     {
-      query: "cast iron gear wheel mechanism",
-      alt: "A cast-iron gear wheel in an old mechanism.",
+      query: "large industrial gears machinery",
+      alt: "The interlocking teeth of two large industrial gears.",
     },
   ],
   "what-is-inbound-led-outbound": [
     {
       query: "radio telescope dish sky",
-      alt: "A radio telescope dish tilted toward an open sky.",
+      alt: "A row of radio telescope dishes silhouetted beneath a bright glow in a dark sky.",
     },
     {
       query: "satellite dish antenna silhouette",
@@ -168,28 +168,28 @@ const PLANS: Record<string, [HeroCandidate, HeroCandidate]> = {
   ],
   "what-is-vibe-coding": [
     {
-      query: "bamboo scaffolding building",
-      alt: "Scaffolding lashed in a lattice across the face of a building.",
+      query: "vinyl record grooves",
+      alt: "An extreme close-up of a stylus riding in the groove of a vinyl record.",
     },
     {
-      query: "construction scaffolding silhouette sky",
-      alt: "Construction scaffolding silhouetted against the sky.",
+      query: "bamboo scaffolding building",
+      alt: "Scaffolding lashed in a lattice across the face of a building.",
     },
   ],
   "writing-is-the-worst-use-of-llms": [
     {
-      query: "typewriter",
-      alt: "A manual typewriter, carriage and typebars in view.",
+      query: "typewriter museum object",
+      alt: "A portable manual typewriter photographed head-on, keys and carriage in view.",
     },
     {
-      query: "quill pen inkwell",
-      alt: "A quill pen resting beside an inkwell.",
+      query: "Underwood typewriter",
+      alt: "An antique Underwood typewriter.",
     },
   ],
   "you-dont-need-a-b-testing": [
     {
       query: "railway track junction switch",
-      alt: "A railway junction where a single track splits into two.",
+      alt: "A railway point lever standing bright against a dark background beside the track.",
     },
     {
       query: "fork in the road two paths",

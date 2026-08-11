@@ -292,7 +292,9 @@ const tag = post.tags?.[0];
       {post.keyTakeaways?.length ? (
         <section class="aol-gist" aria-labelledby="gist-heading">
           <span class="aol-gist__label" id="gist-heading">The gist</span>
-          <ul>{post.keyTakeaways.map((t) => <li>{t}</li>)}</ul>
+          {/* Hard cap at three, matching the schema. Belt and braces: older documents
+              may still carry five from before the cap. */}
+          <ul>{post.keyTakeaways.slice(0, 3).map((t) => <li>{t}</li>)}</ul>
         </section>
       ) : null}
 

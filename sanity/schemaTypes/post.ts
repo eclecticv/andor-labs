@@ -62,8 +62,8 @@ export const post = defineType({
       // The "gist" box: the single highest-leverage surface for answer engines,
       // which lift these near-verbatim.
       group: ["content", "seo"],
-      description: 'Renders as "The gist". Five at most — a list that long stops being a gist.',
-      validation: (r) => r.max(5),
+      description: 'Renders as "The gist". Exactly three — the box is a summary, not an outline, and a fourth line is always the weakest one.',
+      validation: (r) => r.max(3),
     }),
     defineField({
       name: "faq",
