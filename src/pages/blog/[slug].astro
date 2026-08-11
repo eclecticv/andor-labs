@@ -16,6 +16,8 @@ import RelatedPosts from "../../components/blog/RelatedPosts.astro";
 import SubscribeBox from "../../components/blog/SubscribeBox.astro";
 
 import { extractHeadings, readingTime, toPlainText, wordCount } from "../../lib/portableText";
+import { toCategory } from "../../lib/categories";
+import Badge from "../../components/ds/Badge.astro";
 import { imageUrl, imageDimensions, ogImageUrl, type SanityImageSource } from "../../lib/sanityImage";
 import {
   blogPostingJsonLd,
@@ -26,6 +28,7 @@ import {
 
 interface AuthorDoc {
   name: string;
+  kind?: "person" | "agent" | null;
   slug?: string;
   role?: string;
   photo?: SanityImageSource;
@@ -46,7 +49,9 @@ interface PostDoc {
   faq?: { question: string; answer: string }[];
   heroImage?: SanityImageSource & { alt?: string; caption?: string; credit?: string };
   body: PortableTextBlock[];
-  author?: AuthorDoc | null;
+  category?: string;
+  authors?: AuthorDoc[];
+  editor?: AuthorDoc | null;
   seo?: { metaTitle?: string; metaDescription?: string; noIndex?: boolean };
   relatedPosts?: { title: string; slug: string; publishedAt: string; heroImage?: SanityImageSource }[];
 }
@@ -58,8 +63,12 @@ export async function getStaticPaths() {
   const posts = await sanityClient.fetch<PostDoc[]>(
     `*[_type == "post" && defined(slug.current)] | order(publishedAt desc){
       title, "slug": slug.current, standfirst, excerpt, publishedAt, updatedAt,
-      tags, targetQuery, keyTakeaways, faq, heroImage, body, seo,
-      author->{name, "slug": slug.current, role, photo, bio, credentials, sameAs},
+      tags, targetQuery, keyTakeaways, faq, heroImage, body, seo, category,
+      "authors": coalesce(
+        authors[]->{name, "slug": slug.current, role, kind, photo, bio, credentials, sameAs},
+        [author->{name, "slug": slug.current, role, kind, photo, bio, credentials, sameAs}]
+      ),
+      editor->{name, "slug": slug.current, role, kind, photo, bio, credentials, sameAs},
       relatedPosts[]->{title, "slug": slug.current, publishedAt, heroImage}
     }`,
   );
@@ -129,8 +138,18 @@ const hero = imageUrl(post.heroImage, { width: 1600, format: "auto" });
 const heroDims = imageDimensions(post.heroImage);
 const ogImage = ogImageUrl(post.heroImage);
 
-const author = post.author ?? null;
-const authorPhoto = imageUrl(author?.photo, { width: 64, height: 64, fit: "crop", format: "auto" });
+const cat = toCategory(post.category);
+// `coalesce` can still yield [null] when a post has neither field, so filter.
+const authors = (post.authors ?? []).filter((a): a is AuthorDoc => !!a?.name);
+const editor = post.editor?.name ? post.editor : null;
+const leadAuthor = authors[0] ?? null;
+const authorPhoto = imageUrl(leadAuthor?.photo, { width: 64, height: 64, fit: "crop", format: "auto" });
+
+/** "A", "A and B", "A, B and C" — an Oxford-comma-free serial join. */
+const joinNames = (list: { name: string }[]) =>
+  list.length <= 1
+    ? (list[0]?.name ?? "")
+    : `${list.slice(0, -1).map((a) => a.name).join(", ")} and ${list[list.length - 1].name}`;
 
 const fmt = (d: string) =>
   new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
@@ -151,16 +170,18 @@ const relatedFallback = () => {
 const related = post.relatedPosts?.length ? post.relatedPosts : relatedFallback();
 
 // --- Structured data ------------------------------------------------------
-const seoAuthor: SeoAuthor | null = author
-  ? {
-      name: author.name,
-      slug: author.slug,
-      role: author.role,
-      credentials: author.credentials,
-      sameAs: author.sameAs,
-      photoUrl: authorPhoto ? new URL(authorPhoto, Astro.site).href : undefined,
-    }
-  : null;
+const toSeoAuthor = (a: AuthorDoc): SeoAuthor => ({
+  name: a.name,
+  slug: a.slug,
+  role: a.role,
+  // Absent means person: the human author document predates `kind`, and
+  // initialValue only applies to newly created documents.
+  kind: a.kind ?? "person",
+  credentials: a.credentials,
+  sameAs: a.sameAs,
+});
+const seoAuthors: SeoAuthor[] = authors.map(toSeoAuthor);
+const seoEditor: SeoAuthor | null = editor ? toSeoAuthor(editor) : null;
 
 const articleLd = blogPostingJsonLd({
   post: {
@@ -172,8 +193,10 @@ const articleLd = blogPostingJsonLd({
     updatedAt: post.updatedAt,
     tags: post.tags,
     seo: post.seo,
+    categoryLabel: cat.label,
   },
-  author: seoAuthor,
+  authors: seoAuthors,
+  editor: seoEditor,
   url: canonical,
   imageUrl: hero ? new URL(hero, Astro.site).href : undefined,
   wordCount: words,
@@ -227,13 +250,20 @@ const tag = post.tags?.[0];
       </nav>
 
       <header>
-        {tag && <p class="aol-a__eyebrow">{tag}</p>}
+        <p class="aol-a__eyebrow">
+          <Badge variant={cat.badge} class={cat.key === "ai-newsletter" ? "aol-badge--verbatim" : undefined}>
+            {cat.label}
+          </Badge>
+        </p>
         <h1 class="aol-a__title">{post.title}</h1>
         {standfirst && <p class="aol-a__standfirst">{standfirst}</p>}
 
         <div class="aol-a__byline">
           <div class="aol-a__byline-who">
-            {authorPhoto && (
+            {/* Only a human byline gets a face. A machine-written post shows no
+                avatar rather than borrowing the editor's, which would read as
+                "this person wrote it". */}
+            {authorPhoto && !cat.machineWritten && (
               <img
                 src={authorPhoto}
                 alt=""
@@ -245,8 +275,13 @@ const tag = post.tags?.[0];
               />
             )}
             <span>
-              <span class="aol-a__byline-name">{author?.name ?? "And/or Labs"}</span>
-              {author?.role && <span class="aol-a__byline-meta" style="margin:0 0 0 8px">{author.role}</span>}
+              <span class="aol-a__byline-name">{authors.length ? joinNames(authors) : "And/or Labs"}</span>
+              {editor && (
+                <span class="aol-a__byline-meta" style="margin:0 0 0 8px">Edited by {editor.name}</span>
+              )}
+              {!editor && leadAuthor?.role && (
+                <span class="aol-a__byline-meta" style="margin:0 0 0 8px">{leadAuthor.role}</span>
+              )}
             </span>
           </div>
           <div class="aol-a__byline-meta">
@@ -300,7 +335,10 @@ const tag = post.tags?.[0];
 
       <PostBody body={post.body} />
 
-      {author && <AuthorCard author={author} />}
+      {authors.map((a) => (
+        <AuthorCard author={a} kicker="Written by" />
+      ))}
+      {editor && <AuthorCard author={editor} kicker="Edited by" />}
 
       {post.faq?.length ? (
         <section class="aol-afaq" aria-labelledby="faq-heading">
@@ -316,7 +354,7 @@ const tag = post.tags?.[0];
         </section>
       ) : null}
 
-      <SubscribeBox source="blog-post" />
+      {cat.loopsList && <SubscribeBox source="blog-post" preselect={[cat.key]} />}
 
       <PrevNext previous={older} next={newer} />
 

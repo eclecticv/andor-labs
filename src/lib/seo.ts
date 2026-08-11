@@ -19,6 +19,8 @@ const LOGO_PATH = "/andor-mark.png";
 const MAX_HEADLINE = 110;
 
 export interface SeoPost {
+  /** Display label of the post's category, used as articleSection. */
+  categoryLabel?: string;
   title: string;
   slug: string;
   excerpt?: string;
@@ -31,6 +33,12 @@ export interface SeoPost {
 
 export interface SeoAuthor {
   name: string;
+  /**
+   * Whether this byline is a person or a language model. Absent means person:
+   * the human author document predates this field, and `initialValue` only
+   * applies to newly created documents, so it reads back null.
+   */
+  kind?: "person" | "agent" | null;
   slug?: string;
   role?: string;
   /** Plain text — run the Portable Text bio through `toPlainText` first. */
@@ -44,7 +52,15 @@ export interface SeoAuthor {
 
 export interface BlogPostingInput {
   post: SeoPost;
-  author?: SeoAuthor | null;
+  /** One entry per byline. schema.org accepts an array for `author`. */
+  authors?: SeoAuthor[];
+  /**
+   * Who checked machine-written text. Emitted as `editor`, never folded into
+   * `author` — a post drafted by a model and edited by a human has not been
+   * authored by that human, and saying otherwise on a site whose author schema
+   * exists to make entity claims true would undo the point of having it.
+   */
+  editor?: SeoAuthor | null;
   /** Absolute canonical URL of the post. */
   url: string;
   /** Absolute URL of the hero/OG image. */
@@ -145,6 +161,34 @@ export function websiteJsonLd(): Record<string, JsonLdValue> {
  * author and the article the same entity.
  */
 export function personJsonLd(author: SeoAuthor, url: string): Record<string, JsonLdValue> {
+  return authorJsonLd({...author, kind: "person"}, url);
+}
+
+/**
+ * A byline node, typed by what the byline actually is.
+ *
+ * An AI agent is emitted as `SoftwareApplication` with its vendor as publisher.
+ * schema.org's documented range for `author` is Person or Organization, so a
+ * validator may warn on this; that is the correct trade. `Person` for a
+ * language model is a false claim about a real category of thing, and this
+ * site's whole author model exists so the byline can be believed.
+ */
+export function authorJsonLd(author: SeoAuthor, url: string): Record<string, JsonLdValue> {
+  if (author.kind === "agent") {
+    return compact({
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: author.name,
+      url,
+      applicationCategory: "Language model",
+      description: author.bio,
+      sameAs: author.sameAs,
+      // `role` carries the model line, e.g. "Claude Opus · Anthropic".
+      publisher: author.role?.includes("·")
+        ? compact({"@type": "Organization", name: author.role.split("·").pop()?.trim()})
+        : undefined,
+    });
+  }
   return compact({
     "@context": "https://schema.org",
     "@type": "Person",
@@ -169,7 +213,7 @@ function stripContext(node: Record<string, JsonLdValue>): Record<string, JsonLdV
 }
 
 export function blogPostingJsonLd(input: BlogPostingInput): Record<string, JsonLdValue> {
-  const {post, author, url, imageUrl, wordCount, readingTimeMinutes} = input;
+  const {post, authors, editor, url, imageUrl, wordCount, readingTimeMinutes} = input;
 
   // The author node is nested, so it drops its own @context — one context at the
   // root is what validators expect.
@@ -178,9 +222,12 @@ export function blogPostingJsonLd(input: BlogPostingInput): Record<string, JsonL
   // back to the first profile link: Google asks for a page that *uniquely
   // identifies* the author, and a LinkedIn profile does that where andorlabs.ca
   // homepage does not.
-  const authorNode = author
-    ? stripContext(personJsonLd(author, authorUrl(author)))
-    : undefined;
+  const authorNodes = (authors ?? []).map((a) => stripContext(authorJsonLd(a, authorUrl(a))));
+  // A single author is emitted as a bare object rather than a one-item array:
+  // both are valid, and every worked example in Google's docs uses the object.
+  const authorNode =
+    authorNodes.length === 0 ? undefined : authorNodes.length === 1 ? authorNodes[0] : authorNodes;
+  const editorNode = editor ? stripContext(authorJsonLd(editor, authorUrl(editor))) : undefined;
 
   return compact({
     "@context": "https://schema.org",
@@ -194,8 +241,9 @@ export function blogPostingJsonLd(input: BlogPostingInput): Record<string, JsonL
     image: imageUrl,
     wordCount,
     timeRequired: isoMinutes(readingTimeMinutes),
-    // articleSection takes a single section; the first tag is the primary one.
-    articleSection: post.tags?.[0],
+    // articleSection is the section of the publication a piece belongs to, which
+    // is what category means. Tags stay in `keywords`, where they belong.
+    articleSection: post.categoryLabel ?? post.tags?.[0],
     // Comma-joined rather than an array: that is the form in Google's own
     // examples, and both are valid schema.org.
     keywords: post.tags?.length ? post.tags.join(", ") : undefined,
@@ -206,6 +254,7 @@ export function blogPostingJsonLd(input: BlogPostingInput): Record<string, JsonL
       "@id": url,
     }),
     author: authorNode,
+    editor: editorNode,
     publisher: compact({
       "@type": "Organization",
       name: SITE_NAME,

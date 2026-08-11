@@ -10,6 +10,8 @@
 import { sanityClient } from "sanity:client";
 import SubscribeBox from "../blog/SubscribeBox.astro";
 import { imageUrl, type SanityImageSource } from "../../lib/sanityImage";
+import { toCategory } from "../../lib/categories";
+import Badge from "../ds/Badge.astro";
 
 interface RecentPost {
   title: string;
@@ -17,12 +19,13 @@ interface RecentPost {
   excerpt: string;
   publishedAt: string;
   tags?: string[];
+  category?: string;
   heroImage?: (SanityImageSource & { alt?: string }) | null;
 }
 
 const posts: RecentPost[] = await sanityClient.fetch(
   `*[_type == "post" && defined(slug.current) && seo.noIndex != true] | order(publishedAt desc)[0...3]{
-    title, "slug": slug.current, excerpt, publishedAt, tags, heroImage
+    title, "slug": slug.current, excerpt, publishedAt, tags, heroImage, category
   }`,
 );
 
@@ -49,7 +52,9 @@ const fmt = (d: string) =>
                   <img class="aol-recent__thumb" src={src} alt={p.heroImage?.alt ?? ""} width="640" height="400" loading="lazy" decoding="async" />
                 ) : null;
               })()}
-              {p.tags?.[0] && <p class="aol-recent__eyebrow">{p.tags[0]}</p>}
+              {(() => { const c = toCategory(p.category); return (
+                <p class="aol-recent__eyebrow"><Badge variant={c.badge} class={c.key === "ai-newsletter" ? "aol-badge--verbatim" : undefined}>{c.labelShort}</Badge></p>
+              ); })()}
               <h3 class="aol-recent__title">{p.title}</h3>
               <p class="aol-recent__meta"><time datetime={p.publishedAt}>{fmt(p.publishedAt)}</time></p>
             </a>

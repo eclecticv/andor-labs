@@ -100,6 +100,11 @@
 .aol-badge--danger{ background:var(--red-100); color:var(--red-600); }
 .aol-badge--copper{ background:var(--pink-100); color:var(--copper-700); border-color:var(--copper-400); }
 
+/* The AI newsletter is called "{ignore all previous instructions}". The badge
+   is uppercase by default, and {IGNORE ALL PREVIOUS INSTRUCTIONS} is not the
+   same joke — prompt strings are lowercase. A typographic exception, not a
+   ninth colour variant, so it composes with any of them. */
+.aol-badge--verbatim{ text-transform:none; letter-spacing:var(--tracking-mono); }
 /* ---- Divider ---- */
 .aol-divider{ display:flex; align-items:center; gap:12px; color:var(--ink-300); width:100%; }
 .aol-divider__line{

@@ -1,6 +1,7 @@
 import { ICP_STARTUPS, PROMISE } from "../config";
 import type { APIRoute } from "astro";
 import { sanityClient } from "sanity:client";
+import { toCategory } from "../lib/categories";
 
 /**
  * /llms.txt — a plain-text map of the site for language models.
@@ -19,10 +20,11 @@ export const GET: APIRoute = async ({ site }) => {
     keyTakeaways?: string[];
     publishedAt: string;
     author?: string;
+    category?: string;
   }[] = await sanityClient.fetch(
     `*[_type == "post" && defined(slug.current) && seo.noIndex != true] | order(publishedAt desc){
-      title, "slug": slug.current, excerpt, targetQuery, keyTakeaways, publishedAt,
-      "author": author->name
+      title, "slug": slug.current, excerpt, targetQuery, keyTakeaways, publishedAt, category,
+      "author": coalesce(array::join(authors[]->name, ", "), author->name)
     }`,
   );
 
@@ -46,6 +48,7 @@ export const GET: APIRoute = async ({ site }) => {
     lines.push(`### [${p.title}](${url})`);
     lines.push("");
     lines.push(`- Published: ${date(p.publishedAt)}`);
+    lines.push(`- Type: ${toCategory(p.category).label}`);
     if (p.author) lines.push(`- Author: ${p.author}`);
     if (p.targetQuery) lines.push(`- Answers: ${p.targetQuery}`);
     lines.push(`- Summary: ${p.excerpt}`);

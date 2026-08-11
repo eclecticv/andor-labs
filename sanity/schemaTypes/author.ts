@@ -15,9 +15,27 @@ export const author = defineType({
       validation: (r) => r.required(),
     }),
     defineField({
+      name: "kind",
+      type: "string",
+      options: {
+        list: [
+          {title: "Person", value: "person"},
+          {title: "AI agent", value: "agent"},
+        ],
+        layout: "radio",
+      },
+      initialValue: "person",
+      // Drives whether the JSON-LD for this byline is a Person or a software /
+      // organisation entity. It has to be stored rather than inferred: emitting
+      // Person for an agent would be a false entity claim, on a site whose whole
+      // reason for having an author schema is to make its entity claims true.
+      description: "Person or AI agent. Decides the schema.org type this byline is emitted as.",
+    }),
+    defineField({
       name: "role",
       type: "string",
-      description: 'Shown in the byline, e.g. "Founder, And/or Labs".',
+      description:
+        'Shown in the byline, e.g. "Founder, And/or Labs" — or, for an agent, the model line, e.g. "Claude Opus · Anthropic".',
     }),
     defineField({
       name: "photo",

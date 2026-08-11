@@ -91,11 +91,8 @@
 .aol-a__crumbs span[aria-hidden] { color: var(--ink-300); }
 
 .aol-a__eyebrow {
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  color: var(--blue-600);
+  /* Wraps a <Badge>, which owns colour and type. Only the margin is ours —
+     each of the four differs, and that difference is real layout. */
   margin: 0 0 var(--space-4);
 }
 
@@ -827,6 +824,28 @@
   margin: 0;
 }
 
+/* Category chips. Separate from .aol-tagbar on purpose: that rule sets
+   text-transform:lowercase, which would render "AI newsletter" as "ai
+   newsletter" and mangle the long list name outright. Categories are proper
+   nouns; tags are not. */
+.aol-catbar { display: flex; flex-wrap: wrap; gap: 8px; margin: var(--space-8) 0 0; align-items: center; }
+.aol-catbar button {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-mono);
+  border: 1px solid var(--ink-200);
+  border-radius: var(--radius-pill);
+  background: var(--paper-pure);
+  color: var(--ink-600);
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all var(--dur-base) var(--ease-out);
+}
+.aol-catbar button:hover { border-color: var(--ink-900); color: var(--ink-900); }
+.aol-catbar button[aria-pressed="true"] { background: var(--ink-900); border-color: var(--ink-900); color: var(--paper); }
+/* The tag bar becomes the secondary axis, so it sits tighter under the primary. */
+.aol-tagbar { margin-top: var(--space-4) !important; }
+
 .aol-tagbar { display: flex; flex-wrap: wrap; gap: 8px; margin: var(--space-8) 0 0; }
 .aol-tagbar button {
   font-family: var(--font-mono);
@@ -878,11 +897,8 @@
 }
 .aol-lead:hover .aol-lead__media img { transform: translate(-2px, -2px); box-shadow: var(--shadow-hard); }
 .aol-lead__eyebrow {
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  color: var(--blue-600);
+  /* Wraps a <Badge>, which owns colour and type. Only the margin is ours —
+     each of the four differs, and that difference is real layout. */
   margin: 0 0 var(--space-3);
 }
 .aol-lead__title {
@@ -946,11 +962,8 @@
   background: var(--ink-050);
 }
 .aol-row__eyebrow {
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  color: var(--blue-600);
+  /* Wraps a <Badge>, which owns colour and type. Only the margin is ours —
+     each of the four differs, and that difference is real layout. */
   margin: 0 0 6px;
 }
 .aol-row__title {
@@ -1035,11 +1048,8 @@
 }
 .aol-recent a:hover .aol-recent__thumb { transform: translate(-2px, -2px); box-shadow: var(--shadow-hard-sm); }
 .aol-recent__eyebrow {
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  color: var(--blue-600);
+  /* Wraps a <Badge>, which owns colour and type. Only the margin is ours —
+     each of the four differs, and that difference is real layout. */
   margin: 0 0 8px;
 }
 .aol-recent__title {

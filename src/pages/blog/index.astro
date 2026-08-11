@@ -8,6 +8,8 @@ import SiteMotion from "../../components/SiteMotion.astro";
 import SubscribeBox from "../../components/blog/SubscribeBox.astro";
 import { imageUrl, type SanityImageSource } from "../../lib/sanityImage";
 import { breadcrumbJsonLd } from "../../lib/seo";
+import { toCategory, CATEGORY_ORDER, CATEGORIES } from "../../lib/categories";
+import Badge from "../../components/ds/Badge.astro";
 
 interface PostCard {
   title: string;
@@ -18,12 +20,13 @@ interface PostCard {
   tags?: string[];
   heroImage?: (SanityImageSource & { alt?: string }) | null;
   authorName?: string;
+  category?: string;
 }
 
 const posts: PostCard[] = await sanityClient.fetch(
   `*[_type == "post" && defined(slug.current) && seo.noIndex != true] | order(publishedAt desc){
-    title, "slug": slug.current, standfirst, excerpt, publishedAt, tags, heroImage,
-    "authorName": author->name
+    title, "slug": slug.current, standfirst, excerpt, publishedAt, tags, heroImage, category,
+    "authorName": coalesce(array::join(authors[]->name, ", "), author->name)
   }`,
 );
 
@@ -48,6 +51,14 @@ const tagCounts = new Map<string, number>();
 for (const p of posts) for (const t of p.tags ?? []) tagCounts.set(tagKey(t), (tagCounts.get(tagKey(t)) ?? 0) + 1);
 const tags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([t]) => t);
 
+// Only categories that actually have posts, and only shown when there is a
+// real choice to make. The whole archive is currently `field-notes`, so a bar
+// reading "Everything | Field notes" would be two buttons that do the same
+// thing. It appears on its own once the newsletter starts publishing.
+const presentCategories = CATEGORY_ORDER.filter((k) =>
+  posts.some((p) => toCategory(p.category).key === k),
+);
+
 const crumbsLd = breadcrumbJsonLd([
   { name: "Home", url: new URL("/", Astro.site).href },
   { name: "Writing", url: new URL("/blog/", Astro.site).href },
@@ -69,6 +80,14 @@ const description = `Essays and explainers on GTM engineering, positioning, and 
           Occasional posts written by hand. Explainers, for questions that deserve a
           straight answer.
         </p>
+        {presentCategories.length > 1 && (
+          <div class="aol-catbar" role="group" aria-label="Filter by type">
+            <button type="button" data-cat="__all" aria-pressed="true">Everything</button>
+            {presentCategories.map((k) => (
+              <button type="button" data-cat={k} aria-pressed="false">{CATEGORIES[k].labelShort}</button>
+            ))}
+          </div>
+        )}
         {tags.length > 1 && (
           <div class="aol-tagbar" role="group" aria-label="Filter posts by topic">
             <button type="button" data-tag="__all" aria-pressed="true">all</button>
@@ -78,9 +97,11 @@ const description = `Essays and explainers on GTM engineering, positioning, and 
       </header>
 
       {lead && (
-        <a class="aol-lead" href={`/blog/${lead.slug}/`} data-tags={(lead.tags ?? []).map(tagKey).join("|")}>
+        <a class="aol-lead" href={`/blog/${lead.slug}/`} data-tags={(lead.tags ?? []).map(tagKey).join("|")} data-category={toCategory(lead.category).key}>
           <div class="aol-lead__text">
-            {lead.tags?.[0] && <p class="aol-lead__eyebrow">{lead.tags[0]}</p>}
+            {(() => { const c = toCategory(lead.category); return (
+              <p class="aol-lead__eyebrow"><Badge variant={c.badge} class={c.key === "ai-newsletter" ? "aol-badge--verbatim" : undefined}>{c.labelShort}</Badge></p>
+            ); })()}
             <h2 class="aol-lead__title">{lead.title}</h2>
             <p class="aol-lead__dek">{lead.standfirst ?? lead.excerpt}</p>
             <p class="aol-lead__meta">
@@ -103,7 +124,7 @@ const description = `Essays and explainers on GTM engineering, positioning, and 
       {rest.length > 0 && (
         <ul class="aol-list" data-list>
           {rest.map((p) => (
-            <li data-tags={(p.tags ?? []).map(tagKey).join("|")}>
+            <li data-tags={(p.tags ?? []).map(tagKey).join("|")} data-category={toCategory(p.category).key}>
               <a class="aol-row" href={`/blog/${p.slug}/`}>
                 {(() => {
                   const src = imageUrl(p.heroImage, { width: 264, height: 198, fit: "crop", format: "auto" });
@@ -114,7 +135,9 @@ const description = `Essays and explainers on GTM engineering, positioning, and 
                   );
                 })()}
                 <div>
-                  {p.tags?.[0] && <p class="aol-row__eyebrow">{p.tags[0]}</p>}
+                  {(() => { const c = toCategory(p.category); return (
+                    <p class="aol-row__eyebrow"><Badge variant={c.badge} class={c.key === "ai-newsletter" ? "aol-badge--verbatim" : undefined}>{c.labelShort}</Badge></p>
+                  ); })()}
                   <h2 class="aol-row__title">{p.title}</h2>
                   <p class="aol-row__dek">{p.excerpt}</p>
                 </div>
@@ -125,7 +148,7 @@ const description = `Essays and explainers on GTM engineering, positioning, and 
         </ul>
       )}
 
-      <p class="aol-list__empty" data-empty hidden>Nothing filed under that tag yet.</p>
+      <p class="aol-list__empty" data-empty hidden>Nothing here yet.</p>
 
       <SubscribeBox source="blog-index" />
     </div>
@@ -155,31 +178,49 @@ const description = `Essays and explainers on GTM engineering, positioning, and 
   const lead = document.querySelector<HTMLElement>(".aol-lead");
   const empty = document.querySelector<HTMLElement>("[data-empty]");
 
-  if (bar) {
-    const matches = (el: HTMLElement | null, tag: string) =>
-      tag === "__all" || (el?.dataset.tags ?? "").split("|").includes(tag);
+  // Two independent axes, ANDed. Category is who wrote this and why; tags are
+  // what it is about. Collapsing them into one bar would lose the distinction
+  // and make picking one silently clear the other.
+  const catbar = document.querySelector<HTMLElement>(".aol-catbar");
+  let activeCat = "__all";
+  let activeTag = "__all";
 
-    bar.addEventListener("click", (e) => {
-      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("[data-tag]");
-      if (!btn) return;
-      const tag = btn.dataset.tag!;
+  const tagOk = (el: HTMLElement | null) =>
+    activeTag === "__all" || (el?.dataset.tags ?? "").split("|").includes(activeTag);
+  const catOk = (el: HTMLElement | null) =>
+    activeCat === "__all" || el?.dataset.category === activeCat;
 
-      bar.querySelectorAll<HTMLButtonElement>("[data-tag]").forEach((b) =>
-        b.setAttribute("aria-pressed", String(b === btn)),
-      );
+  const apply = () => {
+    let shown = 0;
+    const test = (el: HTMLElement | null) => {
+      if (!el) return;
+      const on = catOk(el) && tagOk(el);
+      el.hidden = !on;
+      if (on) shown++;
+    };
+    test(lead);
+    rows.forEach(test);
+    if (empty) empty.hidden = shown > 0;
+  };
 
-      let shown = 0;
-      if (lead) {
-        const on = matches(lead, tag);
-        lead.hidden = !on;
-        if (on) shown++;
-      }
-      rows.forEach((li) => {
-        const on = matches(li, tag);
-        li.hidden = !on;
-        if (on) shown++;
-      });
-      if (empty) empty.hidden = shown > 0;
-    });
-  }
+  const press = (group: HTMLElement | null, attr: string, value: string) =>
+    group?.querySelectorAll<HTMLButtonElement>(`[data-${attr}]`).forEach((b) =>
+      b.setAttribute("aria-pressed", String(b.dataset[attr] === value)),
+    );
+
+  catbar?.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("[data-cat]");
+    if (!btn) return;
+    activeCat = btn.dataset.cat!;
+    press(catbar, "cat", activeCat);
+    apply();
+  });
+
+  bar?.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("[data-tag]");
+    if (!btn) return;
+    activeTag = btn.dataset.tag!;
+    press(bar, "tag", activeTag);
+    apply();
+  });
 </script>
