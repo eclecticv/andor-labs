@@ -203,7 +203,7 @@
    5. Hero figure
    ============================================================ */
 
-.aol-a__hero { margin: 0 0 var(--space-10); }
+.aol-a__hero { margin-block: 0 var(--space-10); }
 .aol-a__hero img {
   width: 100%;
   height: auto;
@@ -410,13 +410,26 @@
 }
 @media (max-width: 900px) { .aol-break { width: 100%; margin-left: 0; transform: none; } }
 
+/* NOTE for anyone adding a new breakout block below: use `margin-block`, never
+   the `margin` shorthand. Every rule here is a single class, so it has the same
+   specificity as .aol-break and — being later in the file — wins. A `margin:
+   32px auto` shorthand silently resets the `margin-left: 50%` that .aol-break
+   relies on, and the block slams to the left edge instead of centring. */
 /* --- Pull quote --------------------------------------------------------- */
 .aol-pq {
-  margin: var(--space-16) auto;
+  margin-block: var(--space-16);
   text-align: center;
   padding: var(--space-8) var(--space-6);
 }
+/* A pull quote is marked up as <blockquote>, so `.aol-prose blockquote` above
+   lands on it and draws the citation rail down its left side. That selector is
+   (0,1,1) and a bare `.aol-pq__text` is (0,1,0), so it loses — hence the
+   `.aol-prose` prefix here rather than a bare class. */
+.aol-prose .aol-pq__text,
 .aol-pq__text {
+  border-left: 0;
+  padding-left: 0;
+  font-style: normal;
   font-family: var(--font-display);
   font-weight: var(--weight-regular);
   font-size: clamp(26px, 3.6vw, 36px);
@@ -439,7 +452,7 @@
 .aol-pq__rule { display: block; width: 100%; height: 14px; color: var(--ink-300); }
 
 /* --- Divider ------------------------------------------------------------ */
-.aol-div { margin: var(--space-16) 0; }
+.aol-div { margin-block: var(--space-16); }
 .aol-div--rule { border-top: 1px solid var(--ink-200); }
 .aol-div--asterism {
   text-align: center;
@@ -452,7 +465,7 @@
 
 /* --- Callout ------------------------------------------------------------ */
 .aol-callout {
-  margin: var(--space-10) 0;
+  margin-block: var(--space-10);
   border: 1px solid var(--ink-900);
   border-radius: var(--radius-md);
   padding: var(--space-6) var(--space-6) var(--space-5);
@@ -485,7 +498,7 @@
 
 /* --- Code block --------------------------------------------------------- */
 .aol-code {
-  margin: var(--space-10) 0;
+  margin-block: var(--space-10);
   border: 1px solid var(--ink-900);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -517,7 +530,7 @@
 .aol-code pre code { background: none; border: 0; padding: 0; white-space: pre; color: inherit; }
 
 /* --- Figure ------------------------------------------------------------- */
-.aol-fig { margin: var(--space-12) auto; }
+.aol-fig { margin-block: var(--space-12); }
 .aol-fig img {
   width: 100%;
   height: auto;
@@ -538,7 +551,7 @@
 
 /* --- Key stat ----------------------------------------------------------- */
 .aol-stat {
-  margin: var(--space-12) auto;
+  margin-block: var(--space-12);
   text-align: center;
   padding: var(--space-8) var(--space-6);
   border-top: 1px solid var(--ink-200);

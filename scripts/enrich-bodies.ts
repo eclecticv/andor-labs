@@ -442,7 +442,17 @@ function assertDividerPlacement(body: Node[], d: DividerPlan, label: string) {
 
 interface Inserted { at: number; node: Node; kind: "pullQuote" | "divider"; text: string }
 
-function enrich(post: PostRow, plan: Plan) {
+/**
+ * Body enrichment. MUST only ever be handed a pristine body — every `before`
+ * index in the plan, and every section boundary the placement guards derive,
+ * is stated against the original node numbering. Run this against an
+ * already-enriched body and the inserted nodes shift the section arithmetic
+ * under it, so the caller checks for existing pullQuote/divider nodes first and
+ * skips straight past this. (Nothing was ever mis-written when that check lived
+ * downstream — the write was already gated — but the guards reported nonsense
+ * on a second run, which is its own kind of bug.)
+ */
+function enrichBody(post: PostRow, plan: Plan) {
   const body = post.body;
   const plain = blockText(body);
   const inserts: Inserted[] = [];
@@ -499,11 +509,18 @@ function enrich(post: PostRow, plan: Plan) {
     throw new Error(`${post.slug}: INVARIANT VIOLATED — body text changed.\n${firstDivergence(plain, after)}`);
   }
 
-  const takeaways = (plan.takeaways ?? []).map((t, i) =>
+  return { body: next, inserts };
+}
+
+/**
+ * Takeaways are independent of body enrichment — they only need the prose — so
+ * they resolve the same way whether or not the body has already been typeset.
+ */
+function resolveTakeaways(post: PostRow, plan: Plan): string[] {
+  const plain = blockText(post.body);
+  return (plan.takeaways ?? []).map((t, i) =>
     resolveVerbatim(plain, t, `${post.slug} takeaway #${i + 1}`),
   );
-
-  return { body: next, inserts, takeaways, plain };
 }
 
 /* ──────────────────────────────── run ────────────────────────────────────── */
@@ -549,19 +566,34 @@ async function main() {
     const alreadyEnriched = post.body.some((n) => n._type === "pullQuote" || n._type === "divider");
     const hasTakeaways = Array.isArray(post.keyTakeaways) && post.keyTakeaways.length > 0;
 
-    let result: ReturnType<typeof enrich>;
+    // Idempotency, checked BEFORE any enrichment: a body that already carries
+    // typesetting is read, reported and left exactly as it is. Re-running can
+    // never stack a second set of pull quotes.
+    let enriched: { body: Node[]; inserts: Inserted[] } | null = null;
+    let takeaways: string[] = [];
     try {
-      result = enrich(post, plan);
+      if (!alreadyEnriched) enriched = enrichBody(post, plan);
+      takeaways = resolveTakeaways(post, plan);
     } catch (err) {
       console.error(`✗ ${post.slug}: ${(err as Error).message}\n`);
       review.push("**ABORTED** — nothing written for this post.", "", "```", (err as Error).message, "```", "");
       continue;
     }
-    invariantPassed += 1;
+    if (!alreadyEnriched) invariantPassed += 1;
 
-    // Report.
-    const quotes = result.inserts.filter((x) => x.kind === "pullQuote");
-    const dividers = result.inserts.filter((x) => x.kind === "divider").sort((a, b) => a.at - b.at);
+    // Report — from the freshly planned inserts, or from what is already live.
+    const live = post.body
+      .map((n, at) => ({ n, at }))
+      .filter(({ n }) => n._type === "pullQuote" || n._type === "divider")
+      .map(({ n, at }) => ({
+        at,
+        kind: n._type as "pullQuote" | "divider",
+        text: (n._type === "pullQuote" ? (n.text as string) : (n.style as string)) ?? "",
+      }));
+    const inserts = enriched ? enriched.inserts : live;
+
+    const quotes = inserts.filter((x) => x.kind === "pullQuote");
+    const dividers = inserts.filter((x) => x.kind === "divider").sort((a, b) => a.at - b.at);
 
     review.push(`**Pull quotes** (${quotes.length})`, "");
     if (quotes.length === 0) review.push("_None._", "");
@@ -574,14 +606,14 @@ async function main() {
     review.push(`**Dividers** (${dividers.length})`, "");
     if (dividers.length === 0) review.push("_None._", "");
     for (const d of dividers) {
-      const plan_ = (plan.dividers ?? []).find((x) => x.before === d.at)!;
-      review.push(`- \`${d.text}\` before body block ${d.at} — ${plan_.why}`);
+      const why = (plan.dividers ?? []).find((x) => x.before === d.at)?.why;
+      review.push(`- \`${d.text}\` before body block ${d.at}${why ? ` — ${why}` : ""}`);
     }
     if (dividers.length) review.push("");
 
-    review.push(`**Key takeaways** (${result.takeaways.length})`, "");
-    if (result.takeaways.length === 0) review.push("_None._", "");
-    for (const t of result.takeaways) review.push(`- ${t}`);
+    review.push(`**Key takeaways** (${takeaways.length})`, "");
+    if (takeaways.length === 0) review.push("_None._", "");
+    for (const t of takeaways) review.push(`- ${t}`);
     review.push("");
 
     if (plan.note) review.push(`**Note.** ${plan.note}`, "");
@@ -591,14 +623,21 @@ async function main() {
     if (hasTakeaways) { skippedTakeaways.push(post.slug); status.push("keyTakeaways already set — left alone"); }
     if (status.length) review.push(`**Idempotency.** ${status.join("; ")}.`, "");
 
-    review.push("Invariant: **passed** — enriched body text is byte-identical to the original.", "", "---", "");
+    review.push(
+      enriched
+        ? "Invariant: **passed** — enriched body text is byte-identical to the original."
+        : "Invariant: n/a this run — body already typeset and left untouched.",
+      "",
+      "---",
+      "",
+    );
 
     // Write.
     const fields: Record<string, unknown> = {};
-    if (!alreadyEnriched && result.inserts.length > 0) fields.body = result.body;
-    if (!hasTakeaways && result.takeaways.length > 0) fields.keyTakeaways = result.takeaways;
+    if (enriched && enriched.inserts.length > 0) fields.body = enriched.body;
+    if (!hasTakeaways && takeaways.length > 0) fields.keyTakeaways = takeaways;
 
-    const summary = `${quotes.length} quote(s), ${dividers.length} divider(s), ${result.takeaways.length} takeaway(s)`;
+    const summary = `${quotes.length} quote(s), ${dividers.length} divider(s), ${takeaways.length} takeaway(s)`;
 
     if (Object.keys(fields).length === 0) {
       console.log(`· ${post.slug}: nothing to write (${summary}).`);
@@ -621,7 +660,7 @@ async function main() {
   review.push(
     "## Summary",
     "",
-    `- Posts whose invariant assertion passed: **${invariantPassed} / ${posts.length}**`,
+    `- Posts whose invariant assertion ran and passed this run: **${invariantPassed}**`,
     `- Posts skipped for body enrichment (already had pullQuote/divider): ${skippedBody.length ? skippedBody.join(", ") : "none"}`,
     `- Posts skipped for keyTakeaways (already set): ${skippedTakeaways.length ? skippedTakeaways.join(", ") : "none"}`,
     "",
@@ -630,7 +669,7 @@ async function main() {
   fs.mkdirSync(path.dirname(REVIEW_PATH), { recursive: true });
   fs.writeFileSync(REVIEW_PATH, review.join("\n"), "utf-8");
 
-  console.log(`\nInvariant passed on ${invariantPassed}/${posts.length} posts.`);
+  console.log(`\nInvariant asserted and passed on ${invariantPassed} post(s) this run; ${skippedBody.length} already typeset and skipped.`);
   if (APPLY) console.log(`Wrote body on ${bodiesTouched}, keyTakeaways on ${takeawaysSet}.`);
   else console.log("Dry run — nothing written to Sanity. Re-run with --apply to commit.");
   console.log(`Review: ${REVIEW_PATH}`);
