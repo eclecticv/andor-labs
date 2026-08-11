@@ -123,22 +123,45 @@ async function fetchPool(
   });
   if (size) params.set("size", size);
 
-  try {
-    const res = await fetch(`${API}?${params}`, {
-      headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-    if (!res.ok) return null;
-    const payload = (await res.json()) as { results?: RawResult[] };
-    return (payload.results ?? [])
-      .filter((r) => r.mature !== true)
-      .map(normalise)
-      .filter((r): r is OpenverseResult => r !== null)
-      .filter((r) => ALLOWED_LICENSES.has(r.license))
-      .filter((r) => /^https?:\/\//i.test(r.url));
-  } catch {
-    return null;
+  // One retry on a transient upstream failure. Openverse returns 500s often
+  // enough to matter: a batch of searches during one such window all came back
+  // "no usable result", which is indistinguishable from a genuinely empty
+  // result set — so a hero backfill would silently skip posts, or fall through
+  // to the fallback query for no reason, with nothing in the log to say why.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 1500));
+    try {
+      const res = await fetch(`${API}?${params}`, {
+        headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (!res.ok) {
+        // 5xx is theirs and worth retrying; 4xx is ours and will not improve.
+        if (res.status >= 500 && attempt === 0) {
+          console.warn(`    · openverse ${res.status} for "${query}" — retrying once`);
+          continue;
+        }
+        console.warn(`    · openverse ${res.status} for "${query}" — giving up on this query`);
+        return null;
+      }
+      const payload = (await res.json()) as { results?: RawResult[] };
+      return (payload.results ?? [])
+        .filter((r) => r.mature !== true)
+        .map(normalise)
+        .filter((r): r is OpenverseResult => r !== null)
+        .filter((r) => ALLOWED_LICENSES.has(r.license))
+        .filter((r) => /^https?:\/\//i.test(r.url));
+    } catch (err) {
+      // A timeout or socket error is also worth one retry.
+      if (attempt === 0) {
+        console.warn(`    · openverse unreachable for "${query}" (${(err as Error).name}) — retrying once`);
+        continue;
+      }
+      console.warn(`    · openverse unreachable for "${query}" — giving up on this query`);
+      return null;
+    }
   }
+  return null;
 }
 
 function best(pool: OpenverseResult[], minWidth: number): OpenverseResult | null {
