@@ -1,63 +1,176 @@
 ---
-import { ICP } from "../../config";
 import { sanityClient } from "sanity:client";
+import { ICP } from "../../config";
 import Base from "../../layouts/Base.astro";
 import SiteHeader from "../../components/sections/SiteHeader.astro";
 import SiteFooter from "../../components/sections/SiteFooter.astro";
 import SiteMotion from "../../components/SiteMotion.astro";
-import Card from "../../components/ds/Card.astro";
-import Badge from "../../components/ds/Badge.astro";
+import SubscribeBox from "../../components/blog/SubscribeBox.astro";
+import { imageUrl, type SanityImageSource } from "../../lib/sanityImage";
+import { breadcrumbJsonLd } from "../../lib/seo";
 
 interface PostCard {
   title: string;
   slug: string;
+  standfirst?: string;
   excerpt: string;
   publishedAt: string;
   tags?: string[];
+  heroImage?: (SanityImageSource & { alt?: string }) | null;
+  authorName?: string;
 }
 
 const posts: PostCard[] = await sanityClient.fetch(
-  `*[_type == "post" && defined(slug.current)] | order(publishedAt desc){
-    title, "slug": slug.current, excerpt, publishedAt, tags
+  `*[_type == "post" && defined(slug.current) && seo.noIndex != true] | order(publishedAt desc){
+    title, "slug": slug.current, standfirst, excerpt, publishedAt, tags, heroImage,
+    "authorName": author->name
   }`,
 );
 
+const [lead, ...rest] = posts;
+
 const fmt = (d: string) =>
   new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
----
+const fmtShort = (d: string) =>
+  new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
 
-<Base
-  title="Blog — And/or Labs"
-  description={`Educational content on go-to-market, content strategy, and sales ops for ${ICP} founders.`}
->
+// Tags, most-used first, so the filter bar leads with the ones that actually
+// partition the archive rather than one-off labels.
+const tagCounts = new Map<string, number>();
+for (const p of posts) for (const t of p.tags ?? []) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+const tags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([t]) => t);
+
+const crumbsLd = breadcrumbJsonLd([
+  { name: "Home", url: new URL("/", Astro.site).href },
+  { name: "Field notes", url: new URL("/blog/", Astro.site).href },
+]);
+
+const description = `Essays and explainers on GTM engineering, positioning, and content strategy for ${ICP} founders.`;
+---
+<Base title="Field notes — And/or Labs" description={description}>
+  <script type="application/ld+json" set:html={JSON.stringify(crumbsLd)} />
   <SiteHeader />
-  <main>
-    <section style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
-      <div style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
-        <div class="aol-eyebrow" style="margin-bottom:14px">blog</div>
-        <h1 class="aol-display" style="font-size:44px;margin:0 0 12px">Field notes.</h1>
-        <p style="font-family:var(--font-serif);font-size:18px;color:var(--ink-600);max-width:var(--measure);margin:0 0 44px">
-          Essays and explainers on GTM engineering, content strategy, and sales ops — written from inside the machine, not about it.
+
+  <main class="aol-blog">
+    <div style="max-width:var(--container-width);margin:0 auto;padding:0 var(--gutter)">
+      <header class="aol-blog-head">
+        <p class="aol-a__eyebrow">Field notes</p>
+        <h1 class="aol-blog-head__h">Written from inside the machine.</h1>
+        <p class="aol-blog-head__sub">
+          Essays and explainers on GTM engineering, positioning, and content strategy — the
+          things we actually build for {ICP} founders, not commentary about them.
         </p>
-        <ul style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:20px">
-          {posts.map((post) => (
-            <li>
-              <a href={`/blog/${post.slug}/`} style="text-decoration:none;color:inherit;display:block;height:100%">
-                <Card variant="raised" padding="lg" interactive style="height:100%;display:flex;flex-direction:column;gap:14px">
-                  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
-                    {post.tags?.[0] && <Badge variant="outline" dot>{post.tags[0]}</Badge>}
-                    <time datetime={post.publishedAt} class="aol-mono" style="color:var(--ink-500);white-space:nowrap">{fmt(post.publishedAt)}</time>
-                  </div>
-                  <h2 style="font-family:var(--font-serif);font-weight:600;font-size:22px;line-height:1.25;margin:0;color:var(--ink-900)">{post.title}</h2>
-                  <p style="font-size:15px;line-height:1.55;color:var(--ink-600);margin:0">{post.excerpt}</p>
-                </Card>
+        {tags.length > 1 && (
+          <div class="aol-tagbar" role="group" aria-label="Filter posts by topic">
+            <button type="button" data-tag="__all" aria-pressed="true">all</button>
+            {tags.map((t) => <button type="button" data-tag={t} aria-pressed="false">{t}</button>)}
+          </div>
+        )}
+      </header>
+
+      {lead && (
+        <a class="aol-lead" href={`/blog/${lead.slug}/`} data-tags={(lead.tags ?? []).join("|")}>
+          <div class="aol-lead__text">
+            {lead.tags?.[0] && <p class="aol-lead__eyebrow">{lead.tags[0]}</p>}
+            <h2 class="aol-lead__title">{lead.title}</h2>
+            <p class="aol-lead__dek">{lead.standfirst ?? lead.excerpt}</p>
+            <p class="aol-lead__meta">
+              {lead.authorName && <>{lead.authorName}<span class="sep">·</span></>}
+              <time datetime={lead.publishedAt}>{fmt(lead.publishedAt)}</time>
+            </p>
+          </div>
+          {(() => {
+            const src = imageUrl(lead.heroImage, { width: 960, height: 600, fit: "crop", format: "auto" });
+            return src ? (
+              <figure class="aol-lead__media">
+                {/* The lead image is above the fold — eager, high priority. */}
+                <img src={src} alt={lead.heroImage?.alt ?? ""} width="960" height="600" fetchpriority="high" decoding="async" />
+              </figure>
+            ) : null;
+          })()}
+        </a>
+      )}
+
+      {rest.length > 0 && (
+        <ul class="aol-list" data-list>
+          {rest.map((p) => (
+            <li data-tags={(p.tags ?? []).join("|")}>
+              <a class="aol-row" href={`/blog/${p.slug}/`}>
+                {(() => {
+                  const src = imageUrl(p.heroImage, { width: 264, height: 198, fit: "crop", format: "auto" });
+                  return src ? (
+                    <img class="aol-row__thumb" src={src} alt="" width="264" height="198" loading="lazy" decoding="async" />
+                  ) : (
+                    <span class="aol-row__thumb" aria-hidden="true"></span>
+                  );
+                })()}
+                <div>
+                  {p.tags?.[0] && <p class="aol-row__eyebrow">{p.tags[0]}</p>}
+                  <h2 class="aol-row__title">{p.title}</h2>
+                  <p class="aol-row__dek">{p.excerpt}</p>
+                </div>
+                <p class="aol-row__meta"><time datetime={p.publishedAt}>{fmtShort(p.publishedAt)}</time></p>
               </a>
             </li>
           ))}
         </ul>
-      </div>
-    </section>
+      )}
+
+      <p class="aol-list__empty" data-empty hidden>Nothing filed under that tag yet.</p>
+
+      <SubscribeBox source="blog-index" />
+    </div>
   </main>
+
   <SiteFooter />
   <SiteMotion />
 </Base>
+
+<style>
+  .aol-blog { padding-bottom: var(--space-20); }
+  .aol-list__empty {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-faint);
+    padding: var(--space-16) 0;
+    text-align: center;
+  }
+</style>
+
+<script>
+  // Client-side tag filter. Deliberately not routed — with an archive this
+  // size, a per-tag page would be a dozen near-empty pages competing with the
+  // index for the same queries. It also degrades safely: no JS, all posts show.
+  const bar = document.querySelector<HTMLElement>(".aol-tagbar");
+  const rows = [...document.querySelectorAll<HTMLElement>("[data-list] > li")];
+  const lead = document.querySelector<HTMLElement>(".aol-lead");
+  const empty = document.querySelector<HTMLElement>("[data-empty]");
+
+  if (bar) {
+    const matches = (el: HTMLElement | null, tag: string) =>
+      tag === "__all" || (el?.dataset.tags ?? "").split("|").includes(tag);
+
+    bar.addEventListener("click", (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("[data-tag]");
+      if (!btn) return;
+      const tag = btn.dataset.tag!;
+
+      bar.querySelectorAll<HTMLButtonElement>("[data-tag]").forEach((b) =>
+        b.setAttribute("aria-pressed", String(b === btn)),
+      );
+
+      let shown = 0;
+      if (lead) {
+        const on = matches(lead, tag);
+        lead.hidden = !on;
+        if (on) shown++;
+      }
+      rows.forEach((li) => {
+        const on = matches(li, tag);
+        li.hidden = !on;
+        if (on) shown++;
+      });
+      if (empty) empty.hidden = shown > 0;
+    });
+  }
+</script>

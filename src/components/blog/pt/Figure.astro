@@ -1,0 +1,47 @@
+---
+/**
+ * In-body image with required alt, optional caption and licence credit.
+ *
+ * Width/height come off the Sanity asset ref rather than being guessed, so the
+ * browser reserves the right box before the bytes arrive. Without them an
+ * in-article image shoves the paragraph under it down as it loads, which is
+ * the classic CLS hit on a long read.
+ */
+import type { Props as $ } from "astro-portabletext/types";
+import { imageUrl, imageDimensions, type SanityImageSource } from "../../../lib/sanityImage";
+
+interface FigureNode {
+  _type: "figure";
+  image?: SanityImageSource;
+  alt?: string;
+  caption?: string;
+  credit?: string;
+  dither?: boolean;
+}
+export type Props = $<FigureNode & { _type: string }>;
+
+const { node } = Astro.props;
+const { image, alt = "", caption, credit, dither = true } = node as unknown as FigureNode;
+
+const src = imageUrl(image, { width: 1760, format: "auto" });
+const dims = imageDimensions(image);
+---
+{src && (
+  <figure class={`aol-fig aol-break${dither ? " aol-fig--dithered" : ""}`}>
+    <img
+      src={src}
+      alt={alt}
+      width={dims?.width}
+      height={dims?.height}
+      loading="lazy"
+      decoding="async"
+    />
+    {(caption || credit) && (
+      <figcaption>
+        {caption}
+        {caption && credit && " "}
+        {credit && <span class="credit">{credit}</span>}
+      </figcaption>
+    )}
+  </figure>
+)}

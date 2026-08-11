@@ -1,11 +1,15 @@
 ---
 import Logo from "../ds/Logo.astro";
 
+// Absolute (`/#id`), not bare (`#id`). The footer renders on /blog/ and
+// /work/* too, where a bare fragment resolves against the CURRENT page and
+// silently does nothing — the header already learned this lesson.
 const NAV: [string, string][] = [
-  ["About", "#founder"],
-  ["Why us", "#compare"],
-  ["Pricing", "#how-we-work"],
-  ["FAQ", "#faq"],
+  ["About", "/#founder"],
+  ["Why us", "/#compare"],
+  ["Pricing", "/#how-we-work"],
+  ["FAQ", "/#faq"],
+  ["Field notes", "/blog/"],
 ];
 const SOCIALS: [string, string][] = [
   ["LinkedIn", "https://www.linkedin.com/in/vishveshwar-jatain"],

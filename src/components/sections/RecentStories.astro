@@ -1,0 +1,63 @@
+---
+/**
+ * Homepage strip: the three most recent posts, then the subscribe box.
+ *
+ * Fetched here rather than passed down from index.astro so the section is
+ * self-contained — it can be dropped onto any page without that page having to
+ * know it needs blog data. The build is static, so this costs one query at
+ * build time, not one per visitor.
+ */
+import { sanityClient } from "sanity:client";
+import SubscribeBox from "../blog/SubscribeBox.astro";
+import { imageUrl, type SanityImageSource } from "../../lib/sanityImage";
+
+interface RecentPost {
+  title: string;
+  slug: string;
+  excerpt: string;
+  publishedAt: string;
+  tags?: string[];
+  heroImage?: (SanityImageSource & { alt?: string }) | null;
+}
+
+const posts: RecentPost[] = await sanityClient.fetch(
+  `*[_type == "post" && defined(slug.current) && seo.noIndex != true] | order(publishedAt desc)[0...3]{
+    title, "slug": slug.current, excerpt, publishedAt, tags, heroImage
+  }`,
+);
+
+const fmt = (d: string) =>
+  new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
+---
+{/* aol-grid-blue, not white: the homepage alternates grid ↔ white section by
+    section, and FAQ — which this sits directly under — is white. */}
+{posts.length > 0 && (
+  <section id="field-notes" class="aol-recent aol-grid-blue" style="border-bottom:1px solid var(--ink-200)">
+    <div style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
+      <div class="aol-recent__head">
+        <h2 class="aol-recent__h">Field notes</h2>
+        <a class="aol-recent__all" href="/blog/">All posts →</a>
+      </div>
+
+      <ul>
+        {posts.map((p) => (
+          <li>
+            <a href={`/blog/${p.slug}/`}>
+              {(() => {
+                const src = imageUrl(p.heroImage, { width: 640, height: 400, fit: "crop", format: "auto" });
+                return src ? (
+                  <img class="aol-recent__thumb" src={src} alt={p.heroImage?.alt ?? ""} width="640" height="400" loading="lazy" decoding="async" />
+                ) : null;
+              })()}
+              {p.tags?.[0] && <p class="aol-recent__eyebrow">{p.tags[0]}</p>}
+              <h3 class="aol-recent__title">{p.title}</h3>
+              <p class="aol-recent__meta"><time datetime={p.publishedAt}>{fmt(p.publishedAt)}</time></p>
+            </a>
+          </li>
+        ))}
+      </ul>
+
+      <SubscribeBox source="homepage" compact />
+    </div>
+  </section>
+)}

@@ -1,0 +1,150 @@
+---
+/**
+ * Newsletter capture, posting to /api/subscribe → Loops.
+ *
+ * `source` is passed through so list growth is attributable per surface
+ * (blog post vs blog index vs homepage) — otherwise every signup looks the
+ * same in Loops and there is no way to tell what is actually working.
+ */
+import Button from "../ds/Button.astro";
+import Input from "../ds/Input.astro";
+
+interface Props {
+  source: "homepage" | "blog-post" | "blog-index" | "footer";
+  heading?: string;
+  blurb?: string;
+  compact?: boolean;
+}
+const {
+  source,
+  heading = "Field notes, straight to your inbox",
+  blurb = "Essays on GTM engineering, positioning, and the machinery underneath. One a week. Unsubscribe anytime.",
+  compact = false,
+} = Astro.props;
+---
+<section class={`aol-sub${compact ? " aol-sub--compact" : ""}`}>
+  <div class="aol-sub__inner">
+    <span class="aol-sub__tag">Newsletter</span>
+    <h2 class="aol-sub__h">{heading}</h2>
+    <p class="aol-sub__blurb">{blurb}</p>
+    <form data-subscribe data-source={source} novalidate>
+      <Input
+        type="email"
+        name="email"
+        required
+        autocomplete="email"
+        placeholder="you@company.com"
+        aria-label="Email address"
+        style="flex:1 1 240px"
+      />
+      <Button type="submit" variant="primary" size="lg" arrow>Subscribe</Button>
+    </form>
+    <p class="aol-sub__msg" role="status" aria-live="polite"></p>
+  </div>
+</section>
+
+<style>
+  .aol-sub { margin: var(--space-16) 0; }
+  .aol-sub--compact { margin: var(--space-10) 0; }
+  .aol-sub__inner {
+    position: relative;
+    border: var(--border-width) solid var(--ink-900);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-hard);
+    background: var(--surface-warm);
+    padding: var(--space-10) var(--space-8) var(--space-8);
+  }
+  .aol-sub--compact .aol-sub__inner { padding: var(--space-8) var(--space-6) var(--space-6); }
+  .aol-sub__tag {
+    position: absolute;
+    top: 0;
+    left: 24px;
+    transform: translateY(-50%);
+    background: var(--paper-pure);
+    padding: 0 10px;
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--blue-600);
+  }
+  .aol-sub__h {
+    font-family: var(--font-display);
+    font-weight: var(--weight-regular);
+    font-size: 30px;
+    line-height: 1.15;
+    /* ink-900 on the warm surface, never white — white on pink fails contrast
+       and is explicitly off-limits in this palette. */
+    color: var(--text-on-warm);
+    margin: 0 0 var(--space-3);
+    max-width: 22ch;
+  }
+  .aol-sub__blurb {
+    font-size: 16px;
+    line-height: 1.55;
+    color: var(--text-on-warm-muted);
+    margin: 0 0 var(--space-6);
+    max-width: 50ch;
+  }
+  .aol-sub form { display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center; }
+  .aol-sub__msg {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-mono);
+    margin: var(--space-4) 0 0;
+    min-height: 1.2em;
+    color: var(--blue-700);
+  }
+  .aol-sub__msg[data-error] { color: var(--red-600); }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLFormElement>("form[data-subscribe]").forEach((form) => {
+    const msg = form.parentElement?.querySelector<HTMLElement>(".aol-sub__msg");
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+
+    const say = (text: string, isError = false) => {
+      if (!msg) return;
+      msg.textContent = text;
+      if (isError) msg.setAttribute("data-error", "");
+      else msg.removeAttribute("data-error");
+    };
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = form.querySelector<HTMLInputElement>('input[name="email"]');
+      const email = input?.value.trim() ?? "";
+
+      // Validate before the round trip so an obvious typo gets an instant
+      // answer instead of a 400 from the edge.
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+        say("That doesn't look like an email address.", true);
+        input?.focus();
+        return;
+      }
+
+      // Guard against a double submit creating two Loops calls.
+      if (button) button.disabled = true;
+      say("Subscribing…");
+
+      try {
+        const res = await fetch("/api/subscribe", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ email, source: form.dataset.source ?? "unknown" }),
+        });
+        if (res.ok) {
+          form.reset();
+          say("You're in. Check your inbox to confirm.");
+        } else {
+          const body = (await res.json().catch(() => ({}))) as { error?: string };
+          say(body.error ?? "That didn't go through. Try again?", true);
+        }
+      } catch {
+        say("Network trouble — try again in a moment.", true);
+      } finally {
+        if (button) button.disabled = false;
+      }
+    });
+  });
+</script>

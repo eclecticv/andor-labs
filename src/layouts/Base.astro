@@ -15,8 +15,10 @@ interface Props {
   description?: string;
   ogType?: "website" | "article";
   publishedTime?: string;
-  ogImage?: string; // site-relative path; defaults to the site card
+  ogImage?: string; // site-relative path OR absolute URL; defaults to the site card
   ogImageAlt?: string;
+  /** Per-page opt-out. Only honoured when true, so the default stays indexable. */
+  noIndex?: boolean;
 }
 const {
   title = SITE_TITLE,
@@ -25,6 +27,7 @@ const {
   publishedTime,
   ogImage: ogImagePath = "/og.png",
   ogImageAlt = SITE_TITLE,
+  noIndex = false,
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
@@ -46,7 +49,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    {/* Emitted only when opting out. An unconditional `robots` tag with
+        "index, follow" is inert — it just restates the default — and it is one
+        typo away from deindexing the site. */}
+    {noIndex && <meta name="robots" content="noindex, nofollow" />}
     <link rel="canonical" href={canonical} />
+    <link rel="alternate" type="application/rss+xml" title="And/or Labs — Field notes" href="/blog/rss.xml" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#ffffff" />

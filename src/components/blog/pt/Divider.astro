@@ -1,0 +1,31 @@
+---
+/**
+ * Section break. Three weights, because "a pause" and "a hard scene change"
+ * are different editorial signals:
+ *   rule     — a hairline; a beat between sections
+ *   asterism — ✳ ✳ ✳; a change of subject within the same argument
+ *   dither   — the house ░ band; the heaviest break, use once a post at most
+ *
+ * All three are decorative, so each is hidden from assistive tech — a screen
+ * reader announcing "separator" three times in a row is noise, and the heading
+ * structure already conveys the document's shape.
+ */
+import type { Props as $ } from "astro-portabletext/types";
+import DitherLine from "../../ds/DitherLine.astro";
+
+interface DividerNode {
+  _type: "divider";
+  style?: "rule" | "dither" | "asterism";
+}
+export type Props = $<DividerNode & { _type: string }>;
+
+const { node } = Astro.props;
+const style = (node as unknown as DividerNode).style ?? "rule";
+---
+{style === "rule" && <hr class="aol-div aol-div--rule" aria-hidden="true" />}
+{style === "asterism" && <div class="aol-div aol-div--asterism" aria-hidden="true">✳ ✳ ✳</div>}
+{style === "dither" && (
+  <div class="aol-div aol-div--dither aol-break" aria-hidden="true">
+    <DitherLine height={14} color="var(--ink-300)" />
+  </div>
+)}

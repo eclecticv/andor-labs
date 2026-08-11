@@ -1,0 +1,31 @@
+---
+/**
+ * h2 / h3 / h4 inside article prose, each with a stable anchor id.
+ *
+ * The id is NOT derived here. PostBody pre-walks the body and stamps
+ * `_headingId` onto each heading block, because de-duplicating ids (two posts
+ * with two "Why it matters" h2s is not hypothetical) needs document-level
+ * state that a per-block component cannot see. Computing it here would produce
+ * duplicate DOM ids and silently break every in-page anchor below the first.
+ */
+import type { Block, Props as $ } from "astro-portabletext/types";
+
+export type Props = $<Block & { _headingId?: string }>;
+
+const { node, index, isInline, ...attrs } = Astro.props;
+const id = (node as { _headingId?: string })._headingId;
+const style = node.style;
+---
+{style === "h2" && (
+  <h2 id={id} {...attrs}>
+    <slot />
+    {id && <a class="aol-anchor" href={`#${id}`} aria-label="Link to this section">¶</a>}
+  </h2>
+)}
+{style === "h3" && (
+  <h3 id={id} {...attrs}>
+    <slot />
+    {id && <a class="aol-anchor" href={`#${id}`} aria-label="Link to this section">¶</a>}
+  </h3>
+)}
+{style === "h4" && <h4 id={id} {...attrs}><slot /></h4>}

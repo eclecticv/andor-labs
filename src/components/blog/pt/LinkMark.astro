@@ -1,0 +1,23 @@
+---
+/**
+ * Prose link. Overrides the library default purely to get the rel/target
+ * handling right — the default emits a bare <a href>.
+ *
+ * `noopener` is not optional on a target="_blank" link: without it the opened
+ * page gets a live `window.opener` handle back to this one and can navigate it
+ * somewhere else. `noreferrer` rides along for outbound links generally.
+ */
+import type { Props as $, Mark } from "astro-portabletext/types";
+
+export type Props = $<Mark<{ href?: string; newTab?: boolean }>>;
+
+const { node } = Astro.props;
+const href = node.markDef?.href ?? "";
+const newTab = node.markDef?.newTab === true;
+
+// Anything not pointing at our own origin or an in-page anchor is outbound.
+const isExternal = /^https?:\/\//i.test(href) && !href.includes("andorlabs.ca");
+const target = newTab || isExternal ? "_blank" : undefined;
+const rel = target ? "noopener noreferrer" : undefined;
+---
+{href ? <a href={href} target={target} rel={rel}><slot /></a> : <slot />}
