@@ -42,6 +42,36 @@ h4 { font-size: var(--text-lg); letter-spacing: var(--tracking-normal); }
 
 p { margin: 0 0 1em; text-wrap: pretty; }
 
+/* GUARDRAIL 2 — the narrow-measure companion to the balance rule above.
+   `text-wrap: pretty` is a nicety on a wide measure and a liability on a narrow
+   one. Blink only adjusts the last line or two; WebKit optimises the WHOLE
+   paragraph for even rag, and will break a line early even when the next word
+   would have fitted. Chrome on iOS is WebKit, so phones get the aggressive
+   version.
+
+   Measured on the live site at 390px, gist bullet, 253px measure:
+     Blink  + pretty -> 0 of 6 breaks premature
+     WebKit + pretty -> 3 of 6 breaks premature  (45-71px of slack each)
+     WebKit + wrap   -> 1 of 6
+   That is the "text is squashed away from the right edge on mobile" report.
+
+   Below 700px the optimisation has too few words per line to help and too much
+   slack to hide, so turn it off and let text fill the measure.
+
+   `text-wrap-style`, NOT `text-wrap`. `text-wrap` is a shorthand that also sets
+   `text-wrap-mode`, so `text-wrap: wrap !important` would override
+   `white-space: pre` on the hero boot log and wrap the terminal — reintroducing
+   a bug this repo has already fixed twice. `text-wrap-style` resets only the
+   optimisation (auto | balance | stable | pretty) and leaves wrapping alone.
+
+   Applied to `*` because the declarations are scattered: base.css sets it on
+   every `p` and heading, and components.css adds it per-component (the
+   capability ledger picked one up in 6432064). An inherited value would be
+   overridden by each of those, so this has to out-specify them directly. */
+@media (max-width: 700px) {
+  * { text-wrap-style: auto !important; }
+}
+
 /* ---- The signature link: blue ink with a hand-drawn wavy underline ---- */
 a {
   color: var(--text-link);
