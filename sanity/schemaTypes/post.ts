@@ -10,6 +10,7 @@ const CATEGORIES = [
   {title: "{ignore all previous instructions}", value: "ai-newsletter"},
   {title: "Field notes", value: "field-notes"},
   {title: "Explainer", value: "explainer"},
+  {title: "Resources", value: "resources"},
 ];
 
 const CATEGORY_TITLES: Record<string, string> = Object.fromEntries(

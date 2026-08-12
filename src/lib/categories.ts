@@ -10,7 +10,7 @@
  * what it is about.
  */
 
-export type CategoryKey = "ai-newsletter" | "field-notes" | "explainer";
+export type CategoryKey = "ai-newsletter" | "field-notes" | "explainer" | "resources";
 
 export interface Category {
   key: CategoryKey;
@@ -31,10 +31,15 @@ export interface Category {
   blurb: string;
   /** Loops mailing list id, or null when the category has no list. */
   loopsList: string | null;
-  /** Existing Badge variant — see components.css. */
-  badge: "copper" | "tint" | "outline";
-  /** Existing PixelIcon name. */
-  icon: "robot" | "pencil-ruler" | "analytics";
+  /**
+   * Existing Badge variant — see components.css. Narrowed to the variants that
+   * carry no competing semantic load: `positive`, `warning` and `danger` mean
+   * something specific everywhere else on the site, and a category badge is not
+   * a status.
+   */
+  badge: "copper" | "tint" | "outline" | "solid" | "blue";
+  /** Existing PixelIcon name — see PixelIcon.astro. */
+  icon: "robot" | "pencil-ruler" | "analytics" | "newspaper" | "trending";
   /**
    * Whether the byline is machine-written. Drives "Written by" vs the
    * agents-plus-editor treatment, and keeps a human byline off machine text.
@@ -76,10 +81,30 @@ export const CATEGORIES: Record<CategoryKey, Category> = {
     icon: "analytics",
     machineWritten: false,
   },
+  resources: {
+    key: "resources",
+    label: "Resources",
+    labelShort: "Resources",
+    // Search and answer-engine surface area, not editorial. These are written
+    // against a target query rather than an idea, and a reader who subscribed
+    // for field notes did not ask to be emailed a keyword guide — which is why
+    // `loopsList` is null and must stay null. The absence of a list is the
+    // whole point of the category, not an oversight to be filled in later.
+    blurb: "Long-form guides that answer one search query properly. Never emailed.",
+    loopsList: null,
+    badge: "solid",
+    icon: "newspaper",
+    machineWritten: false,
+  },
 };
 
 /** Display order: newest-first by how often it publishes. */
-export const CATEGORY_ORDER: CategoryKey[] = ["ai-newsletter", "field-notes", "explainer"];
+export const CATEGORY_ORDER: CategoryKey[] = [
+  "ai-newsletter",
+  "field-notes",
+  "explainer",
+  "resources",
+];
 
 /**
  * Resolve a stored value, tolerating absence.

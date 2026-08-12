@@ -74,6 +74,24 @@ interface HeroCandidate {
  * reached when the first returns nothing usable.
  */
 const PLANS: Record<string, [HeroCandidate, HeroCandidate]> = {
+  "b2b-content-marketing-strategy-for-startups-that-hate-slop": [
+    {
+      // The post's argument is that volume targets are what manufacture slop,
+      // so the stand-in is a machine for setting text at industrial scale
+      // rather than anything to do with marketing. Dithers well: hard castings
+      // and levers, real tonal separation, negative space at the left edge.
+      //
+      // "letterpress printing press" and "stacked newspaper bundles" were the
+      // first guesses and both decode at 1024px — under MIN_DECODED_WIDTH, so
+      // they can never be accepted. Measured before being written down.
+      query: "linotype machine",
+      alt: "A Linotype typesetting machine seen close up, its castings and levers filling the frame.",
+    },
+    {
+      query: "newspaper printing rollers",
+      alt: "The rollers and cylinders of a newspaper printing press.",
+    },
+  ],
   "content-engineering-not-content-marketing": [
     {
       query: "railway viaduct arches",
