@@ -1,4 +1,4 @@
-# Field notes — how the blog works
+# Writing — how the blog works
 
 ## Where things live
 
@@ -13,10 +13,49 @@
 | Derived facts (reading time, TOC) | `src/lib/portableText.ts` |
 | JSON-LD builders | `src/lib/seo.ts` |
 | Sanity CDN URLs | `src/lib/sanityImage.ts` |
+| Categories (labels, badges, Loops ids) | `src/lib/categories.ts` |
 | Schema | `sanity/schemaTypes/` |
 | Loops endpoint | `functions/api/subscribe.ts` |
 
 Studio is at `/admin`.
+
+The section is called **Writing**. "Field notes" is one of the three categories
+inside it, not the whole thing — it is also the name of a Loops list, and the
+two must keep matching.
+
+## The three categories
+
+Set on every post. `src/lib/categories.ts` is the single source of truth for
+labels, badge variants, icons and Loops list ids.
+
+| key | label | list | byline |
+|---|---|---|---|
+| `ai-newsletter` | `{ignore all previous instructions}` | weekly AI newsletter | agents author, VJ edits |
+| `field-notes` | Field notes | occasional personal posts | VJ |
+| `explainer` | Explainer | **none** | VJ |
+
+Explainers get no subscribe box — there is no list to join, so the template
+omits it rather than showing a form that promises nothing.
+
+The category filter on `/blog/` hides itself while only one category has posts.
+All 11 legacy posts were migrated to `field-notes`; a few of them (`what-is-*`)
+are explainer-shaped and worth re-filing by hand in Studio.
+
+## Bylines
+
+`authors` is an array and `editor` is separate. `author.kind` is `person` or
+`agent`, and drives the structured data: a model is emitted as
+`SoftwareApplication` with its vendor as publisher, never as `Person`. A
+validator may warn about that — it is the deliberate choice over claiming a
+language model is a person on a site whose author schema exists to make byline
+claims checkable.
+
+A machine-written post shows no byline avatar, rather than borrowing the
+editor's, which would read as "this person wrote it".
+
+The legacy singular `author` field is retained, hidden and deprecated. It is
+the rollback path; nothing reads it except the `coalesce` fallback in each
+GROQ query.
 
 ## Writing a post
 
@@ -72,12 +111,29 @@ To re-dither everything with a different palette, edit `ditherPreset.HERO` in
 The form posts to `/api/subscribe`, a Cloudflare Pages Function that forwards to
 Loops with `LOOPS_API_KEY`.
 
-**Set the secret:** Cloudflare dashboard → Pages → `andorlabs` → Settings →
-Variables and Secrets → `LOOPS_API_KEY`. Until it is set the endpoint returns
-503 and the form shows a friendly message.
+**The secret is set.** It was applied with:
+
+```bash
+printf '%s' "$LOOPS_API_KEY" | npx wrangler@4.120.1 pages secret put LOOPS_API_KEY --project-name andorlabs
+```
+
+Pin the wrangler version — `wrangler@latest` currently fails to install. Note
+that **a Pages Function only picks up a secret on the next deployment**; setting
+it does not fix a running deployment, so push a commit afterwards.
+
+The form shows both lists as ticked checkboxes with their real descriptions and
+posts the selection. The endpoint falls back to ALL lists when `lists` is
+absent, because a page rendered before the checkboxes existed can sit in a tab
+for days and still post the old shape.
 
 `source` distinguishes `homepage` / `blog-post` / `blog-index` / `footer` in
-Loops. Add new values to `ALLOWED_SOURCES` or they collapse to `unknown`.
+Loops. Add new values to `ALLOWED_SOURCES` **and deploy that first** — line 75
+coerces an unknown source to `"unknown"` rather than erroring, so a front-end
+that ships first loses attribution silently.
+
+Loops list ids are duplicated in `src/lib/categories.ts` and
+`functions/api/subscribe.ts` on purpose: Pages Functions bundle separately from
+the Astro build. Change one, change the other.
 
 ## Scripts
 
@@ -91,6 +147,11 @@ All idempotent, all run via `npx sanity exec <path> --with-user-token`.
 | `migrate-add-standfirst.ts` | Backfills `author` + `standfirst` |
 | `backfill-heroes.ts` | Sources, dithers and uploads hero art |
 | `enrich-bodies.ts` | Adds pull quotes, dividers, takeaways. **Dry-run by default**; `-- --apply` writes |
+| `create-agent-authors.ts` | The AI agent author documents |
+| `migrate-categories-and-authors.ts` | Backfills `category` + `authors` (done) |
+| `finalise-schema.ts` | Sets `author.kind`, audits whether required fields are safe to enforce |
+| `tidy-excerpts.ts` | Re-truncates mid-word excerpts from source. Dry-run by default |
+| `remove-scaffold-posts.ts` | Removes the three imported-by-mistake scaffold posts (done) |
 
 `enrich-bodies.ts` asserts that the enriched body's plain text is byte-identical
 to the original before writing, and that every pull quote and takeaway appears

@@ -50,9 +50,13 @@ export const post = defineType({
       initialValue: "field-notes",
       description:
         "Who wrote this and why. Tags stay the free-form axis for what it is about.",
-      // Not required yet: 11 documents predate this field, and required() would
-      // paint every one of them red in Studio for a value the migration is about
-      // to fill in. Make it required once the migration has run.
+      // Required as of the migration: all 11 posts carry a category, verified by
+      // scripts/finalise-schema.ts, which refuses to green-light this until the
+      // count of documents missing it reads zero. It was deliberately optional
+      // while those documents predated the field — required() would have painted
+      // every one of them red in Studio over a value the migration was about to
+      // supply.
+      validation: (r) => r.required(),
     }),
     defineField({
       name: "authors",
@@ -61,9 +65,10 @@ export const post = defineType({
       group: "content",
       description:
         "Byline, in order. More than one because the AI newsletter is written by agents, not a person.",
-      // Not required (and no .min(1)) for the same reason as `category` — the
-      // existing posts carry only the legacy singular `author` until the
-      // migration copies it across.
+      // min(1), not just required(): an empty array is "defined" as far as
+      // required() is concerned, so without the minimum a post could ship with
+      // a byline of nobody and pass validation.
+      validation: (r) => r.required().min(1),
     }),
     defineField({
       name: "editor",
