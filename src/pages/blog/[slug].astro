@@ -237,9 +237,6 @@ const tag = post.tags?.[0];
       <div class="aol-a__rail-l">
         <ShareBar url={canonical} title={post.title} orientation="vertical" />
       </div>
-      <div class="aol-a__rail-r">
-        <TableOfContents headings={headings} />
-      </div>
 
       <nav class="aol-a__crumbs" aria-label="Breadcrumb">
         <a href="/">Home</a>
@@ -298,11 +295,17 @@ const tag = post.tags?.[0];
         </div>
 
         {/* Inline share for anything narrower than the railed layout. Hidden
-            at ≥1280px, where the sticky left rail takes over. */}
+            at ≥1340px, where the sticky left rail takes over. */}
         <div class="aol-a__share-inline">
           <ShareBar url={canonical} title={post.title} />
         </div>
       </header>
+
+      {/* Sits here in the DOM for the sub-1340px reading order — contents come
+          after the byline, before the piece starts. At ≥1340px the same node is
+          placed into grid column 3 and made sticky, becoming the right rail, so
+          the list exists exactly once either way. */}
+      <TableOfContents headings={headings} />
 
       {hero && (
         <figure class="aol-a__hero aol-break">
@@ -368,7 +371,7 @@ const tag = post.tags?.[0];
 
 <style>
   .aol-a__share-inline { margin: 0 0 var(--space-10); }
-  @media (min-width: 1280px) { .aol-a__share-inline { display: none; } }
+  @media (min-width: 1340px) { .aol-a__share-inline { display: none; } }
 </style>
 
 <script>

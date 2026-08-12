@@ -1,6 +1,16 @@
 ---
 /**
- * Sticky contents rail, ≥1280px only.
+ * Contents list. One element, two presentations.
+ *
+ * At ≥1340px it is the sticky right rail: an open list under a mono label,
+ * with the scroll-spy marking the section being read. Below that the rails do
+ * not assemble, and rather than dropping wayfinding entirely — which left a
+ * 2,000-word article on a laptop or a phone with nothing but a 2px progress
+ * bar — the same list collapses into a togglable block under the byline.
+ *
+ * It is ONE `<details>`, not two components. Rendering the list twice would
+ * duplicate the heading ids and leave the scroll-spy, which binds to a single
+ * `[data-toc]`, updating whichever copy it found first.
  *
  * Rendered from the same `extractHeadings` output that stamped the ids onto
  * the headings themselves, so the links cannot point at anchors that don't
@@ -18,25 +28,72 @@ const show = headings.length >= minimum;
 ---
 {show && (
   <nav class="aol-toc" aria-label="On this page" data-toc>
-    <p class="aol-toc__label">Contents</p>
-    <ol>
-      {headings.map((h) => (
-        <li class={`lvl-${h.level}`}>
-          <a href={`#${h.id}`} data-toc-link={h.id}>{h.text}</a>
-        </li>
-      ))}
-    </ol>
+    {/* Ships OPEN and is closed by script below the rail breakpoint, not the
+        other way round. If the script never runs, a reader gets a contents
+        list that is merely longer than it needed to be — the failure mode of
+        shipping it closed is a list nobody can open. */}
+    <details class="aol-toc__box" open data-toc-box>
+      <summary class="aol-toc__summary">
+        <span class="aol-toc__label">Contents</span>
+        <span class="aol-toc__count" aria-hidden="true">{headings.length}</span>
+      </summary>
+      <ol>
+        {headings.map((h) => (
+          <li class={`lvl-${h.level}`}>
+            <a href={`#${h.id}`} data-toc-link={h.id}>{h.text}</a>
+          </li>
+        ))}
+      </ol>
+    </details>
   </nav>
 )}
 
 <script>
+  const toc = document.querySelector<HTMLElement>("[data-toc]");
+  const box = document.querySelector<HTMLDetailsElement>("[data-toc-box]");
+
+  // --- Collapse below the rail breakpoint ---------------------------------
+  //
+  // 1339.98 rather than 1339: the layout's `min-width: 1340px` matches at any
+  // fractional width from 1340 up, and a `max-width: 1339px` query would leave
+  // 1339.5 satisfying neither — the rail would assemble while the block still
+  // thought it was inline.
+  if (box) {
+    const narrow = matchMedia("(max-width: 1339.98px)");
+
+    const sync = () => { box.open = !narrow.matches; };
+    sync();
+    narrow.addEventListener("change", sync);
+
+    // In the rail the summary is a label, not a control. It stays in the tab
+    // order because it is still the list's heading, so a keyboard user can
+    // reach it and press Enter — which would collapse a rail that has no
+    // visible affordance for reopening. Put it back.
+    box.addEventListener("toggle", () => {
+      if (!narrow.matches && !box.open) box.open = true;
+    });
+
+    // Jumping to a section is the end of the interaction, so the inline block
+    // gets out of the way. The rail is unaffected — it never closes.
+    box.addEventListener("click", (e) => {
+      if (!narrow.matches) return;
+      if ((e.target as HTMLElement).closest("[data-toc-link]")) box.open = false;
+    });
+  }
+
+  // --- Scroll-spy ---------------------------------------------------------
+  //
   // Highlight the section currently being read.
   //
   // rootMargin's -55% bottom inset means a heading counts as "current" once it
   // reaches the upper third of the viewport, rather than the instant it
   // crosses the very top — which would flicker between two entries while a
   // heading sits on the boundary during a slow scroll.
-  const toc = document.querySelector<HTMLElement>("[data-toc]");
+  //
+  // The -88px top inset must stay at or below --blog-anchor-top (96px in
+  // blog.css), which is where an anchored heading comes to rest. Push it past
+  // that and a heading you jumped to lands ABOVE the observation band, so
+  // clicking a contents entry highlights nothing.
   if (toc) {
     const links = new Map<string, HTMLAnchorElement>();
     toc.querySelectorAll<HTMLAnchorElement>("[data-toc-link]").forEach((a) => {
