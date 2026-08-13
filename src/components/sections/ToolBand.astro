@@ -1,0 +1,102 @@
+---
+/**
+ * A slim band pointing at the free tool at /tools/subreddit-scout.
+ *
+ * Sits after FAQ and before RecentStories, which is the "read every objection
+ * and still did not book" moment — the one place on the page where a
+ * zero-commitment sample is the right next step rather than a distraction.
+ *
+ * WARM, not grid or white. The homepage alternates grid ↔ white all the way
+ * down (Offers white, Compare grid, FAQ white, RecentStories grid), so a fourth
+ * repetition of either would read as another section of the same argument. The
+ * design system lists "alternating section bands" under the warm layer's Do
+ * column precisely for this — pink says "this block is set apart", which is
+ * exactly the claim: it is not part of the pitch, it is a free thing.
+ *
+ * Deliberately does NOT carry a second Book a call. The page already has that
+ * CTA in the header, the hero and the closing band; adding a fourth would make
+ * this compete with the primary conversion path instead of catching the people
+ * who have already declined it.
+ */
+import Button from "../ds/Button.astro";
+import PixelIcon from "../ds/PixelIcon.astro";
+---
+<section id="free-tool" class="aol-toolband">
+  <div class="aol-toolband__wrap">
+    <div class="aol-toolband__copy">
+      <p class="aol-eyebrow aol-toolband__eb">
+        <span class="aol-toolband__icon"><PixelIcon name="reddit" size={24} /></span>
+        free tool
+      </p>
+      <h2 class="aol-display aol-toolband__h">
+        Find the five subreddits where your buyers already are.
+      </h2>
+      <p class="aol-toolband__b">
+        Give it a work email. It reads your site, names the five rooms worth your time
+        with the rules that will get you removed, and writes three portable agent skill
+        files to work them. About thirty seconds, nothing to install.
+      </p>
+    </div>
+    <div class="aol-toolband__act">
+      <Button size="lg" variant="primary" arrow href="/tools/subreddit-scout/">Try Subreddit Scout</Button>
+    </div>
+  </div>
+</section>
+
+<style>
+  .aol-toolband {
+    background: var(--surface-warm);
+    border-bottom: 1px solid var(--ink-200);
+  }
+  /* Slimmer than --section-pad-y (80px). This is a signpost, not a section of
+     the argument, and giving it full section height would overstate it. */
+  .aol-toolband__wrap {
+    max-width: var(--container-width);
+    margin: 0 auto;
+    padding: var(--space-16) var(--gutter);
+    display: grid;
+    gap: var(--space-8);
+    align-items: center;
+  }
+  @media (min-width: 881px) {
+    /* minmax(0, 640px) rather than 1fr: the copy gets a real reading measure and
+       the button sits just past it, instead of the copy hugging the left edge
+       with a hundred points of dead pink before the CTA. */
+    .aol-toolband__wrap {
+      grid-template-columns: minmax(0, 640px) auto;
+      gap: var(--space-16);
+      justify-content: space-between;
+    }
+  }
+
+  .aol-toolband__eb {
+    display: flex; align-items: center; gap: var(--space-2);
+    /* Copper: a mark on a warm surface, never an action. The blue stays on the
+       button, which is the only thing here you can click. */
+    color: var(--text-warm);
+    margin: 0 0 var(--space-3);
+  }
+  .aol-toolband__icon { display: flex; color: var(--accent-warm); }
+
+  /* No per-element measure caps. A 20ch cap on the heading broke it across
+     three lines inside a column that was already twice that wide, leaving a
+     hole between the copy and the button. The COLUMN carries the measure
+     instead, so both the heading and the body fill it. */
+  .aol-toolband__h {
+    font-size: 34px;
+    /* Near-black on pink, per the warm-layer rule — never ink-500. */
+    color: var(--text-on-warm);
+    margin: 0 0 var(--space-4);
+  }
+  .aol-toolband__b {
+    font-family: var(--font-serif);
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+    color: var(--text-on-warm-muted);
+    margin: 0;
+  }
+
+  /* Stretches to the button's own width at desktop; full width when stacked, so
+     the tap target is not a small pill floating on a wide band. */
+  .aol-toolband__act { display: grid; }
+</style>

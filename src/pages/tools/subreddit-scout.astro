@@ -26,7 +26,7 @@ import { BOOKING_URL, ICP_STARTUPS } from "../../config";
 import { SUBSCRIBABLE } from "../../lib/categories";
 
 /**
- * The opt-in label names the lists instead of saying "our newsletter".
+ * The consent notice names the lists instead of saying "our newsletter".
  *
  * It said the singular while `LEAD_LISTS` in functions/api/subreddit-scout.ts
  * subscribed the address to two — the same mismatch the blog's SubscribeBox
@@ -127,18 +127,14 @@ const TICKS = [
               />
               <Button type="submit" variant="primary" size="lg" arrow>Scout</Button>
             </div>
+            <!-- Notice, not a checkbox. Everyone who runs the tool joins all
+                 three lists; the sentence below is the only thing telling them
+                 so, which is why it names the lists rather than saying
+                 "marketing" and leaving them to find out. -->
             <p class="scout-form__hint">
-              A work address, please—the domain is what we read.
+              A work address, please—the domain is what we read. We'll add you to {CONSENT},
+              so we may send you marketing from time to time. Unsubscribe anytime, one click.
             </p>
-
-            <!-- Ships checked, but it is a real control: untick it and the
-                 Function subscribes the address to the lead-magnet list only.
-                 CONSENT names the lists from SUBSCRIBABLE so the label can never
-                 drift from what the Function actually does. -->
-            <label class="scout-optin">
-              <input type="checkbox" id="scout-optin" name="newsletter" checked />
-              <span>Subscribe me to {CONSENT}. (Unsubscribe anytime.)</span>
-            </label>
           </form>
 
           <!-- One line, always one line. The previous version rendered all five
@@ -396,28 +392,6 @@ const TICKS = [
     margin: var(--space-4) 0 0;
     max-width: 44ch;
   }
-
-  /* Explicit opt-in, on the warm panel. `accent-color` tints the native control
-     rather than rebuilding it — a custom checkbox here would cost the free
-     keyboard and screen-reader behaviour for no visual gain at 15px. */
-  .scout-optin {
-    display: flex; align-items: flex-start; gap: var(--space-3);
-    margin: var(--space-3) 0 0;
-    cursor: pointer;
-    font-family: var(--font-serif);
-    font-size: var(--text-sm);
-    line-height: var(--leading-normal);
-    color: var(--text-on-warm-muted);
-    max-width: 44ch;
-  }
-  .scout-optin input {
-    flex: none;
-    width: 15px; height: 15px;
-    margin: 2px 0 0;
-    accent-color: var(--blue-500);
-    cursor: pointer;
-  }
-  .scout-optin input:focus-visible { outline: 2px solid var(--blue-500); outline-offset: 2px; }
 
   /* Fixed-height single row. The box is hollow at rest and fills while a run
      is in flight, so the resting state reads as "waiting for you" rather than
@@ -797,7 +771,6 @@ const TICKS = [
 
   const form = document.getElementById("scout-form") as HTMLFormElement | null;
   const input = document.getElementById("scout-email") as HTMLInputElement | null;
-  const optin = document.getElementById("scout-optin") as HTMLInputElement | null;
   const msg = document.getElementById("scout-msg");
   const step = document.getElementById("scout-step");
   const stepText = document.getElementById("scout-step-text");
@@ -820,7 +793,6 @@ const TICKS = [
     /** Grey the form out for the duration of a run without removing it. */
     const setFormEnabled = (on: boolean) => {
       if (button) button.disabled = !on;
-      if (optin) optin.disabled = !on;
       input.disabled = !on;
       form.toggleAttribute("data-busy", !on);
     };
@@ -1004,10 +976,7 @@ const TICKS = [
         const res = await fetch("/api/subreddit-scout", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          // Explicit boolean, never `optin?.checked` — a missing element would
-          // send `undefined`, which the Function reads as opted out. Ticked is
-          // the default in the markup, so absence here should mean the same.
-          body: JSON.stringify({ email, newsletter: optin ? optin.checked : false }),
+          body: JSON.stringify({ email }),
         });
         const body = (await res.json().catch(() => ({}))) as ScoutResponse;
 

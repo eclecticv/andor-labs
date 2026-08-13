@@ -4,19 +4,21 @@ import Button from "../ds/Button.astro";
 import { BOOKING_URL } from "../../config";
 
 // Homepage anchors are absolute (`/#id`) rather than relative (`#id`) so they
-// still resolve correctly from the new /work pages, not just from `/`.
-// "Work" points straight at the one live case study for now — the /work
-// listing page is parked (index.astro.parked) until a few more exist.
+// still resolve correctly from /blog and /work pages, not just from `/`.
+//
+// "Work" is deliberately NOT in the nav. It pointed straight at the single live
+// case study, which advertised the thinness rather than the work — a nav item
+// that lands on one example reads as a section that ran out. /work/filament is
+// still live, still in the sitemap, and still linked from the case study's own
+// surfaces; it just does not get top-level billing until there are a few.
 const NAV: [string, string][] = [
   // Order tracks the page order (founder → what we do → pricing → compare → FAQ),
-  // with the two real destinations, Work and Writing, last, since they
-  // leave the homepage rather than scrolling within it.
+  // with Blog last, since it leaves the homepage rather than scrolling within it.
   ["About", "/#founder"],
   ["Pricing", "/#how-we-work"],
   ["Why us", "/#compare"],
   ["FAQ", "/#faq"],
-  ["Work", "/work/filament"],
-  ["Writing", "/blog/"],
+  ["Blog", "/blog/"],
 ];
 ---
 <header style="position:sticky;top:0;z-index:20;background:rgba(255,255,255,0.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--ink-200)">

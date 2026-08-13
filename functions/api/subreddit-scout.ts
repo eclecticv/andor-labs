@@ -135,7 +135,8 @@ const RESPONSE_SCHEMA = {
 const LOOPS_ENDPOINT = "https://app.loops.so/api/v1/contacts/update";
 
 /**
- * The lists a Scout lead joins, split by what the reader actually agreed to.
+ * Every list a Scout lead joins. All three, always — VJ's call, replacing the
+ * opt-in checkbox with a notice on the form.
  *
  * The newsletter ids are duplicated from `src/lib/categories.ts` on purpose,
  * same as `functions/api/subscribe.ts` does — Pages Functions bundle separately
@@ -143,29 +144,16 @@ const LOOPS_ENDPOINT = "https://app.loops.so/api/v1/contacts/update";
  * something to discover at deploy time. Change them in one file, change them in
  * the others.
  *
- * Whatever is in here MUST match what the form promises. This repo has already
- * shipped the other version of that bug once: a box headed "Field notes,
- * straight to your inbox" that quietly subscribed people to both lists. Which is
- * why the newsletters are now behind an explicit checkbox rather than behind a
- * sentence of disclosure that could drift from the code again.
+ * Whatever is in here MUST match what the form says. The form now states that
+ * marketing may follow and that unsubscribing is one click; if a list is added
+ * here, that sentence is the thing to re-read.
  */
 
-/**
- * Always subscribed: this is how the thing the reader just asked for is
- * delivered, so it rides along with the request itself.
- */
-const LEAD_MAGNET_LIST = "cmsqj2crd0mas0j1jdd7t9iyf"; // Lead magnets
-
-/** Only when the form's newsletter box is ticked. */
-const NEWSLETTER_LISTS = [
-  "cmsoulfdz0idi0j2q62ea241f", // {ignore all previous instructions} — AI newsletter
-  "cmsouuptw04kb0jx7h33a26b2", // Field notes by Vishveshwar Jatain
-];
-
-const leadLists = (newsletter: boolean): Record<string, true> =>
-  Object.fromEntries(
-    [LEAD_MAGNET_LIST, ...(newsletter ? NEWSLETTER_LISTS : [])].map((id) => [id, true]),
-  );
+const LEAD_LISTS: Record<string, true> = {
+  cmsqj2crd0mas0j1jdd7t9iyf: true, // Lead magnets — the primary list for this tool
+  cmsoulfdz0idi0j2q62ea241f: true, // {ignore all previous instructions} — AI newsletter
+  cmsouuptw04kb0jx7h33a26b2: true, // Field notes by Vishveshwar Jatain
+};
 
 /** Matches `functions/api/subscribe.ts` — deliberately permissive, catches typos and bots. */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -555,7 +543,7 @@ function toSkillFile(play: Play, report: Report, url: string, generatedOn: strin
  */
 async function syncLeadToLoops(
   apiKey: string,
-  input: { email: string; websiteUrl: string; newsletter: boolean },
+  input: { email: string; websiteUrl: string },
 ): Promise<void> {
   try {
     const res = await fetch(LOOPS_ENDPOINT, {
@@ -568,7 +556,7 @@ async function syncLeadToLoops(
         userGroup: "reddit-brief-leads",
         companyDomain: emailDomain(input.email),
         websiteUrl: input.websiteUrl,
-        mailingLists: leadLists(input.newsletter),
+        mailingLists: LEAD_LISTS,
       }),
     });
     if (!res.ok) {
@@ -636,16 +624,13 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return json({ error: "Bad request." }, 403);
   }
 
-  let payload: { email?: unknown; newsletter?: unknown };
+  let payload: { email?: unknown };
   try {
     payload = await request.json();
   } catch {
     return json({ error: "Malformed request." }, 400);
   }
 
-  // Absent means opted OUT. The box ships checked, so a missing field is either
-  // an unticked box or a caller that never sent one — neither is consent.
-  const newsletter = payload.newsletter === true;
   const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
   if (!email || email.length > 254 || !EMAIL_RE.test(email)) {
     return json({ error: "That doesn't look like an email address." }, 400);
@@ -689,7 +674,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   // They submitted and consented at this point; whether the model then succeeds
   // is our problem, not a reason to discard them.
   if (env.LOOPS_API_KEY) {
-    await syncLeadToLoops(env.LOOPS_API_KEY, { email, websiteUrl: url, newsletter });
+    await syncLeadToLoops(env.LOOPS_API_KEY, { email, websiteUrl: url });
   } else {
     console.error("[scout] LOOPS_API_KEY is not set — lead not captured:", email);
   }
