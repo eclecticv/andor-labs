@@ -1,0 +1,896 @@
+---
+/**
+ * Subreddit Scout — a free tool at /tools/subreddit-scout.
+ *
+ * The reader gives a work email; the domain behind it is the research input.
+ * We read that homepage, and return five target subreddits plus three portable
+ * agent SKILL.md files they can download.
+ *
+ * The page is static. Everything that needs a key runs in
+ * `functions/api/subreddit-scout.ts`, called by the script at the bottom —
+ * the same shape as SubscribeBox → /api/subscribe.
+ *
+ * Results are built by cloning the <template> elements below and filling them
+ * with textContent, never innerHTML. The brief is derived from an arbitrary
+ * third-party homepage by way of a model, so it is untrusted string data.
+ */
+import Base from "../../layouts/Base.astro";
+import SiteHeader from "../../components/sections/SiteHeader.astro";
+import SiteFooter from "../../components/sections/SiteFooter.astro";
+import SiteMotion from "../../components/SiteMotion.astro";
+import Button from "../../components/ds/Button.astro";
+import Input from "../../components/ds/Input.astro";
+import PixelIcon from "../../components/ds/PixelIcon.astro";
+import DitherLine from "../../components/ds/DitherLine.astro";
+import { BOOKING_URL, ICP_STARTUPS } from "../../config";
+
+/**
+ * Design-review shortcut. `?demo` renders a real captured brief instantly so the
+ * results section can be reviewed without spending an inference call each time.
+ * Dev only — this whole block is stripped from the production build.
+ */
+const DEMO = import.meta.env.DEV
+  ? (await import("../../lib/scout-demo")).DEMO_BRIEF
+  : null;
+
+/** Agent harnesses the generated SKILL.md files drop into unmodified. */
+const HARNESSES = ["Claude Code", "Codex", "Cursor", "Hermes", "OpenCode"];
+
+/**
+ * Progress steps, shown ONE AT A TIME in the form panel.
+ *
+ * Kept server-side so the copy is editable in place by CopyDiffer like any
+ * other text on the page, rather than being buried in the client script.
+ */
+const TICKS = [
+  "Bypassing your firewall",
+  "Decrypting what you actually sell",
+  "Infiltrating four million lurkers",
+  "Losing an argument with a mod",
+  "Smuggling it out as skill files",
+];
+---
+<Base
+  title="Subreddit Scout — And/or Labs"
+  description="A free tool that reads your site, finds the five subreddits where your buyers already are, and writes three portable agent skill files to work them. No signup beyond a work email."
+>
+  <SiteHeader />
+  <main>
+    <!-- ── Hero + form ─────────────────────────────────────────────────── -->
+    <section style="background:var(--paper);border-bottom:1px solid var(--ink-200)">
+      <div class="scout-wrap scout-hero">
+        <div class="scout-hero__copy">
+          <p class="aol-eyebrow aol-eyebrow--strong scout-kicker">free tool</p>
+          <h1 class="aol-display scout-hero__h1">DIY Reddit marketing strategy generator</h1>
+          <p class="scout-hero__lead">
+            Reddit is where buyers ask the questions they won't ask your rep. Enter your work
+            email, we'll analyze your ICP, dig up the best subreddits to target, and hand you
+            3 skill files to do the work.
+          </p>
+          <!-- Compatibility, not process. -->
+          <div class="scout-works">
+            <span class="scout-works__k">Works with</span>
+            <ul class="scout-works__list">
+              {HARNESSES.map((h) => <li class="scout-works__item">{h}</li>)}
+            </ul>
+          </div>
+        </div>
+
+        <div class="scout-hero__panel">
+          <form id="scout-form" novalidate>
+            <label class="aol-field__label" for="scout-email">Work email</label>
+            <div class="scout-form__row">
+              <Input
+                type="email"
+                id="scout-email"
+                name="email"
+                required
+                autocomplete="email"
+                placeholder="you@company.com"
+                style="flex:1 1 220px"
+              />
+              <Button type="submit" variant="primary" size="lg" arrow>Scout</Button>
+            </div>
+            <!-- ⚠️ This says "our newsletter" (singular) while LEAD_LISTS in
+                 functions/api/subreddit-scout.ts subscribes the address to TWO
+                 lists — Field notes and the AI newsletter — and will be three
+                 once the Lead Magnets list id lands. VJ's wording, applied as
+                 given; flagged because the blog's SubscribeBox carries a long
+                 comment about exactly this mismatch shipping once before. -->
+            <p class="scout-form__hint">
+              A work address, please—the domain is what we read. You'll be subscribed to
+              our newsletter. (Unsubscribe anytime.)
+            </p>
+          </form>
+
+          <!-- One line, always one line. The previous version rendered all five
+               steps at rest and dimmed the pending ones, which filled the panel
+               with grey text before anything had happened. This shows the
+               current step only, so the panel never changes height. -->
+          <p class="scout-step" id="scout-step" data-steps={JSON.stringify(TICKS)}>
+            <span class="scout-step__mark" aria-hidden="true">
+              <PixelIcon name="flag-checkered" size={12} class="scout-step__idle" />
+              <PixelIcon name="play-solid" size={12} class="scout-step__busy" />
+            </span>
+            <span id="scout-step-text">Ready to go</span>
+            <span id="scout-step-n" class="scout-step__n"></span>
+          </p>
+
+          <p id="scout-msg" class="scout-msg" role="status" aria-live="polite"></p>
+          {DEMO && <script is:inline type="application/json" id="scout-demo" set:html={JSON.stringify(DEMO)} />}
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Results ──────────────────────────────────────────────────────── -->
+    <section id="scout-results" style="background:var(--paper);border-bottom:1px solid var(--ink-200)" hidden>
+      <div class="scout-wrap">
+        <p class="aol-eyebrow aol-eyebrow--strong">what we read about you</p>
+        <p id="scout-summary" class="scout-summary"></p>
+
+        <div id="scout-partial" class="aol-callout aol-callout--warning scout-partial" hidden>
+          <div class="aol-callout__label"><span class="aol-callout__swatch"></span>Heads up</div>
+          <div class="aol-callout__body">
+            Your site blocked our reader, so this brief is inferred from your domain and public
+            metadata. It will be broader than it should be.
+          </div>
+        </div>
+
+        <dl class="scout-facts">
+          <div><dt class="aol-eyebrow">Site read</dt><dd id="scout-url"></dd></div>
+          <div><dt class="aol-eyebrow">Who you sell to</dt><dd id="scout-audience"></dd></div>
+          <div><dt class="aol-eyebrow">Category</dt><dd id="scout-category"></dd></div>
+        </dl>
+
+        <DitherLine height={14} style="margin:var(--space-12) 0 var(--space-10)" />
+
+        <!-- Eyebrow + display h2, the same construction as Capabilities, Offers
+             and Compare. The eyebrow alone was doing a heading's job in mono at
+             11px, which read as a caption rather than as the start of a section. -->
+        <p class="aol-eyebrow">the five subreddits</p>
+        <h2 class="aol-display scout-h2">Where your buyers are already talking.</h2>
+        <p class="scout-lead">
+          Ordered by audience, biggest room first — the card size follows the member count,
+          not the priority. Read the rules before you post anywhere: every one of these
+          communities will remove a pitch faster than it will remove a bad take.
+        </p>
+        <ol id="scout-subs" class="scout-subs"></ol>
+
+        <DitherLine height={14} style="margin:var(--space-12) 0 var(--space-10)" />
+
+        <p class="aol-eyebrow">three agent skill files</p>
+        <h2 class="aol-display scout-h2">Three plays, ready to run.</h2>
+        <p class="scout-lead">
+          Each one is a portable <code>SKILL.md</code>. Drop it into Claude Code, Codex, Cursor,
+          or paste it into a plain chat. Every play keeps a human in the loop — the agent
+          researches and drafts, you review and post.
+        </p>
+        <div id="scout-plays" class="scout-plays"></div>
+      </div>
+    </section>
+
+    <!-- ── CTA ──────────────────────────────────────────────────────────── -->
+    <section class="aol-grid-blue">
+      <div class="scout-cta">
+        <h2 class="scout-cta__h">Want the whole go-to-market, not just Reddit?</h2>
+        <p class="scout-cta__b">
+          We build positioning, market intelligence and autonomous growth systems for {ICP_STARTUPS}.
+        </p>
+        <Button size="lg" variant="primary" arrow href={BOOKING_URL} target="_blank" rel="noopener">Book a call</Button>
+      </div>
+    </section>
+
+    <!-- ── Templates. Cloned and filled with textContent. ──────────────── -->
+    <!-- The `data-tier` attribute is set by the script from the subreddit's rank
+         by member count. It drives BOTH the ground colour and the bento span, so
+         the loudest card is always the biggest room. -->
+    <template id="tpl-sub">
+      <li class="scout-sub">
+        <div class="scout-sub__head">
+          <h3 class="scout-sub__name" data-f="name"></h3>
+          <span class="aol-badge scout-sub__size" data-f="size"></span>
+        </div>
+        <dl class="scout-sub__grid">
+          <div><dt class="aol-eyebrow aol-eyebrow--strong">Why it fits</dt><dd data-f="fit"></dd></div>
+          <div><dt class="aol-eyebrow aol-eyebrow--strong">What it rewards</dt><dd data-f="rewards"></dd></div>
+          <div><dt class="aol-eyebrow aol-eyebrow--strong">Rules to respect</dt><dd data-f="rules"></dd></div>
+        </dl>
+        <!-- The one actionable field, so it gets the only blue on the card. Blue
+             is the signal colour and it means "do this"; the other three fields
+             are context and stay in body ink. -->
+        <div class="scout-sub__act">
+          <p class="aol-eyebrow scout-sub__act-k">First post angle</p>
+          <p class="scout-sub__act-v" data-f="firstPost"></p>
+        </div>
+      </li>
+    </template>
+
+    <!-- Collapsed by default. The procedure, inputs, guardrails and metrics are
+         all IN the SKILL.md the reader is about to download, so printing them on
+         the card ahead of the download made three ~900px walls of text and buried
+         the button that matters. Everything is still one click away. -->
+    <template id="tpl-play">
+      <article class="scout-play">
+        <div class="scout-play__bar">
+          <span class="aol-badge aol-badge--tint aol-badge--verbatim" data-f="filename"></span>
+          <span class="aol-badge aol-badge--outline" data-f="cadence"></span>
+        </div>
+        <h3 class="scout-play__title aol-display" data-f="title"></h3>
+        <p class="scout-play__goal" data-f="goal"></p>
+
+        <div class="scout-play__cta">
+          <Button variant="primary" size="md" fullWidth arrow data-act="download">Download skill</Button>
+          <Button variant="ghost" size="sm" fullWidth data-act="copy">Copy to clipboard</Button>
+        </div>
+
+        <details class="scout-play__more">
+          <summary class="scout-play__summary">What the agent does</summary>
+          <div class="scout-play__body">
+            <p class="aol-eyebrow aol-eyebrow--strong">Procedure</p>
+            <ol class="scout-play__steps" data-list="steps"></ol>
+            <p class="aol-eyebrow aol-eyebrow--strong">You provide</p>
+            <ul class="scout-play__ul" data-list="inputs"></ul>
+            <p class="aol-eyebrow aol-eyebrow--strong">Guardrails</p>
+            <ul class="scout-play__ul" data-list="guardrails"></ul>
+            <dl class="scout-play__meta">
+              <div><dt class="aol-eyebrow">Output</dt><dd data-f="output"></dd></div>
+              <div><dt class="aol-eyebrow">Measure</dt><dd data-f="measure"></dd></div>
+            </dl>
+          </div>
+        </details>
+      </article>
+    </template>
+  </main>
+  <SiteFooter />
+  <SiteMotion />
+</Base>
+
+<style>
+  .scout-wrap {
+    max-width: var(--container-width);
+    margin: 0 auto;
+    padding: var(--section-pad-y) var(--gutter);
+  }
+  /* 96px rather than the standard 80px --section-pad-y. The hero needs more air
+     than a mid-page section, but NOT the homepage's full-viewport treatment —
+     that pushed the form below the fold on a page whose whole point is the form. */
+  .scout-hero { padding-block: var(--space-24); }
+
+  /* ── Hero ─────────────────────────────────────────────────────────────── */
+  /* `center`, not `start`: the left column is the taller of the two and sets the
+     row height, so a top-aligned panel hangs high against it. Centering sits the
+     form on the copy's optical midline. Below 881px this is a single column and
+     each row sizes to its own content, so it has no effect there. */
+  .scout-hero { display: grid; gap: var(--space-12); align-items: center; }
+  @media (min-width: 881px) {
+    .scout-hero { grid-template-columns: 1.05fr 1fr; gap: var(--space-16); }
+  }
+  /* Fixed 42px / 1.18, matching Hero.astro. The house pins display type rather
+     than clamping it, and a free tool should not out-shout the homepage h1. */
+  .scout-hero__h1 {
+    font-size: 42px;
+    line-height: 1.18;
+    color: var(--ink-900);
+    margin: var(--space-4) 0 var(--space-6);
+    max-width: 18ch;
+  }
+  .scout-hero__lead {
+    font-family: var(--font-serif);
+    font-size: var(--text-md);
+    line-height: var(--leading-relaxed);
+    color: var(--text-body);
+    margin: 0;
+    max-width: 52ch;
+  }
+
+  .scout-kicker { display: block; }
+
+  /* Label + marks. Same "mono label, values beside it" construction as the
+     homepage credibility strip, but each value can carry its logo. */
+  .scout-works { margin-top: var(--space-8); }
+  .scout-works__k {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: var(--space-3);
+  }
+  .scout-works__list {
+    list-style: none; margin: 0; padding: 0;
+    display: flex; flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+  }
+  .scout-works__item {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-mono);
+    color: var(--ink-800);
+  }
+
+  .scout-hero__panel {
+    border: var(--border-width) solid var(--ink-900);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-hard);
+    background: var(--surface-warm);
+    padding: var(--space-8) var(--space-6) var(--space-6);
+  }
+  .scout-form__row {
+    display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center;
+    margin-top: var(--space-2);
+  }
+  /* Visibly inert while a run is in flight, but still there — the reader can
+     see the address they submitted the whole time. */
+  form[data-busy] { opacity: 0.55; transition: opacity var(--dur-base) var(--ease-out); }
+  .scout-form__hint {
+    font-family: var(--font-serif);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    /* ink on the warm surface, never white — white on pink fails contrast. */
+    color: var(--text-on-warm-muted);
+    margin: var(--space-4) 0 0;
+    max-width: 44ch;
+  }
+
+  /* Fixed-height single row. The box is hollow at rest and fills while a run
+     is in flight, so the resting state reads as "waiting for you" rather than
+     as five unfinished tasks. */
+  .scout-step {
+    display: flex; align-items: center; gap: var(--space-3);
+    margin: var(--space-5) 0 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-mono);
+    color: var(--text-on-warm-muted);
+  }
+  /* Checkered flag at rest, solid play while running. Solid is the only weight
+     the design system lets take blue, and it is reserved for active states —
+     which is exactly what this is. 12px = --icon-sm, on the 24px grid. */
+  .scout-step__mark { display: flex; flex: none; color: var(--ink-500); }
+  .scout-step__busy { display: none; }
+  .scout-step[data-state="busy"] { color: var(--text-on-warm); }
+  .scout-step[data-state="busy"] .scout-step__mark { color: var(--blue-500); }
+  .scout-step[data-state="busy"] .scout-step__idle { display: none; }
+  .scout-step[data-state="busy"] .scout-step__busy { display: block; }
+  .scout-step__n {
+    margin-left: auto;
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .scout-msg {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-mono);
+    color: var(--blue-700);
+    margin: var(--space-4) 0 0;
+    min-height: 1.2em;
+  }
+  .scout-msg[data-error] { color: var(--red-600); }
+
+  /* ── Results ──────────────────────────────────────────────────────────── */
+  /* Full section width. This was capped at 34ch, which set a four-sentence
+     summary as a tall narrow column with the full-width facts row running under
+     it — the section read as two unrelated layouts stacked. Uncapped it needs a
+     smaller top end (32px, not 36px) or the measure runs past comfortable. */
+  .scout-summary {
+    font-family: var(--font-display);
+    font-weight: var(--weight-regular);
+    font-size: clamp(24px, 2.6vw, 32px);
+    line-height: var(--leading-snug);
+    letter-spacing: var(--tracking-tight);
+    color: var(--ink-900);
+    margin: var(--space-4) 0 var(--space-8);
+    max-width: none;
+  }
+  .scout-partial { margin-bottom: var(--space-8); }
+
+  /* Section heads inside the results. 36px sits under the homepage's 40px h2 and
+     under this page's own 42px h1 — a results subsection should not out-shout
+     either. */
+  /* No measure cap on either of these. A 24ch heading broke "Where your buyers
+     are already talking." across three lines in a 1152px container, and a 62ch
+     lead left half the row empty — both read as accidents rather than as a
+     narrow column, because nothing else in the section is narrow. */
+  .scout-h2 {
+    font-size: 36px;
+    color: var(--ink-900);
+    margin: var(--space-3) 0 var(--space-4);
+  }
+  .scout-lead {
+    font-family: var(--font-serif);
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+    color: var(--text-muted);
+    margin: 0 0 var(--space-8);
+  }
+  .scout-lead code {
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+    background: var(--ink-050);
+    padding: 1px 5px;
+    border-radius: var(--radius-xs);
+  }
+
+  /* A ruled meta band rather than three fields floating in the section. Three
+     one-line values were sitting in ~73px rows with open space all round, so the
+     block read as a large empty area with small content in it; the hairlines and
+     the tighter type make the space deliberate and roughly halve the height. */
+  .scout-facts {
+    display: grid; gap: var(--space-5); margin: 0;
+    padding: var(--space-4) 0;
+    border-top: 1px solid var(--ink-200);
+    border-bottom: 1px solid var(--ink-200);
+  }
+  @media (min-width: 821px) {
+    .scout-facts { grid-template-columns: repeat(3, 1fr); gap: var(--space-8); }
+    /* Column rules, drawn only between columns — a leading hairline on the first
+       cell would double the container's left edge. */
+    .scout-facts > div + div {
+      padding-left: var(--space-8);
+      border-left: 1px solid var(--ink-100);
+    }
+  }
+  .scout-facts dt { margin-bottom: 2px; }
+  .scout-facts dd {
+    font-family: var(--font-serif);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    color: var(--text-body);
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* ── Subreddits: a bento keyed to audience size ───────────────────────────
+     Twelve columns so five cards resolve into two full rows: 7+5, then 4+4+4.
+     Any other count falls back to the span-4 default and still fills — three per
+     row, with a short last row. `[data-n]` is written by the script. */
+  .scout-subs { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-4); }
+  @media (min-width: 641px) {
+    .scout-subs { grid-template-columns: repeat(2, 1fr); }
+    .scout-subs[data-n="5"] > .scout-sub:nth-child(1) { grid-column: 1 / -1; }
+  }
+  @media (min-width: 981px) {
+    .scout-subs { grid-template-columns: repeat(12, 1fr); gap: var(--space-5); }
+    .scout-sub { grid-column: span 4; }
+    .scout-subs[data-n="5"] > .scout-sub:nth-child(1) { grid-column: span 7; }
+    .scout-subs[data-n="5"] > .scout-sub:nth-child(2) { grid-column: span 5; }
+  }
+
+  /* One ground for every card — warm pink — with emphasis carried by white panels
+     INSIDE it rather than by three competing card colours. The featured card is
+     still marked, but by weight (full ink border + hard offset) rather than by a
+     fourth background, so the section reads as one material throughout. */
+  .scout-sub {
+    display: flex; flex-direction: column; gap: var(--space-4);
+    background: var(--surface-warm);
+    border: 1px solid var(--border-warm);
+    border-radius: var(--radius-md);
+    padding: var(--space-5);
+  }
+  .scout-sub[data-tier="lg"] {
+    border: 1.5px solid var(--ink-900);
+    box-shadow: var(--shadow-hard);
+    padding: var(--space-6);
+  }
+
+  .scout-sub__head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: var(--space-3); flex-wrap: wrap;
+  }
+  .scout-sub__name {
+    font-family: var(--font-mono);
+    font-size: var(--text-base);
+    color: var(--ink-900);
+    margin: 0;
+  }
+  .scout-sub[data-tier="lg"] .scout-sub__name { font-size: var(--text-lg); }
+
+  /* .aol-badge supplies the chrome; this only re-grounds it. White chip on the
+     pink card — the first of the two inside highlights. */
+  .scout-sub__size {
+    background: var(--paper-pure);
+    color: var(--ink-900);
+    border-color: var(--border-warm);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .scout-sub__grid { display: grid; gap: var(--space-3); margin: 0; }
+  /* Only the featured card is wide enough to column its blurbs, and how wide it
+     is depends on the viewport — auto-fit lets it drop 3 → 2 → 1 on its own
+     rather than holding three 22ch columns at the narrow end of the breakpoint. */
+  .scout-sub[data-tier="lg"] .scout-sub__grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-5);
+  }
+  /* "Bolded" the only way Departure Mono allows: it ships 400 only, and faux-bold
+     blurs its pixel grid, so the house convention is full ink contrast instead of
+     weight — the same trade .aol-eyebrow--strong makes. */
+  .scout-sub__grid dt { margin-bottom: 2px; color: var(--text-on-warm); }
+  .scout-sub__grid dd {
+    font-family: var(--font-serif);
+    font-size: var(--text-sm);
+    /* 1.4, not 1.62 — these are three short blurbs in a card, not a reading
+       column, and the relaxed leading was most of the old card's height. */
+    line-height: var(--leading-normal);
+    color: var(--text-body);
+    margin: 0;
+  }
+
+  /* The second inside highlight, on the only field that asks for an action. White
+     panel for the lift, blue label because blue is the signal colour and this is
+     the one "do this" on the card. `margin-top:auto` floors it, so the white
+     panels line up across a bento row however unevenly the blurbs above wrap. */
+  .scout-sub__act {
+    margin-top: auto;
+    background: var(--paper-pure);
+    border: 1px solid var(--border-warm);
+    border-radius: var(--radius-sm);
+    padding: var(--space-3) var(--space-4);
+  }
+  .scout-sub__act-k { margin: 0 0 2px; color: var(--blue-700); }
+  .scout-sub__act-v {
+    font-family: var(--font-serif);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    color: var(--ink-900);
+    margin: 0;
+  }
+
+  /* ── Skill files: three scannable cards, CTA first ────────────────────────
+     Three across at desktop instead of three stacked full-width slabs. Each card
+     collapses to roughly the height of its own title + goal + buttons, so the
+     whole section is one screen and the three skills can be compared. */
+  .scout-plays { display: grid; gap: var(--space-5); }
+  @media (min-width: 981px) {
+    .scout-plays { grid-template-columns: repeat(3, 1fr); align-items: start; }
+  }
+  /* Warm ground under a full ink border and a hard offset — the .aol-quote--featured
+     construction. The subreddit bento above uses paper for its loudest card, so
+     the plays taking the warm one keeps the two sections legibly separate. */
+  .scout-play {
+    display: flex; flex-direction: column;
+    background: var(--surface-warm);
+    border: 1.5px solid var(--ink-900);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-hard);
+    padding: var(--space-6);
+  }
+  .scout-play__bar { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+  .scout-play__title {
+    font-size: var(--text-lg);
+    color: var(--ink-900);
+    margin: var(--space-4) 0 var(--space-2);
+  }
+  .scout-play__goal {
+    font-family: var(--font-serif);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--text-on-warm-muted);
+    margin: 0 0 var(--space-5);
+  }
+  /* The download IS the product, so it gets the primary treatment at full width
+     rather than a small secondary button in the corner. `margin-top:auto` floors
+     the pair, so all three cards' buttons align however the titles wrap. */
+  .scout-play__cta { margin-top: auto; display: grid; gap: var(--space-2); }
+
+  .scout-play__more { margin-top: var(--space-5); border-top: 1px dotted var(--border-warm); }
+  .scout-play__summary {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--space-3);
+    padding-top: var(--space-4);
+    cursor: pointer;
+    list-style: none;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-mono);
+    color: var(--copper-700);
+  }
+  /* Safari draws its own disclosure triangle unless this is removed. */
+  .scout-play__summary::-webkit-details-marker { display: none; }
+  .scout-play__summary:hover { color: var(--ink-900); }
+  .scout-play__summary:focus-visible { outline: 2px solid var(--blue-500); outline-offset: 3px; }
+  /* Content, not markup, so `open` can swap it without touching the DOM. */
+  .scout-play__summary::after {
+    content: "+";
+    font-family: var(--font-mono);
+    font-size: var(--text-base);
+    line-height: 1;
+    color: var(--copper-600);
+  }
+  .scout-play__more[open] .scout-play__summary::after { content: "\2212"; }
+
+  .scout-play__body { padding-top: var(--space-4); }
+  .scout-play__body p.aol-eyebrow { margin: var(--space-5) 0 var(--space-2); }
+  .scout-play__body > p.aol-eyebrow:first-child { margin-top: 0; }
+  .scout-play__steps { display: grid; gap: var(--space-2); margin: 0; padding-left: 1.3em; }
+  .scout-play__steps li {
+    font-family: var(--font-serif);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    color: var(--text-on-warm);
+  }
+  .scout-play__steps li::marker {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: var(--blue-600);
+  }
+  .scout-play__ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+  .scout-play__ul li {
+    font-family: var(--font-serif);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    color: var(--text-on-warm);
+    padding-left: 1.1em;
+    position: relative;
+  }
+  .scout-play__ul li::before {
+    content: "\2192";
+    position: absolute; left: 0;
+    font-family: var(--font-mono);
+    color: var(--blue-500);
+  }
+  .scout-play__meta {
+    display: grid; gap: var(--space-3); margin: var(--space-5) 0 0;
+    padding-top: var(--space-4);
+    border-top: 1px dotted var(--border-warm);
+  }
+  .scout-play__meta dt { margin-bottom: 2px; color: var(--copper-700); }
+  .scout-play__meta dd {
+    font-family: var(--font-serif);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    color: var(--text-on-warm);
+    margin: 0;
+  }
+
+  /* ── CTA ──────────────────────────────────────────────────────────────── */
+  .scout-cta {
+    max-width: var(--content-width);
+    margin: 0 auto;
+    padding: var(--section-pad-y) var(--gutter);
+    text-align: center;
+  }
+  .scout-cta__h {
+    font-family: var(--font-serif);
+    font-weight: var(--weight-semibold);
+    font-size: 26px;
+    color: var(--ink-900);
+    margin: 0 0 var(--space-3);
+  }
+  .scout-cta__b {
+    font-family: var(--font-serif);
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+    color: var(--text-muted);
+    margin: 0 0 var(--space-6);
+  }
+</style>
+
+<script>
+  import type { ScoutResponse, Report, SkillFile } from "../../lib/scout";
+
+  const form = document.getElementById("scout-form") as HTMLFormElement | null;
+  const input = document.getElementById("scout-email") as HTMLInputElement | null;
+  const msg = document.getElementById("scout-msg");
+  const step = document.getElementById("scout-step");
+  const stepText = document.getElementById("scout-step-text");
+  const stepN = document.getElementById("scout-step-n");
+  const results = document.getElementById("scout-results");
+
+  if (form && input && msg && step && stepText && stepN && results) {
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    const STEPS: string[] = JSON.parse(step.dataset.steps ?? "[]");
+    let timer: number | undefined;
+
+    const say = (text: string, isError = false) => {
+      msg.textContent = text;
+      if (isError) msg.setAttribute("data-error", "");
+      else msg.removeAttribute("data-error");
+    };
+
+    const IDLE = "Ready to go";
+
+    /** Grey the form out for the duration of a run without removing it. */
+    const setFormEnabled = (on: boolean) => {
+      if (button) button.disabled = !on;
+      input.disabled = !on;
+      form.toggleAttribute("data-busy", !on);
+    };
+
+    /**
+     * Walk the steps, one line at a time.
+     *
+     * There is a single request and a single response, so none of this is real
+     * progress — it is a pacing device. Showing one line rather than a
+     * five-row checklist keeps the panel a fixed height and stops the resting
+     * state being a wall of greyed-out future steps.
+     *
+     * A run is ~9s and there are five steps, so ~1.7s each lands the last one
+     * roughly as the response does. It HOLDS on the final step rather than
+     * ticking everything complete: completion is the brief arriving, and
+     * claiming it early is a lie the reader can see through.
+     */
+    const runSteps = () => {
+      let i = 0;
+      const paint = () => {
+        step.dataset.state = "busy";
+        stepText.textContent = STEPS[i] ?? IDLE;
+        stepN.textContent = `${String(i + 1).padStart(2, "0")}/${String(STEPS.length).padStart(2, "0")}`;
+      };
+      paint();
+      timer = window.setInterval(() => {
+        if (i >= STEPS.length - 1) return;
+        i += 1;
+        paint();
+      }, 1700);
+    };
+
+    const stopSteps = () => {
+      if (timer) window.clearInterval(timer);
+      timer = undefined;
+      delete step.dataset.state;
+      stepText.textContent = IDLE;
+      stepN.textContent = "";
+    };
+
+    /**
+     * "~250k members" → 250000. The field is free prose written by a model, so
+     * this is deliberately forgiving: anything it cannot read sorts to 0 and
+     * lands in the quiet tier rather than throwing the bento off.
+     *
+     * The `(?![a-z])` matters. Without it the optional unit in "1,200,000
+     * members" matches the M of "members" and the count comes out a million
+     * times too big; the lookahead forces a backtrack to no unit at all.
+     */
+    const members = (size: string): number => {
+      const m = /(\d[\d.,]*)\s?([km])?(?![a-z])/i.exec(size);
+      if (!m) return 0;
+      const n = Number.parseFloat(m[1].replace(/,/g, ""));
+      if (!Number.isFinite(n)) return 0;
+      const unit = m[2]?.toLowerCase();
+      return unit === "m" ? n * 1e6 : unit === "k" ? n * 1e3 : n;
+    };
+
+    /** Fill every [data-f] in a cloned fragment. textContent only — this data is untrusted. */
+    const fill = (root: ParentNode, values: Record<string, string>) => {
+      root.querySelectorAll<HTMLElement>("[data-f]").forEach((el) => {
+        el.textContent = values[el.dataset.f ?? ""] ?? "";
+      });
+    };
+
+    const fillList = (root: ParentNode, key: string, items: string[]) => {
+      const host = root.querySelector<HTMLElement>(`[data-list="${key}"]`);
+      if (!host) return;
+      host.replaceChildren(
+        ...items.map((text) => {
+          const li = document.createElement("li");
+          li.textContent = text;
+          return li;
+        }),
+      );
+    };
+
+    const download = (file: SkillFile) => {
+      const url = URL.createObjectURL(new Blob([file.body], { type: "text/markdown" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = file.filename;
+      a.click();
+      // Revoking immediately can race the download in Safari; one tick is enough.
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+
+    const render = (report: Report, url: string, partial: boolean, files: SkillFile[]) => {
+      const set = (id: string, text: string) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+      };
+      set("scout-summary", report.businessSummary);
+      set("scout-url", url.replace(/^https?:\/\//, "").replace(/\/$/, ""));
+      set("scout-audience", report.audience);
+      set("scout-category", report.category);
+      document.getElementById("scout-partial")!.hidden = !partial;
+
+      const subTpl = document.getElementById("tpl-sub") as HTMLTemplateElement;
+      const subs = document.getElementById("scout-subs")!;
+      // Biggest room first. Both the bento span and the card's ground colour are
+      // keyed off this order, so a card's visual weight always tracks the size of
+      // the audience behind it — which is the only thing the ordering claims.
+      const ranked = [...report.subreddits].sort((a, b) => members(b.size) - members(a.size));
+      subs.dataset.n = String(ranked.length);
+      subs.replaceChildren(
+        ...ranked.map((s, i) => {
+          const node = subTpl.content.cloneNode(true) as DocumentFragment;
+          // Tier by RANK, not by an absolute member threshold. A business whose
+          // whole ICP lives in 20k-member niches would otherwise get five
+          // identical grey cards and no hierarchy at all.
+          const li = node.querySelector<HTMLElement>(".scout-sub");
+          if (li) li.dataset.tier = i === 0 ? "lg" : i < 3 ? "md" : "sm";
+          fill(node, s as unknown as Record<string, string>);
+          return node;
+        }),
+      );
+
+      const playTpl = document.getElementById("tpl-play") as HTMLTemplateElement;
+      const plays = document.getElementById("scout-plays")!;
+      plays.replaceChildren(
+        ...report.plays.map((p, i) => {
+          const node = playTpl.content.cloneNode(true) as DocumentFragment;
+          fill(node, { ...p, filename: files[i]?.filename ?? `${p.skillName}.SKILL.md` } as unknown as Record<string, string>);
+          fillList(node, "steps", p.steps);
+          fillList(node, "inputs", p.inputs);
+          fillList(node, "guardrails", p.guardrails);
+
+          const file = files[i];
+          if (file) {
+            node.querySelector<HTMLButtonElement>('[data-act="download"]')
+              ?.addEventListener("click", () => download(file));
+            const copy = node.querySelector<HTMLButtonElement>('[data-act="copy"]');
+            copy?.addEventListener("click", async () => {
+              try {
+                await navigator.clipboard.writeText(file.body);
+                copy.textContent = "Copied";
+                setTimeout(() => { copy.textContent = "Copy"; }, 1600);
+              } catch {
+                say("Couldn't reach the clipboard — use Download instead.", true);
+              }
+            });
+          }
+          return node;
+        }),
+      );
+
+      results.hidden = false;
+      results.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = input.value.trim();
+
+      // Answer an obvious typo here rather than spending a round trip on it.
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+        say("That doesn't look like an email address.", true);
+        input.focus();
+        return;
+      }
+
+      // The form STAYS VISIBLE — disabled, not hidden. Swapping it out mid-run
+      // moved the panel's contents under the reader and lost sight of the
+      // address they had just typed.
+      setFormEnabled(false);
+      say("This takes about half a minute.");
+      runSteps();
+
+      try {
+        const res = await fetch("/api/subreddit-scout", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const body = (await res.json().catch(() => ({}))) as ScoutResponse;
+
+        if (res.ok && "ok" in body && body.ok) {
+          say("");
+          render(body.report, body.url, body.partial, body.skillFiles);
+        } else {
+          say(("error" in body && body.error) || "That didn't go through. Try again?", true);
+        }
+      } catch {
+        say("Network trouble — try again in a moment.", true);
+      } finally {
+        stopSteps();
+        setFormEnabled(true);
+      }
+    });
+
+    // ?demo — dev only; the fixture element only exists in a dev build.
+    const demoEl = document.getElementById("scout-demo");
+    if (demoEl && new URLSearchParams(location.search).has("demo")) {
+      const d = JSON.parse(demoEl.textContent ?? "{}");
+      render(d.report, d.url, d.partial, d.skillFiles);
+    }
+  }
+</script>
