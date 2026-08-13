@@ -50,9 +50,21 @@ const TICKS = [
   "Smuggling it out as skill files",
 ];
 ---
+{/*
+  Meta is tuned for search, not for the brand. The old title led with the product
+  name and closed with "And/or Labs", which spends the whole 60-character budget
+  on two things nobody searches for; og:site_name already carries the brand, and
+  Google appends it to the SERP title anyway. "free" stays because it is the
+  strongest CTR word available to a lead magnet and it is true.
+
+  The description was 199 characters — Google truncates around 158, so the last
+  clause ("No signup beyond a work email") was never being shown to anyone.
+*/}
 <Base
-  title="Subreddit Scout — And/or Labs"
-  description="A free tool that reads your site, finds the five subreddits where your buyers already are, and writes three portable agent skill files to work them. No signup beyond a work email."
+  title="Subreddit Scout — free Reddit marketing strategy generator"
+  description="Enter a work email. We read your site, name the five subreddits where your buyers already post, and write three portable agent skill files to work them."
+  ogImage="/og-subreddit-scout.png"
+  ogImageAlt="Subreddit Scout — a free And/or Labs tool that finds the five subreddits where your buyers already are and writes three agent skill files to work them."
 >
   <SiteHeader />
   <main>
@@ -190,18 +202,33 @@ const TICKS = [
           <h3 class="scout-sub__name" data-f="name"></h3>
           <span class="aol-badge scout-sub__size" data-f="size"></span>
         </div>
-        <dl class="scout-sub__grid">
-          <div><dt class="aol-eyebrow aol-eyebrow--strong">Why it fits</dt><dd data-f="fit"></dd></div>
-          <div><dt class="aol-eyebrow aol-eyebrow--strong">What it rewards</dt><dd data-f="rewards"></dd></div>
-          <div><dt class="aol-eyebrow aol-eyebrow--strong">Rules to respect</dt><dd data-f="rules"></dd></div>
-        </dl>
-        <!-- The one actionable field, so it gets the only blue on the card. Blue
-             is the signal colour and it means "do this"; the other three fields
-             are context and stay in body ink. -->
-        <div class="scout-sub__act">
-          <p class="aol-eyebrow scout-sub__act-k">First post angle</p>
-          <p class="scout-sub__act-v" data-f="firstPost"></p>
-        </div>
+        <!-- Three points, each a white panel on the pink card, running why → how →
+             what: why this room is on your list, how the room wants to be written
+             for, and the thing to actually post.
+
+             `rules` is the field that got dropped. It reads as sub-specific but
+             almost never is — "9:1 value ratio, karma gate, no links in comments"
+             is close to universal, so it spent a third of every card telling the
+             reader the same thing five times. It is still generated, and now goes
+             where it is actually load-bearing: into the SKILL.md context, where
+             the drafting agent reads it.
+
+             Numbers come from a CSS counter rather than markup, so they stay
+             decorative and the <ol> does not announce each item twice. -->
+        <ol class="scout-sub__pts">
+          <li class="scout-sub__pt">
+            <p class="scout-sub__pt-k">Why it fits</p>
+            <p class="scout-sub__pt-v" data-f="fit"></p>
+          </li>
+          <li class="scout-sub__pt">
+            <p class="scout-sub__pt-k">What it rewards</p>
+            <p class="scout-sub__pt-v" data-f="rewards"></p>
+          </li>
+          <li class="scout-sub__pt">
+            <p class="scout-sub__pt-k">First post angle</p>
+            <p class="scout-sub__pt-v" data-f="firstPost"></p>
+          </li>
+        </ol>
       </li>
     </template>
 
@@ -425,12 +452,6 @@ const TICKS = [
   }
   @media (min-width: 821px) {
     .scout-facts { grid-template-columns: repeat(3, 1fr); gap: var(--space-8); }
-    /* Column rules, drawn only between columns — a leading hairline on the first
-       cell would double the container's left edge. */
-    .scout-facts > div + div {
-      padding-left: var(--space-8);
-      border-left: 1px solid var(--ink-100);
-    }
   }
   .scout-facts dt { margin-bottom: 2px; }
   .scout-facts dd {
@@ -496,43 +517,51 @@ const TICKS = [
     font-variant-numeric: tabular-nums;
   }
 
-  .scout-sub__grid { display: grid; gap: var(--space-3); margin: 0; }
-  /* Only the featured card is wide enough to column its blurbs, and how wide it
+  /* Three white panels on the pink card — the inside highlights. */
+  .scout-sub__pts {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; gap: var(--space-3);
+    counter-reset: pt;
+  }
+  /* Only the featured card is wide enough to column its panels, and how wide it
      is depends on the viewport — auto-fit lets it drop 3 → 2 → 1 on its own
      rather than holding three 22ch columns at the narrow end of the breakpoint. */
-  .scout-sub[data-tier="lg"] .scout-sub__grid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: var(--space-5);
+  .scout-sub[data-tier="lg"] .scout-sub__pts {
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: var(--space-4);
   }
-  /* "Bolded" the only way Departure Mono allows: it ships 400 only, and faux-bold
-     blurs its pixel grid, so the house convention is full ink contrast instead of
-     weight — the same trade .aol-eyebrow--strong makes. */
-  .scout-sub__grid dt { margin-bottom: 2px; color: var(--text-on-warm); }
-  .scout-sub__grid dd {
-    font-family: var(--font-serif);
-    font-size: var(--text-sm);
-    /* 1.4, not 1.62 — these are three short blurbs in a card, not a reading
-       column, and the relaxed leading was most of the old card's height. */
-    line-height: var(--leading-normal);
-    color: var(--text-body);
-    margin: 0;
-  }
-
-  /* The second inside highlight, on the only field that asks for an action. White
-     panel for the lift, blue label because blue is the signal colour and this is
-     the one "do this" on the card. `margin-top:auto` floors it, so the white
-     panels line up across a bento row however unevenly the blurbs above wrap. */
-  .scout-sub__act {
-    margin-top: auto;
+  .scout-sub__pt {
+    counter-increment: pt;
     background: var(--paper-pure);
     border: 1px solid var(--border-warm);
     border-radius: var(--radius-sm);
     padding: var(--space-3) var(--space-4);
   }
-  .scout-sub__act-k { margin: 0 0 2px; color: var(--blue-700); }
-  .scout-sub__act-v {
+  /* "Bolded" the only way Departure Mono allows: it ships 400 only, and faux-bold
+     blurs its pixel grid, so the house convention is full ink contrast instead of
+     weight — the same trade .aol-eyebrow--strong makes. */
+  .scout-sub__pt-k {
+    display: flex; align-items: baseline; gap: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--ink-900);
+    margin: 0 0 3px;
+  }
+  /* decimal-leading-zero gives 01/02/03 without putting the digits in the markup,
+     so the number stays presentational. Blue because it is the one signal mark
+     the panel carries. */
+  .scout-sub__pt-k::before {
+    content: counter(pt, decimal-leading-zero);
+    color: var(--blue-500);
+    font-variant-numeric: tabular-nums;
+  }
+  .scout-sub__pt-v {
     font-family: var(--font-serif);
     font-size: var(--text-sm);
+    /* 1.4, not 1.62 — these are short blurbs in a card, not a reading column,
+       and the relaxed leading was most of the old card's height. */
     line-height: var(--leading-normal);
     color: var(--ink-900);
     margin: 0;

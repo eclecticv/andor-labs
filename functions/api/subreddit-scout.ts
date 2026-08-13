@@ -466,6 +466,14 @@ function toSkillFile(play: Play, report: Report, url: string, generatedOn: strin
     // it was generated in. Dating it lets a reader judge staleness themselves.
     `- Brief generated: ${generatedOn} by Subreddit Scout (andorlabs.ca)`,
     "",
+    // The per-subreddit rules used to be shown on the results page and nowhere
+    // else, which had it backwards: the reader skims those five paragraphs once,
+    // while the AGENT drafting a post needs them every single run. An agent that
+    // does not know r/startups gates link posts on karma will cheerfully draft
+    // one that gets removed.
+    "## House rules per subreddit (respect these when drafting)",
+    ...report.subreddits.map((s) => `- ${s.name}: ${s.rules}`),
+    "",
     "## Goal",
     play.goal,
     "",
