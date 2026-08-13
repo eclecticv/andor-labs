@@ -23,6 +23,28 @@ import Input from "../../components/ds/Input.astro";
 import PixelIcon from "../../components/ds/PixelIcon.astro";
 import DitherLine from "../../components/ds/DitherLine.astro";
 import { BOOKING_URL, ICP_STARTUPS } from "../../config";
+import { SUBSCRIBABLE } from "../../lib/categories";
+
+/**
+ * The consent line names the lists instead of saying "our newsletter".
+ *
+ * It said the singular while `LEAD_LISTS` in functions/api/subreddit-scout.ts
+ * subscribed the address to two — the same mismatch the blog's SubscribeBox
+ * shipped once already. Rather than hand-correct the number and wait for it to
+ * rot again when the third list lands, the sentence is generated from
+ * SUBSCRIBABLE, which is the same closed set the ids in `LEAD_LISTS` come from.
+ * Add a list to categories.ts and this sentence updates itself.
+ *
+ * ⚠️ The one thing still manual: `LEAD_LISTS` repeats the ids literally, because
+ * Pages Functions are bundled separately from the Astro build and an import
+ * across that boundary is not something to discover at deploy time. If you add a
+ * list there, add it here.
+ */
+const LIST_NAMES = SUBSCRIBABLE.map((c) => c.labelShort);
+const CONSENT =
+  LIST_NAMES.length === 1
+    ? `our ${LIST_NAMES[0]} newsletter`
+    : `our newsletters: ${LIST_NAMES.slice(0, -1).join(", ")} and ${LIST_NAMES.at(-1)}`;
 
 /**
  * Design-review shortcut. `?demo` renders a real captured brief instantly so the
@@ -103,15 +125,12 @@ const TICKS = [
               />
               <Button type="submit" variant="primary" size="lg" arrow>Scout</Button>
             </div>
-            <!-- ⚠️ This says "our newsletter" (singular) while LEAD_LISTS in
-                 functions/api/subreddit-scout.ts subscribes the address to TWO
-                 lists — Field notes and the AI newsletter — and will be three
-                 once the Lead Magnets list id lands. VJ's wording, applied as
-                 given; flagged because the blog's SubscribeBox carries a long
-                 comment about exactly this mismatch shipping once before. -->
+            <!-- CONSENT is generated from SUBSCRIBABLE — see the note at the top
+                 of this file. It used to read "our newsletter", singular, while
+                 the Function subscribed the address to two lists. -->
             <p class="scout-form__hint">
               A work address, please—the domain is what we read. You'll be subscribed to
-              our newsletter. (Unsubscribe anytime.)
+              {" "}{CONSENT}. (Unsubscribe anytime.)
             </p>
           </form>
 
@@ -148,8 +167,12 @@ const TICKS = [
           </div>
         </div>
 
+        <!-- "Site read" was the URL the reader had just typed the domain of, which
+             told them nothing they did not already know. Combined reach is derived
+             from the five subreddits and is the one number that sizes the
+             opportunity — it stays approximate because every input is. -->
         <dl class="scout-facts">
-          <div><dt class="aol-eyebrow">Site read</dt><dd id="scout-url"></dd></div>
+          <div><dt class="aol-eyebrow">Combined reach</dt><dd id="scout-reach"></dd></div>
           <div><dt class="aol-eyebrow">Who you sell to</dt><dd id="scout-audience"></dd></div>
           <div><dt class="aol-eyebrow">Category</dt><dd id="scout-category"></dd></div>
         </dl>
@@ -447,16 +470,10 @@ const TICKS = [
     border-radius: var(--radius-xs);
   }
 
-  /* A ruled meta band rather than three fields floating in the section. Three
-     one-line values were sitting in ~73px rows with open space all round, so the
-     block read as a large empty area with small content in it; the hairlines and
-     the tighter type make the space deliberate and roughly halve the height. */
-  .scout-facts {
-    display: grid; gap: var(--space-5); margin: 0;
-    padding: var(--space-4) 0;
-    border-top: 1px solid var(--ink-200);
-    border-bottom: 1px solid var(--ink-200);
-  }
+  /* No rules top or bottom. The tighter type and gaps are what compact the band;
+     the hairlines were fencing it off from a section it belongs to, and the
+     DitherLine below already does the section-dividing work. */
+  .scout-facts { display: grid; gap: var(--space-5); margin: 0; }
   @media (min-width: 821px) {
     .scout-facts { grid-template-columns: repeat(3, 1fr); gap: var(--space-8); }
   }
@@ -485,6 +502,11 @@ const TICKS = [
     .scout-subs[data-n="5"] > .scout-sub:nth-child(1) { grid-column: span 7; }
     .scout-subs[data-n="5"] > .scout-sub:nth-child(2) { grid-column: span 5; }
   }
+  /* Cards size to their own content. Stretching them to a common row height left
+     the widest card — which holds the least text per column — with a slab of
+     empty pink under its last panel. A ragged bottom edge is what a bento is
+     supposed to look like; a card padded out with nothing is not. */
+  .scout-subs { align-items: start; }
 
   /* One card design, flat, for all five — warm pink ground, warm hairline, white
      panels inside. No card gets a lift: size in the bento is the only ranking
@@ -526,12 +548,19 @@ const TICKS = [
     counter-reset: pt;
   }
   /* The one thing still keyed off rank, and it is fitting rather than emphasis:
-     only the widest cell has room to column its three panels, and auto-fit lets
-     it drop 3 → 2 → 1 on its own rather than holding three 22ch columns at the
-     narrow end of the breakpoint. The card itself is identical either way. */
-  .scout-sub[data-tier="lg"] .scout-sub__pts {
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: var(--space-4);
+     only the widest cell has room to column its panels. The card itself is
+     identical either way.
+
+     Two columns with the last panel spanning both, NOT auto-fit. Three panels in
+     an auto-fit 2-column grid left an empty cell beside the third one — a visible
+     hole in the largest card on the page. Spanning the last panel fills it and
+     lands the one actionable field on its own full-width line. */
+  @media (min-width: 641px) {
+    .scout-sub[data-tier="lg"] .scout-sub__pts {
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-4);
+    }
+    .scout-sub[data-tier="lg"] .scout-sub__pt:last-child { grid-column: 1 / -1; }
   }
   .scout-sub__pt {
     counter-increment: pt;
@@ -735,7 +764,7 @@ const TICKS = [
 </style>
 
 <script>
-  import type { ScoutResponse, Report, SkillFile } from "../../lib/scout";
+  import type { ScoutResponse, Report, SkillFile, Subreddit } from "../../lib/scout";
 
   const form = document.getElementById("scout-form") as HTMLFormElement | null;
   const input = document.getElementById("scout-email") as HTMLInputElement | null;
@@ -819,6 +848,26 @@ const TICKS = [
       return unit === "m" ? n * 1e6 : unit === "k" ? n * 1e3 : n;
     };
 
+    /**
+     * Combined audience across the five subreddits.
+     *
+     * Stays explicitly approximate — every input is a "~250k members" string the
+     * model wrote, so summing them cannot produce a precise figure and must not
+     * look like one. Subreddits whose size does not parse contribute 0 and are
+     * left out of the count, so the sentence never over-claims. If nothing parses
+     * at all the whole fact is suppressed rather than showing "~0 members".
+     */
+    const reach = (subs: Subreddit[]): string => {
+      const counted = subs.filter((s) => members(s.size) > 0);
+      const total = counted.reduce((n, s) => n + members(s.size), 0);
+      if (!total) return "—";
+      const size =
+        total >= 1e6
+          ? `~${(total / 1e6).toFixed(1).replace(/\.0$/, "")}M`
+          : `~${Math.round(total / 1e3)}k`;
+      return `${size} members across ${counted.length} subreddit${counted.length === 1 ? "" : "s"}`;
+    };
+
     /** Fill every [data-f] in a cloned fragment. textContent only — this data is untrusted. */
     const fill = (root: ParentNode, values: Record<string, string>) => {
       root.querySelectorAll<HTMLElement>("[data-f]").forEach((el) => {
@@ -854,7 +903,7 @@ const TICKS = [
         if (el) el.textContent = text;
       };
       set("scout-summary", report.businessSummary);
-      set("scout-url", url.replace(/^https?:\/\//, "").replace(/\/$/, ""));
+      set("scout-reach", reach(report.subreddits));
       set("scout-audience", report.audience);
       set("scout-category", report.category);
       document.getElementById("scout-partial")!.hidden = !partial;
