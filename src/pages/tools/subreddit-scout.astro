@@ -239,15 +239,24 @@ const TICKS = [
     <template id="tpl-play">
       <article class="scout-play">
         <div class="scout-play__bar">
-          <span class="aol-badge aol-badge--tint aol-badge--verbatim" data-f="filename"></span>
-          <span class="aol-badge aol-badge--outline" data-f="cadence"></span>
+          <span class="scout-play__n" aria-hidden="true"></span>
+          <span class="scout-play__cadence" data-f="cadence"></span>
         </div>
         <h3 class="scout-play__title aol-display" data-f="title"></h3>
         <p class="scout-play__goal" data-f="goal"></p>
 
-        <div class="scout-play__cta">
-          <Button variant="primary" size="md" fullWidth arrow data-act="download">Download skill</Button>
-          <Button variant="ghost" size="sm" fullWidth data-act="copy">Copy to clipboard</Button>
+        <!-- The file IS the deliverable, so it becomes an object on the card — a
+             white panel with the filename on it and the buttons attached — rather
+             than a filename badge at the top and two loose full-width buttons at
+             the bottom with the goal text stranded between them. -->
+        <div class="scout-play__file">
+          <p class="scout-play__filename" data-f="filename"></p>
+          <!-- Default variant and size, i.e. the same primary button the hero and
+               the CTA band use. The sm/secondary pair here was a bespoke sizing
+               that nothing else on the site uses, and it read as chrome. -->
+          <div class="scout-play__cta">
+            <Button variant="primary" fullWidth arrow data-act="download">Download</Button>
+          </div>
         </div>
 
         <details class="scout-play__more">
@@ -567,22 +576,46 @@ const TICKS = [
      Three across at desktop instead of three stacked full-width slabs. Each card
      collapses to roughly the height of its own title + goal + buttons, so the
      whole section is one screen and the three skills can be compared. */
-  .scout-plays { display: grid; gap: var(--space-5); }
+  .scout-plays { display: grid; gap: var(--space-5); counter-reset: play; }
   @media (min-width: 981px) {
-    .scout-plays { grid-template-columns: repeat(3, 1fr); align-items: start; }
+    .scout-plays { grid-template-columns: repeat(3, 1fr); align-items: stretch; }
   }
-  /* Warm ground under a full ink border and a hard offset — the .aol-quote--featured
-     construction. The subreddit bento above uses paper for its loudest card, so
-     the plays taking the warm one keeps the two sections legibly separate. */
+  /* Same material as the subreddit cards — flat pink, warm hairline, white panel
+     inside — so the whole results section reads as one system rather than as two
+     sections that happen to sit on the same page. */
   .scout-play {
+    counter-increment: play;
     display: flex; flex-direction: column;
     background: var(--surface-warm);
-    border: 1.5px solid var(--ink-900);
+    border: 1px solid var(--border-warm);
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-hard);
-    padding: var(--space-6);
+    padding: var(--space-5);
   }
-  .scout-play__bar { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+  .scout-play__bar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--space-3);
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--border-warm);
+  }
+  /* Numbered like the subreddit panels, and from a counter for the same reason —
+     it marks these three as a set without putting digits in the markup. */
+  .scout-play__n {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-label);
+    color: var(--blue-500);
+    font-variant-numeric: tabular-nums;
+  }
+  .scout-play__n::before { content: counter(play, decimal-leading-zero); }
+  .scout-play__cadence {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    /* Copper is a mark, never an action — right for a cadence, and it keeps the
+       blue free to mean "this is the button". */
+    color: var(--copper-700);
+  }
   .scout-play__title {
     font-size: var(--text-lg);
     color: var(--ink-900);
@@ -595,10 +628,24 @@ const TICKS = [
     color: var(--text-on-warm-muted);
     margin: 0 0 var(--space-5);
   }
-  /* The download IS the product, so it gets the primary treatment at full width
-     rather than a small secondary button in the corner. `margin-top:auto` floors
-     the pair, so all three cards' buttons align however the titles wrap. */
-  .scout-play__cta { margin-top: auto; display: grid; gap: var(--space-2); }
+  /* `margin-top:auto` floors the panel, so the three files align across the row
+     however unevenly the titles and goals above them wrap. */
+  .scout-play__file {
+    margin-top: auto;
+    background: var(--paper-pure);
+    border: 1px solid var(--border-warm);
+    border-radius: var(--radius-sm);
+    padding: var(--space-4);
+  }
+  .scout-play__filename {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-mono);
+    color: var(--ink-900);
+    margin: 0 0 var(--space-3);
+    overflow-wrap: anywhere;
+  }
+  .scout-play__cta { display: grid; }
 
   .scout-play__more { margin-top: var(--space-5); border-top: 1px dotted var(--border-warm); }
   .scout-play__summary {
@@ -852,16 +899,6 @@ const TICKS = [
           if (file) {
             node.querySelector<HTMLButtonElement>('[data-act="download"]')
               ?.addEventListener("click", () => download(file));
-            const copy = node.querySelector<HTMLButtonElement>('[data-act="copy"]');
-            copy?.addEventListener("click", async () => {
-              try {
-                await navigator.clipboard.writeText(file.body);
-                copy.textContent = "Copied";
-                setTimeout(() => { copy.textContent = "Copy"; }, 1600);
-              } catch {
-                say("Couldn't reach the clipboard — use Download instead.", true);
-              }
-            });
           }
           return node;
         }),
