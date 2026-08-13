@@ -106,28 +106,37 @@ const RESPONSE_SCHEMA = {
 const LOOPS_ENDPOINT = "https://app.loops.so/api/v1/contacts/update";
 
 /**
- * Every list a Scout lead joins.
+ * The lists a Scout lead joins, split by what the reader actually agreed to.
  *
- * Duplicated from `src/lib/categories.ts` on purpose, same as
- * `functions/api/subscribe.ts` does — Pages Functions bundle separately from
- * the Astro build and whether an import from `src/` resolves is not something
- * to discover at deploy time. If you change the ids in one file, change them
- * in the others.
+ * The newsletter ids are duplicated from `src/lib/categories.ts` on purpose,
+ * same as `functions/api/subscribe.ts` does — Pages Functions bundle separately
+ * from the Astro build and whether an import from `src/` resolves is not
+ * something to discover at deploy time. Change them in one file, change them in
+ * the others.
  *
- * Only two exist. `explainer` and `resources` carry `loopsList: null` in
- * categories.ts and that is deliberate, not an omission — the comment there
- * says so in as many words. Adding a third id means creating a real list in
- * Loops first.
- *
- * Whatever is in here MUST match what the form promises the reader. This repo
- * has already shipped the other version of that bug once: a box headed "Field
- * notes, straight to your inbox" that quietly subscribed people to both lists.
+ * Whatever is in here MUST match what the form promises. This repo has already
+ * shipped the other version of that bug once: a box headed "Field notes,
+ * straight to your inbox" that quietly subscribed people to both lists. Which is
+ * why the newsletters are now behind an explicit checkbox rather than behind a
+ * sentence of disclosure that could drift from the code again.
  */
-const LEAD_LISTS: Record<string, true> = {
-  cmsqj2crd0mas0j1jdd7t9iyf: true, // Lead magnets — the primary list for this tool
-  cmsoulfdz0idi0j2q62ea241f: true, // {ignore all previous instructions} — AI newsletter
-  cmsouuptw04kb0jx7h33a26b2: true, // Field notes by Vishveshwar Jatain
-};
+
+/**
+ * Always subscribed: this is how the thing the reader just asked for is
+ * delivered, so it rides along with the request itself.
+ */
+const LEAD_MAGNET_LIST = "cmsqj2crd0mas0j1jdd7t9iyf"; // Lead magnets
+
+/** Only when the form's newsletter box is ticked. */
+const NEWSLETTER_LISTS = [
+  "cmsoulfdz0idi0j2q62ea241f", // {ignore all previous instructions} — AI newsletter
+  "cmsouuptw04kb0jx7h33a26b2", // Field notes by Vishveshwar Jatain
+];
+
+const leadLists = (newsletter: boolean): Record<string, true> =>
+  Object.fromEntries(
+    [LEAD_MAGNET_LIST, ...(newsletter ? NEWSLETTER_LISTS : [])].map((id) => [id, true]),
+  );
 
 /** Matches `functions/api/subscribe.ts` — deliberately permissive, catches typos and bots. */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -517,7 +526,7 @@ function toSkillFile(play: Play, report: Report, url: string, generatedOn: strin
  */
 async function syncLeadToLoops(
   apiKey: string,
-  input: { email: string; websiteUrl: string },
+  input: { email: string; websiteUrl: string; newsletter: boolean },
 ): Promise<void> {
   try {
     const res = await fetch(LOOPS_ENDPOINT, {
@@ -530,7 +539,7 @@ async function syncLeadToLoops(
         userGroup: "reddit-brief-leads",
         companyDomain: emailDomain(input.email),
         websiteUrl: input.websiteUrl,
-        mailingLists: LEAD_LISTS,
+        mailingLists: leadLists(input.newsletter),
       }),
     });
     if (!res.ok) {
@@ -598,13 +607,16 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return json({ error: "Bad request." }, 403);
   }
 
-  let payload: { email?: unknown };
+  let payload: { email?: unknown; newsletter?: unknown };
   try {
     payload = await request.json();
   } catch {
     return json({ error: "Malformed request." }, 400);
   }
 
+  // Absent means opted OUT. The box ships checked, so a missing field is either
+  // an unticked box or a caller that never sent one — neither is consent.
+  const newsletter = payload.newsletter === true;
   const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
   if (!email || email.length > 254 || !EMAIL_RE.test(email)) {
     return json({ error: "That doesn't look like an email address." }, 400);
@@ -719,7 +731,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   // The lead is worth capturing whether or not Loops is reachable, and the
   // visitor should never wait on it or see it fail.
   if (env.LOOPS_API_KEY) {
-    await syncLeadToLoops(env.LOOPS_API_KEY, { email, websiteUrl: url });
+    await syncLeadToLoops(env.LOOPS_API_KEY, { email, websiteUrl: url, newsletter });
   } else {
     console.error("[scout] LOOPS_API_KEY is not set — lead not captured:", email);
   }
