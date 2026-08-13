@@ -479,21 +479,17 @@ const TICKS = [
     .scout-subs[data-n="5"] > .scout-sub:nth-child(2) { grid-column: span 5; }
   }
 
-  /* One ground for every card — warm pink — with emphasis carried by white panels
-     INSIDE it rather than by three competing card colours. The featured card is
-     still marked, but by weight (full ink border + hard offset) rather than by a
-     fourth background, so the section reads as one material throughout. */
+  /* One card design, flat, for all five — warm pink ground, warm hairline, white
+     panels inside. No card gets a lift: size in the bento is the only ranking
+     signal, and stacking a border-weight change and a hard shadow on top of it
+     made the first card read as a different component rather than as the same
+     card in a bigger cell. */
   .scout-sub {
     display: flex; flex-direction: column; gap: var(--space-4);
     background: var(--surface-warm);
     border: 1px solid var(--border-warm);
     border-radius: var(--radius-md);
     padding: var(--space-5);
-  }
-  .scout-sub[data-tier="lg"] {
-    border: 1.5px solid var(--ink-900);
-    box-shadow: var(--shadow-hard);
-    padding: var(--space-6);
   }
 
   .scout-sub__head {
@@ -506,7 +502,6 @@ const TICKS = [
     color: var(--ink-900);
     margin: 0;
   }
-  .scout-sub[data-tier="lg"] .scout-sub__name { font-size: var(--text-lg); }
 
   /* .aol-badge supplies the chrome; this only re-grounds it. White chip on the
      pink card — the first of the two inside highlights. */
@@ -523,9 +518,10 @@ const TICKS = [
     display: grid; gap: var(--space-3);
     counter-reset: pt;
   }
-  /* Only the featured card is wide enough to column its panels, and how wide it
-     is depends on the viewport — auto-fit lets it drop 3 → 2 → 1 on its own
-     rather than holding three 22ch columns at the narrow end of the breakpoint. */
+  /* The one thing still keyed off rank, and it is fitting rather than emphasis:
+     only the widest cell has room to column its three panels, and auto-fit lets
+     it drop 3 → 2 → 1 on its own rather than holding three 22ch columns at the
+     narrow end of the breakpoint. The card itself is identical either way. */
   .scout-sub[data-tier="lg"] .scout-sub__pts {
     grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
     gap: var(--space-4);
