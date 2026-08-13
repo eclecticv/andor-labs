@@ -124,6 +124,7 @@ const LOOPS_ENDPOINT = "https://app.loops.so/api/v1/contacts/update";
  * notes, straight to your inbox" that quietly subscribed people to both lists.
  */
 const LEAD_LISTS: Record<string, true> = {
+  cmsqj2crd0mas0j1jdd7t9iyf: true, // Lead magnets — the primary list for this tool
   cmsoulfdz0idi0j2q62ea241f: true, // {ignore all previous instructions} — AI newsletter
   cmsouuptw04kb0jx7h33a26b2: true, // Field notes by Vishveshwar Jatain
 };

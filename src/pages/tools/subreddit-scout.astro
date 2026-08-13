@@ -39,6 +39,14 @@ import { SUBSCRIBABLE } from "../../lib/categories";
  * Pages Functions are bundled separately from the Astro build and an import
  * across that boundary is not something to discover at deploy time. If you add a
  * list there, add it here.
+ *
+ * `LEAD_LISTS` also carries a THIRD id this sentence deliberately does not name:
+ * the Lead magnets list. The two named here are newsletters — recurring marketing
+ * the reader would not otherwise get, so they need disclosing. The Lead magnets
+ * list is how the thing they just asked for gets delivered, which is the
+ * transaction itself rather than an extra consent. If that list ever starts
+ * sending broadcasts of its own, it stops being fulfilment and has to be named
+ * here too.
  */
 const LIST_NAMES = SUBSCRIBABLE.map((c) => c.labelShort);
 const CONSENT =
