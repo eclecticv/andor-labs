@@ -225,6 +225,32 @@ body.no-scroll { overflow: hidden; }
 .faq-a > :last-child { margin-bottom: 0; }
 
 /* Mobile menu — hidden on desktop; the hamburger + dropdown appear ≤560px. */
+/* Primary CTA with the free tool stacked under it. `align-items:flex-end` keeps
+   both flush with the bar's right edge, so the link hangs off the button rather
+   than floating loose under the middle of it. The gap is 5px, not a spacing
+   token — this is optical alignment under a pill button, not layout rhythm. */
+.site-header-ctas {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+/* Deliberately quieter than .site-nav-link: 11px against 12px, and ink-500
+   rather than ink-700. It is the third-loudest thing in a bar that already has
+   five nav links and a blue button, and it should read as an aside. */
+.site-header-alt {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  color: var(--ink-500);
+  white-space: nowrap;
+  transition: color var(--dur-base) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .site-header-alt:hover { color: var(--blue-600); text-decoration: underline; text-underline-offset: 3px; }
+}
+
 .site-nav-toggle { display: none; }
 .site-mobilemenu { display: none; }
 
@@ -235,7 +261,16 @@ body.no-scroll { overflow: hidden; }
      Use the design-system Button (aol-btn--primary) rather than a bespoke
      anchor so it matches every other CTA on the site. */
   .site-header-cta { display: none; }
-  .site-mobilecta { padding: 12px var(--gutter) 16px; }
+  /* The whole stack goes with the button — the mobile menu carries its own. */
+  .site-header-ctas { display: none; }
+  .site-mobilecta { padding: 12px var(--gutter) 16px; display: grid; gap: 12px; justify-items: center; }
+  .site-mobilealt {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    color: var(--ink-500);
+  }
 
   /* Hamburger toggle (three bars → X when open) */
   .site-nav-toggle {

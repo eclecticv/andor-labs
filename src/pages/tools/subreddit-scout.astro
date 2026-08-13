@@ -23,28 +23,6 @@ import Input from "../../components/ds/Input.astro";
 import PixelIcon from "../../components/ds/PixelIcon.astro";
 import DitherLine from "../../components/ds/DitherLine.astro";
 import { BOOKING_URL, ICP_STARTUPS } from "../../config";
-import { SUBSCRIBABLE } from "../../lib/categories";
-
-/**
- * The consent notice names the lists instead of saying "our newsletter".
- *
- * It said the singular while `LEAD_LISTS` in functions/api/subreddit-scout.ts
- * subscribed the address to two — the same mismatch the blog's SubscribeBox
- * shipped once already. Rather than hand-correct the number and wait for it to
- * rot again when the third list lands, the sentence is generated from
- * SUBSCRIBABLE, which is the same closed set the ids in `LEAD_LISTS` come from.
- * Add a list to categories.ts and this sentence updates itself.
- *
- * ⚠️ The one thing still manual: `LEAD_LISTS` repeats the ids literally, because
- * Pages Functions are bundled separately from the Astro build and an import
- * across that boundary is not something to discover at deploy time. If you add a
- * list there, add it here.
- */
-const LIST_NAMES = SUBSCRIBABLE.map((c) => c.labelShort);
-const CONSENT =
-  LIST_NAMES.length === 1
-    ? `our ${LIST_NAMES[0]} newsletter`
-    : `our newsletters: ${LIST_NAMES.slice(0, -1).join(", ")} and ${LIST_NAMES.at(-1)}`;
 
 /**
  * Design-review shortcut. `?demo` renders a real captured brief instantly so the
@@ -127,13 +105,12 @@ const TICKS = [
               />
               <Button type="submit" variant="primary" size="lg" arrow>Scout</Button>
             </div>
-            <!-- Notice, not a checkbox. Everyone who runs the tool joins all
-                 three lists; the sentence below is the only thing telling them
-                 so, which is why it names the lists rather than saying
-                 "marketing" and leaving them to find out. -->
+            <!-- One line. It carried the work-email explanation too, which the
+                 label, the placeholder and the API's own error message already
+                 say three times over. -->
             <p class="scout-form__hint">
-              A work address, please—the domain is what we read. We'll add you to {CONSENT},
-              so we may send you marketing from time to time. Unsubscribe anytime, one click.
+              By using this tool, you consent to receiving marketing communication.
+              Unsubscribe anytime.
             </p>
           </form>
 
