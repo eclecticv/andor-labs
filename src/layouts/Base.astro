@@ -21,7 +21,8 @@ interface Props {
    * ACTUAL pixel dimensions of ogImage. og:image:width/height are meant to
    * describe the real file, and these were hardcoded to 1200x630 — the logical
    * size — while every asset in public/ is a 2x export. Defaults describe
-   * og.png; a page shipping its own card must pass its own numbers.
+   * og.png (2400x1200, a true 2:1 so X does not centre-crop it); a page shipping
+   * its own card must pass its own numbers.
    */
   ogImageWidth?: number;
   ogImageHeight?: number;
@@ -36,7 +37,7 @@ const {
   ogImage: ogImagePath = "/og.png",
   ogImageAlt = SITE_TITLE,
   ogImageWidth = 2400,
-  ogImageHeight = 1260,
+  ogImageHeight = 1200,
   noIndex = false,
 } = Astro.props;
 

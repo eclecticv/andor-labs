@@ -1,0 +1,131 @@
+---
+/**
+ * Render source for `public/og.png` — the DEFAULT social card, used by every
+ * page that does not pass its own `ogImage`. Homepage, blog index, everything.
+ *
+ * The card it replaces dated from July and had drifted twice over:
+ *
+ * 1. COPY. It read "The GTM OS for adtech startups". Base.astro's own comment
+ *    calls that line retired — the hero and footer moved on and the card did
+ *    not, so the whole site was sharing dead positioning every time a link was
+ *    posted. The headline here is the live H1 from Hero.astro, verbatim, which
+ *    is the same rule Base.astro's SITE_TITLE already follows.
+ *
+ * 2. FORMAT AND PALETTE. Same two problems the tool card had: 1200x630 is
+ *    1.905:1 and X centre-crops anything that is not 2:1, and the cold
+ *    ink-050/white/blue treatment predates the warm layer. See
+ *    og-subreddit-scout.astro for the full reasoning; this card is deliberately
+ *    its sibling so the two read as one set.
+ *
+ * The mono status strip is kept VERBATIM from the old card. It is good, approved
+ * brand furniture in the house's technical register, and none of what was wrong
+ * with the card was wrong with that line.
+ *
+ * To re-render:  node scripts/render-og.mjs site
+ */
+import "../../styles/main.css";
+---
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>OG — And/or Labs</title>
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body>
+    <div class="og">
+      <div class="og__card">
+        <header class="og__top">
+          <span class="og__brand">And/or Labs</span>
+          <span class="og__meta">EST. 2025 · CRT-01 <i class="og__dot"></i></span>
+        </header>
+
+        <h1 class="og__h">
+          <em>Full-stack GTM</em><br />for visionary<br />builders &amp; operators
+        </h1>
+
+        <footer class="og__foot">
+          <span class="og__rule"></span>
+          <p class="og__status">
+            <span class="og__k">SYSCHECK</span>
+            <span>positioning <b>OK</b></span>
+            <span>distribution <b>OK</b></span>
+            <span>pipeline <b>RUNNING</b></span>
+          </p>
+        </footer>
+      </div>
+    </div>
+  </body>
+</html>
+
+<style>
+  /* Fixed pixel values, not tokens — a 1200x600 canvas, not a responsive page.
+     The COLOURS still come from tokens so the card cannot drift from the palette. */
+  :global(body) { margin: 0; }
+  :global(astro-dev-toolbar) { display: none !important; }
+
+  .og {
+    width: 1200px;
+    height: 600px;
+    box-sizing: border-box;
+    padding: 40px;
+    background-color: var(--paper);
+    display: flex;
+  }
+  .og__card {
+    flex: 1;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-warm);
+    border: 1.5px solid var(--ink-900);
+    border-radius: 20px;
+    box-shadow: 10px 10px 0 0 var(--ink-900);
+    padding: 52px 56px 46px;
+  }
+
+  .og__top { display: flex; align-items: center; justify-content: space-between; }
+  .og__brand {
+    font-family: var(--font-mono);
+    font-size: 23px;
+    letter-spacing: 0.02em;
+    color: var(--blue-500);
+  }
+  /* Copper: a label on a warm surface, never an action. */
+  .og__meta {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 16px;
+    letter-spacing: 0.14em;
+    color: var(--copper-700);
+  }
+  .og__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--copper-600); }
+
+  /* `margin: auto 0` centres the headline in the leftover height rather than
+     hanging it off the top row with the slack collecting underneath. */
+  .og__h {
+    font-family: var(--font-display);
+    font-weight: var(--weight-regular);
+    font-size: 68px;
+    line-height: 1.08;
+    letter-spacing: var(--tracking-tight);
+    /* Near-black on pink, per the warm-layer rule. */
+    color: var(--text-on-warm);
+    margin: auto 0;
+  }
+  .og__h em { font-style: normal; color: var(--blue-500); }
+
+  .og__foot { margin-top: auto; }
+  .og__rule { display: block; height: 1px; background: var(--border-warm); margin-bottom: 22px; }
+  .og__status {
+    display: flex; align-items: center; gap: 34px;
+    font-family: var(--font-mono);
+    font-size: 19px;
+    letter-spacing: 0.02em;
+    /* ink-500 goes hazy on pink; the warm layer has its own muted step. */
+    color: var(--text-on-warm-muted);
+    margin: 0;
+  }
+  .og__k { color: var(--copper-700); letter-spacing: 0.12em; }
+  .og__status b { font-weight: 400; color: var(--blue-500); }
+</style>

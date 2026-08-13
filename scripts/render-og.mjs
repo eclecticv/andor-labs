@@ -21,9 +21,16 @@ import { dirname, join } from "node:path";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const ORIGIN = process.env.OG_ORIGIN ?? "http://127.0.0.1:4321";
 
-/** slug → the /lab/ route that draws it. Add a line per card. */
+/**
+ * slug → { route, out }. Add a line per card.
+ *
+ * `out` is explicit because the DEFAULT card has to land on public/og.png — the
+ * filename Base.astro falls back to for every page that does not set its own —
+ * rather than on og-site.png.
+ */
 const CARDS = {
-  "subreddit-scout": "/lab/og-subreddit-scout",
+  site: { route: "/lab/og-site", out: "og.png" },
+  "subreddit-scout": { route: "/lab/og-subreddit-scout", out: "og-subreddit-scout.png" },
 };
 
 const wanted = process.argv.slice(2);
@@ -39,26 +46,26 @@ try {
   await mkdir(join(ROOT, "public"), { recursive: true });
 
   for (const slug of todo) {
-    const route = CARDS[slug];
-    if (!route) {
+    const card = CARDS[slug];
+    if (!card) {
       console.error(`unknown card "${slug}" — known: ${Object.keys(CARDS).join(", ")}`);
       process.exitCode = 1;
       continue;
     }
 
-    const res = await page.goto(ORIGIN + route, { waitUntil: "networkidle" });
+    const res = await page.goto(ORIGIN + card.route, { waitUntil: "networkidle" });
     if (!res || !res.ok()) {
-      throw new Error(`${route} returned ${res ? res.status() : "no response"} — is the dev server up?`);
+      throw new Error(`${card.route} returned ${res ? res.status() : "no response"} — is the dev server up?`);
     }
     // Webfonts decide the line breaks, so a capture before they land is a
     // different picture than the one that was designed.
     await page.evaluate(() => document.fonts.ready);
 
-    const out = join(ROOT, "public", `og-${slug}.png`);
+    const out = join(ROOT, "public", card.out);
     // Clip rather than fullPage: the card is a fixed 1200x630 canvas and any
     // stray body margin would otherwise pad the image.
     await page.screenshot({ path: out, clip: { x: 0, y: 0, width: 1200, height: 600 } });
-    console.log(`wrote public/og-${slug}.png`);
+    console.log(`wrote public/${card.out}`);
   }
 } finally {
   await browser.close();
