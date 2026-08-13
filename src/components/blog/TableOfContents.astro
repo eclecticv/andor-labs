@@ -1,12 +1,16 @@
 ---
 /**
- * Contents list. One element, two presentations.
+ * The article's left rail: contents list, with the share controls folded into
+ * the same panel. One element, two presentations.
  *
- * At ≥1340px it is the sticky right rail: an open list under a mono label,
- * with the scroll-spy marking the section being read. Below that the rails do
- * not assemble, and rather than dropping wayfinding entirely — which left a
- * 2,000-word article on a laptop or a phone with nothing but a 2px progress
- * bar — the same list collapses into a togglable block under the byline.
+ * At ≥1340px it is the sticky left rail: an open list under a mono label, with
+ * the scroll-spy marking the section being read, and Share sitting under a
+ * dotted rule at the foot of it. Below that the rails do not assemble, and
+ * rather than dropping wayfinding entirely — which left a 2,000-word article on
+ * a laptop or a phone with nothing but a 2px progress bar — the same list
+ * collapses into a togglable block under the byline. Share drops out of the
+ * panel there and is carried by the inline bar in the article header instead,
+ * so it is never rendered twice at one width.
  *
  * It is ONE `<details>`, not two components. Rendering the list twice would
  * duplicate the heading ids and leave the scroll-spy, which binds to a single
@@ -14,38 +18,52 @@
  *
  * Rendered from the same `extractHeadings` output that stamped the ids onto
  * the headings themselves, so the links cannot point at anchors that don't
- * exist. Hidden entirely below three or so headings — a two-item contents
- * list for a short post is furniture, not navigation.
+ * exist. Which of those headings make the list, and whether there are enough
+ * of them to draw one at all, is `tocHeadings`' call — see the note there for
+ * why that decision sits in the library rather than in this file.
  */
 import type { Heading } from "../../lib/portableText";
+import ShareBar from "./ShareBar.astro";
 
 interface Props {
+  /**
+   * Already filtered and gated by `tocHeadings` — an empty array means the
+   * article decided there is no panel, and the caller has laid out its share
+   * bar accordingly. Nothing is filtered here.
+   */
   headings: Heading[];
-  minimum?: number;
+  /** Omit either and the panel renders contents only, with no share block. */
+  shareUrl?: string;
+  shareTitle?: string;
 }
-const { headings, minimum = 3 } = Astro.props;
-const show = headings.length >= minimum;
+const { headings, shareUrl, shareTitle } = Astro.props;
+const share = shareUrl && shareTitle;
 ---
-{show && (
-  <nav class="aol-toc" aria-label="On this page" data-toc>
-    {/* Ships OPEN and is closed by script below the rail breakpoint, not the
-        other way round. If the script never runs, a reader gets a contents
-        list that is merely longer than it needed to be — the failure mode of
-        shipping it closed is a list nobody can open. */}
-    <details class="aol-toc__box" open data-toc-box>
-      <summary class="aol-toc__summary">
-        <span class="aol-toc__label">Contents</span>
-        <span class="aol-toc__count" aria-hidden="true">{headings.length}</span>
-      </summary>
-      <ol>
-        {headings.map((h) => (
-          <li class={`lvl-${h.level}`}>
-            <a href={`#${h.id}`} data-toc-link={h.id}>{h.text}</a>
-          </li>
-        ))}
-      </ol>
-    </details>
-  </nav>
+{headings.length > 0 && (
+  <aside class="aol-toc" data-toc>
+    <nav aria-label="On this page">
+      {/* Ships OPEN and is closed by script below the rail breakpoint, not the
+          other way round. If the script never runs, a reader gets a contents
+          list that is merely longer than it needed to be — the failure mode of
+          shipping it closed is a list nobody can open. */}
+      <details class="aol-toc__box" open data-toc-box>
+        <summary class="aol-toc__summary">
+          <span class="aol-toc__label">Contents</span>
+          <span class="aol-toc__count" aria-hidden="true">{headings.length}</span>
+        </summary>
+        <ol>
+          {headings.map((h) => (
+            <li><a href={`#${h.id}`} data-toc-link={h.id}>{h.text}</a></li>
+          ))}
+        </ol>
+      </details>
+    </nav>
+    {share && (
+      <div class="aol-toc__share">
+        <ShareBar url={shareUrl!} title={shareTitle!} />
+      </div>
+    )}
+  </aside>
 )}
 
 <script>
@@ -58,6 +76,9 @@ const show = headings.length >= minimum;
   // fractional width from 1340 up, and a `max-width: 1339px` query would leave
   // 1339.5 satisfying neither — the rail would assemble while the block still
   // thought it was inline.
+  //
+  // Only the contents `<details>` collapses. The share block is its sibling,
+  // not its child, and is hidden outright below the breakpoint in CSS.
   if (box) {
     const narrow = matchMedia("(max-width: 1339.98px)");
 

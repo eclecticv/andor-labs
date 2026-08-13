@@ -15,7 +15,7 @@ import PrevNext from "../../components/blog/PrevNext.astro";
 import RelatedPosts from "../../components/blog/RelatedPosts.astro";
 import SubscribeBox from "../../components/blog/SubscribeBox.astro";
 
-import { extractHeadings, readingTime, toPlainText, wordCount } from "../../lib/portableText";
+import { extractHeadings, readingTime, toPlainText, tocHeadings, wordCount } from "../../lib/portableText";
 import { toCategory } from "../../lib/categories";
 import Badge from "../../components/ds/Badge.astro";
 import { imageUrl, imageDimensions, ogImageUrl, type SanityImageSource } from "../../lib/sanityImage";
@@ -102,7 +102,11 @@ const { post, newer, older, siblings } = Astro.props as {
 
 const canonical = new URL(`/blog/${post.slug}/`, Astro.site).href;
 
-const headings = extractHeadings(post.body);
+const toc = tocHeadings(extractHeadings(post.body));
+// A post too short for a contents panel has nowhere to put share in the rail,
+// so the inline bar under the byline stops being the narrow-screen fallback and
+// becomes the only one on the page — and has to survive past 1340px.
+const soleShare = toc.length === 0;
 const minutes = readingTime(post.body);
 const words = wordCount(post.body);
 
@@ -234,10 +238,6 @@ const tag = post.tags?.[0];
 
   <main>
     <article class="aol-a aol-a--railed" data-article>
-      <div class="aol-a__rail-l">
-        <ShareBar url={canonical} title={post.title} orientation="vertical" />
-      </div>
-
       <nav class="aol-a__crumbs" aria-label="Breadcrumb">
         <a href="/">Home</a>
         <span aria-hidden="true">/</span>
@@ -295,17 +295,21 @@ const tag = post.tags?.[0];
         </div>
 
         {/* Inline share for anything narrower than the railed layout. Hidden
-            at ≥1340px, where the sticky left rail takes over. */}
-        <div class="aol-a__share-inline">
+            at ≥1340px, where the contents panel in the left rail carries it —
+            unless this post has no panel, in which case it stays at every
+            width. */}
+        <div class:list={["aol-a__share-inline", soleShare && "is-sole"]}>
           <ShareBar url={canonical} title={post.title} />
         </div>
       </header>
 
       {/* Sits here in the DOM for the sub-1340px reading order — contents come
           after the byline, before the piece starts. At ≥1340px the same node is
-          placed into grid column 3 and made sticky, becoming the right rail, so
-          the list exists exactly once either way. */}
-      <TableOfContents headings={headings} />
+          placed into grid column 1 and made sticky, becoming the left rail, so
+          the list exists exactly once either way. Share travels with it up
+          there; below the breakpoint the panel drops its share block and the
+          inline bar above carries it instead. */}
+      <TableOfContents headings={toc} shareUrl={canonical} shareTitle={post.title} />
 
       {hero && (
         <figure class="aol-a__hero aol-break">
@@ -371,7 +375,7 @@ const tag = post.tags?.[0];
 
 <style>
   .aol-a__share-inline { margin: 0 0 var(--space-10); }
-  @media (min-width: 1340px) { .aol-a__share-inline { display: none; } }
+  @media (min-width: 1340px) { .aol-a__share-inline:not(.is-sole) { display: none; } }
 </style>
 
 <script>

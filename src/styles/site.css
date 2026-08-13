@@ -109,7 +109,38 @@ section[id] { scroll-margin-top: calc(57px + 24px); }
 .aol-hero__founder  { grid-area: founder;  margin: 0 0 var(--space-5); }
 .aol-hero__headline { grid-area: headline; margin: 0 0 var(--space-6); }
 .aol-hero__subhead  { grid-area: subhead;  margin: 0 0 var(--space-8); }
-.aol-hero__cta      { grid-area: cta;      margin: 0; }
+/* Column, not a row: the free-tool link is the fallback under the primary ask,
+   not a peer beside it. `align-items:flex-start` keeps the pill at its natural
+   width instead of stretching to the column, and lines the link's first
+   character up with the button's left edge rather than its label — the button's
+   own horizontal padding means those two are not the same thing, and the edge
+   is the one the eye actually tracks down. */
+.aol-hero__cta      { grid-area: cta;      margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+/* Quiet by design — mono, one step down from the subhead's voice, so it reads
+   as an aside to the primary CTA rather than a second button. It carries a
+   resting underline (which the header version did not) because there is no
+   surrounding nav here to mark it as a link. */
+.aol-hero__alt {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--ink-600);
+  text-decoration: underline;
+  text-decoration-color: var(--ink-300);
+  text-underline-offset: 4px;
+  transition: color var(--dur-base) var(--ease-out),
+              text-decoration-color var(--dur-base) var(--ease-out);
+}
+/* The arrow slides on hover; it is inline-block so the transform applies at all
+   (transforms are no-ops on inline boxes). */
+.aol-hero__alt span { display: inline-block; transition: transform var(--dur-base) var(--ease-out); }
+@media (hover: hover) and (pointer: fine) {
+  .aol-hero__alt:hover { color: var(--blue-600); text-decoration-color: var(--blue-600); }
+  .aol-hero__alt:hover span { transform: translateX(3px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aol-hero__alt, .aol-hero__alt span { transition: none; }
+}
 /* min-width:0 severs the min-content dependency described above: without it the
    non-wrapping log dictates this item's floor at every breakpoint. */
 .aol-hero__term     { grid-area: term;     align-self: center; min-width: 0; }
@@ -225,32 +256,6 @@ body.no-scroll { overflow: hidden; }
 .faq-a > :last-child { margin-bottom: 0; }
 
 /* Mobile menu — hidden on desktop; the hamburger + dropdown appear ≤560px. */
-/* Primary CTA with the free tool stacked under it. `align-items:flex-end` keeps
-   both flush with the bar's right edge, so the link hangs off the button rather
-   than floating loose under the middle of it. The gap is 5px, not a spacing
-   token — this is optical alignment under a pill button, not layout rhythm. */
-.site-header-ctas {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 5px;
-}
-/* Deliberately quieter than .site-nav-link: 11px against 12px, and ink-500
-   rather than ink-700. It is the third-loudest thing in a bar that already has
-   five nav links and a blue button, and it should read as an aside. */
-.site-header-alt {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.02em;
-  text-decoration: none;
-  color: var(--ink-500);
-  white-space: nowrap;
-  transition: color var(--dur-base) var(--ease-out);
-}
-@media (hover: hover) and (pointer: fine) {
-  .site-header-alt:hover { color: var(--blue-600); text-decoration: underline; text-underline-offset: 3px; }
-}
-
 .site-nav-toggle { display: none; }
 .site-mobilemenu { display: none; }
 
@@ -261,16 +266,7 @@ body.no-scroll { overflow: hidden; }
      Use the design-system Button (aol-btn--primary) rather than a bespoke
      anchor so it matches every other CTA on the site. */
   .site-header-cta { display: none; }
-  /* The whole stack goes with the button — the mobile menu carries its own. */
-  .site-header-ctas { display: none; }
   .site-mobilecta { padding: 12px var(--gutter) 16px; display: grid; gap: 12px; justify-items: center; }
-  .site-mobilealt {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    letter-spacing: 0.02em;
-    text-decoration: none;
-    color: var(--ink-500);
-  }
 
   /* Hamburger toggle (three bars → X when open) */
   .site-nav-toggle {

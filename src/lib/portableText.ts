@@ -165,3 +165,30 @@ export function extractHeadings(blocks: PortableTextBody): Heading[] {
 
   return headings;
 }
+
+/** Fewer entries than this and there is no contents panel at all. */
+export const TOC_MINIMUM = 3;
+
+/**
+ * The subset of `extractHeadings` that a contents panel lists, or `[]` when
+ * there are too few to be worth one.
+ *
+ * Top level only — h2 is the article's top level, since h1 is spent on the
+ * title. Listing h3s too gave a rail that mapped the writing's internal
+ * structure rather than its shape, and a contents list is for deciding where to
+ * jump, which nobody does at sub-section granularity.
+ *
+ * The minimum counts what is LISTED, not what was extracted: a post carried by
+ * three h2s and a dozen h3s would otherwise pass the gate and draw a three-item
+ * list. And a two-item contents list for a short post is furniture, not
+ * navigation.
+ *
+ * Lives here rather than inside TableOfContents because the article page has to
+ * know the same answer — it decides whether the inline share bar is the only
+ * one on the page, and share now rides inside the contents panel. Two copies of
+ * this predicate would disagree the first time the minimum moved.
+ */
+export function tocHeadings(headings: Heading[]): Heading[] {
+  const items = headings.filter((h) => h.level === 2);
+  return items.length >= TOC_MINIMUM ? items : [];
+}

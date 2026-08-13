@@ -67,7 +67,13 @@
    Below that the rails collapse back inline rather than squeezing the column,
    because a narrowed reading measure costs more than a missing TOC — and
    squeezing it is not even an option here: shrink the column and the fixed
-   880px breakout starts overhanging further, straight back under the rails. */
+   880px breakout starts overhanging further, straight back under the rails.
+
+   The third track is deliberately EMPTY. Everything that used to live in a rail
+   — contents, and now share too — is in one panel on the left, but the track
+   stays because it is what keeps the reading column centred in the viewport.
+   Drop it and the measure slides right by half a rail plus half a gap (138px),
+   which is enough to read as a mistake on a wide screen. */
 @media (min-width: 1340px) {
   .aol-a--railed {
     max-width: calc(
@@ -79,28 +85,20 @@
     align-items: start;
   }
   .aol-a--railed > * { grid-column: 2; }
-  .aol-a__rail-l {
+
+  /* The contents panel has no rail wrapper of its own. It sits in the article's
+     normal flow — after the byline, which is where it belongs when read on
+     anything narrower — and `grid-row: 1` lifts that same node into column 1
+     up here. One panel, two placements, no duplicated markup for the scroll-spy
+     to disagree about. (0,2,0) so it beats the `> *` rule above outright
+     rather than on source order. */
+  .aol-a--railed > .aol-toc {
     grid-column: 1;
     grid-row: 1 / span 99;
     position: sticky;
     top: var(--blog-anchor-top);
   }
-
-  /* The contents list has no rail wrapper of its own. It sits in the article's
-     normal flow — after the byline, which is where it belongs when read on
-     anything narrower — and `grid-row: 1` lifts that same node into column 3
-     up here. One list, two placements, no duplicated markup for the scroll-spy
-     to disagree about. (0,2,0) so it beats the `> *` rule above outright
-     rather than on source order. */
-  .aol-a--railed > .aol-toc {
-    grid-column: 3;
-    grid-row: 1 / span 99;
-    position: sticky;
-    top: var(--blog-anchor-top);
-  }
 }
-.aol-a__rail-l { display: none; }
-@media (min-width: 1340px) { .aol-a__rail-l { display: block; } }
 
 /* ============================================================
    2. Reading-progress bar
@@ -205,7 +203,7 @@
 .aol-a__byline-meta .sep { color: var(--ink-300); }
 
 /* ============================================================
-   4. Share — inline row on narrow, sticky rail on wide
+   4. Share — inline row on narrow, foot of the contents panel on wide
    ============================================================ */
 
 .aol-share { display: flex; align-items: center; gap: 8px; }
@@ -252,14 +250,33 @@
   .aol-share__btn svg { width: 17px; height: 17px; }
 }
 
-/* Vertical variant in the left rail.
-   flex-END, not flex-start: the two rails are mirror images, so their contents
-   have to hug the reading column from opposite directions to read as a pair.
-   Left-aligning this stack parks it against the far edge of a 180px track and
-   leaves the column looking off-centre — 96px of gutter on the right, 96 + the
-   width of the unused rail on the left. */
-.aol-a__rail-l .aol-share { flex-direction: column; align-items: flex-end; gap: 10px; }
-.aol-a__rail-l .aol-share__label { margin: 0 0 2px; text-align: right; }
+/* --- Inside the contents panel ------------------------------------------
+   Only ever visible in the rail. Below 1340px the panel is a collapsed block
+   under the byline and the article header's own inline bar carries share, so
+   showing this too would put two identical bars a few centimetres apart. */
+.aol-toc__share { display: none; }
+@media (min-width: 1340px) {
+  .aol-toc__share {
+    display: block;
+    margin-top: var(--space-5);
+    padding-top: var(--space-4);
+    /* Same dotted rule the summary draws below "Contents", so the panel reads
+       as one object with two compartments rather than two stacked widgets. */
+    background-image: radial-gradient(var(--ink-300) 0.9px, transparent 1.1px);
+    background-size: 6px 3px;
+    background-repeat: repeat-x;
+    background-position: top left;
+  }
+  /* Stacked, matching the contents list above it: label on its own line, then
+     the row of controls. A 180px track fits four 34px buttons at an 8px gap
+     (160px) but not the "Share" label beside them, and wrapping mid-row would
+     leave one button orphaned under the other three.
+
+     Left-aligned, unlike the old right-hand rail: everything in this panel now
+     hangs off the same left edge as the "Contents" label and the entries. */
+  .aol-toc__share .aol-share { flex-wrap: wrap; gap: 8px; }
+  .aol-toc__share .aol-share__label { flex: 0 0 100%; margin: 0 0 2px; }
+}
 
 /* ============================================================
    5. Hero figure
@@ -646,12 +663,13 @@
 }
 
 /* ============================================================
-   9. Table of contents — inline block, or right rail at ≥1340px
+   9. Contents panel — inline block, or left rail at ≥1340px
 
-   ONE `<details>`. Below 1340 it is a collapsed block under the byline; at
-   1340 and above section 1 lifts the same node into grid column 3 and makes
-   it sticky. Everything here that differs between the two is written
-   inline-first, with the rail overriding at the bottom of the section.
+   ONE `<details>`, plus the share block from section 4 folded in beneath it.
+   Below 1340 it is a collapsed block under the byline; at 1340 and above
+   section 1 lifts the same node into grid column 1 and makes it sticky.
+   Everything here that differs between the two is written inline-first, with
+   the rail overriding at the bottom of the section.
    ============================================================ */
 
 /* Inline, the block needs to read as a discrete object between the byline and
@@ -660,7 +678,7 @@
 .aol-toc {
   /* How far the entries are indented to make room for the current-section
      mark. Overridden to 0 in the rail, where the mark hangs into the gutter
-     instead — see `.aol-toc a::before` below. */
+     instead — see `.aol-toc ol a::before` below. */
   --toc-indent: 18px;
 
   margin: 0 0 var(--space-10);
@@ -737,8 +755,11 @@
   display: grid;
   gap: 10px;
 }
-.aol-toc li.lvl-3 { padding-left: 14px; }
-.aol-toc a {
+/* Every anchor rule below is scoped through `ol` on purpose. `.aol-toc a` used
+   to be safe because the panel held nothing but the contents list; now that
+   share lives in it, an unscoped rule would repaint four icon buttons as 14px
+   serif entries with an 18px indent. */
+.aol-toc ol a {
   position: relative;
   font-family: var(--font-serif);
   font-size: 14px;
@@ -763,7 +784,7 @@
    "Contents" label above them.
 
    10 × 1.89 = 18.9px, which is exactly the 14px/1.35 line box it sits in. */
-.aol-toc a::before {
+.aol-toc ol a::before {
   content: "▪";
   position: absolute;
   left: 0;
@@ -774,21 +795,21 @@
   opacity: 0;
   transition: opacity var(--dur-base) var(--ease-out);
 }
-.aol-toc a:hover { color: var(--ink-900); }
-.aol-toc a[aria-current="true"] { color: var(--ink-900); }
-.aol-toc a[aria-current="true"]::before { opacity: 1; }
+.aol-toc ol a:hover { color: var(--ink-900); }
+.aol-toc ol a[aria-current="true"] { color: var(--ink-900); }
+.aol-toc ol a[aria-current="true"]::before { opacity: 1; }
 
 /* Inline is the touch presentation, and a 14px/1.35 link is a 19px tap target.
    Grow the rows on coarse pointers only — same treatment, same reasoning, as
    the share buttons in section 4 — so the desktop rail keeps its density. */
 @media (pointer: coarse) {
   .aol-toc ol { gap: 2px; }
-  .aol-toc a { padding-block: 12px; }
-  .aol-toc a::before { top: 12px; }
+  .aol-toc ol a { padding-block: 12px; }
+  .aol-toc ol a::before { top: 12px; }
   .aol-toc__summary { padding-block: 8px 14px; }
 }
 
-/* --- Right-rail presentation ≥1340px ------------------------------------ */
+/* --- Left-rail presentation ≥1340px -------------------------------------- */
 @media (min-width: 1340px) {
   .aol-a--railed > .aol-toc {
     /* No rule above and no bottom margin: in the rail this is not a block
@@ -798,7 +819,11 @@
     padding: 0;
     background-image: none;
   }
-  .aol-a--railed > .aol-toc a::before { left: -14px; }
+  /* The mark hangs into the page gutter to the panel's left, so the entries
+     stay flush with the "Contents" label and the share row beneath them —
+     everything in the panel on one left edge, with only the current-section
+     glyph breaking it. */
+  .aol-a--railed > .aol-toc ol a::before { left: -14px; }
 
   /* Always open up here, so the summary is a heading rather than a control.
      It keeps its place in the tab order — it is still the list's label — and
@@ -1325,7 +1350,7 @@
    ============================================================ */
 
 @media print {
-  .aol-a__progress, .aol-a__rail-l, .aol-toc,
+  .aol-a__progress, .aol-toc,
   .aol-share, .aol-pn, .aol-rel, .aol-newsletter { display: none !important; }
   .aol-a { max-width: none; padding: 0; }
   .aol-prose { font-size: 11pt; }

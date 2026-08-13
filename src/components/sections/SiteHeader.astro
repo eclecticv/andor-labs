@@ -31,16 +31,10 @@ const NAV: [string, string][] = [
       {NAV.map(([label, href]) => (
         <a class="site-nav-link" href={href}>{label}</a>
       ))}
-      {/* Secondary CTA, stacked under the primary rather than beside it. Beside
-          it, two adjacent things at the same end of the bar read as a choice
-          between equals; underneath, it reads as the lighter option for someone
-          not ready to book. It lives in the header rather than in a homepage
-          band so it follows the reader onto /blog and the case study, which is
-          where a free tool does its work. */}
-      <div class="site-header-ctas">
-        <Button size="sm" variant="primary" arrow href={BOOKING_URL} target="_blank" rel="noopener" class="site-header-cta">Book a call</Button>
-        <a class="site-header-alt" href="/tools/subreddit-scout/">or try our free Reddit tool</a>
-      </div>
+      {/* One ask in the bar. The free-tool link used to hang under this button;
+          it now sits under the hero's primary CTA, where it is read in the
+          context of the promise rather than as a fifth thing in the chrome. */}
+      <Button size="sm" variant="primary" arrow href={BOOKING_URL} target="_blank" rel="noopener" class="site-header-cta">Book a call</Button>
       <button type="button" class="site-nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
         <span></span><span></span><span></span>
       </button>
@@ -52,7 +46,6 @@ const NAV: [string, string][] = [
     ))}
     <div class="site-mobilecta">
       <Button variant="primary" size="md" fullWidth arrow href={BOOKING_URL} target="_blank" rel="noopener">Book a call</Button>
-      <a class="site-mobilealt" href="/tools/subreddit-scout/">or try our free Reddit tool</a>
     </div>
   </nav>
 </header>

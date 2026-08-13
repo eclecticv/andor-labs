@@ -81,7 +81,15 @@ const BOOT_LINES: { text: string; status?: string; prompt?: boolean }[] = [
         shipped as readable source. The Badge import and the `founder` grid
         area are deliberately left in place so uncommenting is the only step. */}
     {/* <p class="aol-hero__founder" data-r style="font-family:var(--font-mono);font-size:13px;line-height:1.5;letter-spacing:0.02em;color:var(--ink-600);--r:3">Founded by former Head of Marketing at<br /><strong style="font-weight:400;color:var(--ink-900)">Blockthrough</strong> &amp; <strong style="font-weight:400;color:var(--ink-900)">AdPushup</strong> <Badge variant="tint" class="aol-founderpill">Sold for &gt;$100M</Badge></p> */}
-    <div class="aol-hero__cta" data-r style="--r:4"><Button size="lg" variant="primary" arrow href={BOOKING_URL} target="_blank" rel="noopener">Book a call</Button></div>
+    {/* Two asks, ranked. The booking call is the primary; the free tool sits
+        directly under it as the lighter option for someone not ready to talk to
+        a human yet. Stacked rather than side-by-side so it reads as a fallback
+        instead of an equal choice — this used to hang off the header button,
+        where it competed with the nav instead of following the promise. */}
+    <div class="aol-hero__cta" data-r style="--r:4">
+      <Button size="lg" variant="primary" arrow href={BOOKING_URL} target="_blank" rel="noopener">Book a call</Button>
+      <a class="aol-hero__alt" href="/tools/subreddit-scout/">Get your DIY Reddit strategy <span aria-hidden="true">&rarr;</span></a>
+    </div>
   </div>
   <div class="aol-grid-blue" data-r style="border-top:1px solid var(--ink-200);--r:5">
     <div style="max-width:var(--container-width);width:100%;margin:0 auto;padding:var(--space-6) var(--gutter)">

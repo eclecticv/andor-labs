@@ -5,22 +5,26 @@
  * official X and LinkedIn buttons load tracking scripts that fire on page
  * view, before anyone has chosen to share anything.
  *
- * `orientation="vertical"` is the sticky-rail variant used at ≥1340px.
+ * One presentation, laid out by whatever contains it: a row in the article
+ * header, and a wrapped label-over-buttons block in the contents panel at
+ * ≥1340px (see `.aol-toc__share` in blog.css). The old `orientation` prop went
+ * with the standalone vertical rail it existed to flip — a component that
+ * carries its own layout mode has to be kept in sync with the two places that
+ * choose between them, and the containers already know which they want.
  */
 interface Props {
   url: string;
   title: string;
-  orientation?: "horizontal" | "vertical";
   label?: boolean;
 }
-const { url, title, orientation = "horizontal", label = true } = Astro.props;
+const { url, title, label = true } = Astro.props;
 
 const enc = encodeURIComponent;
 const x = `https://x.com/intent/post?text=${enc(title)}&url=${enc(url)}`;
 const linkedin = `https://www.linkedin.com/sharing/share-offsite/?url=${enc(url)}`;
 const email = `mailto:?subject=${enc(title)}&body=${enc(`${title}\n\n${url}`)}`;
 ---
-<div class="aol-share" data-share data-url={url} data-orientation={orientation}>
+<div class="aol-share" data-share data-url={url}>
   {label && <span class="aol-share__label">Share</span>}
 
   <a class="aol-share__btn" href={x} target="_blank" rel="noopener noreferrer" aria-label="Share on X">
