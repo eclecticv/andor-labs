@@ -649,6 +649,22 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   // `string | undefined` and fails to satisfy HeadersInit.
   const geminiKey = env.GEMINI_API_KEY;
 
+  // Capture the lead BEFORE generating, not after.
+  //
+  // This used to sit below the `if (!report) return 502` bail-out, which meant a
+  // Gemini failure threw the lead away too: the visitor handed over a work email,
+  // got an error, and we kept nothing. That is exactly backwards — the moments
+  // the model is flaky are the moments the lead matters most, because it is the
+  // only way to follow up on a brief that never arrived.
+  //
+  // They submitted and consented at this point; whether the model then succeeds
+  // is our problem, not a reason to discard them.
+  if (env.LOOPS_API_KEY) {
+    await syncLeadToLoops(env.LOOPS_API_KEY, { email, websiteUrl: url, newsletter });
+  } else {
+    console.error("[scout] LOOPS_API_KEY is not set — lead not captured:", email);
+  }
+
   const site = await readSite(url);
 
   const userPrompt = site.blocked
@@ -726,14 +742,6 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   if (!report) {
     return json({ error: "We couldn't finish the research just now. Try again in a moment." }, 502);
-  }
-
-  // The lead is worth capturing whether or not Loops is reachable, and the
-  // visitor should never wait on it or see it fail.
-  if (env.LOOPS_API_KEY) {
-    await syncLeadToLoops(env.LOOPS_API_KEY, { email, websiteUrl: url, newsletter });
-  } else {
-    console.error("[scout] LOOPS_API_KEY is not set — lead not captured:", email);
   }
 
   // Rendered here rather than in the browser so toSkillFile lives in exactly
