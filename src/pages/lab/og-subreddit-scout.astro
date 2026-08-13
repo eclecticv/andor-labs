@@ -2,21 +2,32 @@
 /**
  * Render source for `public/og-subreddit-scout.png`.
  *
- * This is a /lab/ route, so the sitemap filter in astro.config.mjs already
- * excludes it — it is a rendering jig, not a page. It exists in the repo rather
- * than as a throwaway HTML file so the card can be re-rendered when the copy
- * changes, using the real tokens and the real webfonts instead of a lookalike.
+ * A /lab/ route, so astro.config.mjs's sitemap filter already excludes it — this
+ * is a rendering jig, not a page. It lives in the repo rather than as a
+ * throwaway HTML file so the card can be re-rendered when the copy changes,
+ * using the real tokens and the real webfonts instead of a lookalike.
  *
- * The composition is lifted from the existing public/og.png so the two cards
- * read as one set: textured ground, inset white card with a full ink border and
- * a hard offset, mono brand line, display headline with one blue phrase, hairline,
- * mono status strip with blue values.
+ * ── Two things this deliberately does NOT copy from public/og.png ──
  *
- * To re-render:
- *   node scripts/render-og.mjs        (see the script for the exact viewport)
+ * 1. SIZE. og.png is 1200x630 (1.905:1), the 2016-era OG default. X's
+ *    summary_large_image wants 2:1 and centre-crops anything else, which quietly
+ *    shaves the card. This is authored at 1200x600 and captured at 2x, so it
+ *    lands on X uncropped and still satisfies Facebook and LinkedIn, which take
+ *    any ratio near 1.91:1.
  *
- * Authored at 1200x630 and captured at deviceScaleFactor 2, matching og.png's
- * 2400x1260 — the meta tags declare the 1200x630 logical size.
+ * 2. PALETTE. og.png predates the warm layer — it is ink-050 ground, white card,
+ *    blue accents, and it still carries the retired "GTM OS for adtech startups"
+ *    line. The current system (see the design system's Colors › "Warm layer —
+ *    pink & copper") treats pink as the surface family for set-apart blocks, and
+ *    every other surface on this tool's own page is warm. A social card IS a
+ *    set-apart block, so it takes the warm panel.
+ *
+ * Palette rules honoured from that guideline: ink stays near-black on pink; the
+ * hairline warms to pink-200 rather than going cold; copper is a label and never
+ * an action; blue remains the only signal; copper and blue are not paired as
+ * equal accents — copper marks the meta line, blue marks exactly one phrase.
+ *
+ * To re-render:  node scripts/render-og.mjs
  */
 import "../../styles/main.css";
 ---
@@ -32,13 +43,11 @@ import "../../styles/main.css";
       <div class="og__card">
         <header class="og__top">
           <span class="og__brand">And/or Labs</span>
-          <span class="og__meta">FREE TOOL · SCOUT-01 <i class="og__dot"></i></span>
+          <span class="og__meta">FREE TOOL <i class="og__dot"></i></span>
         </header>
 
-        {/* Explicit break, not a measure cap. This is a fixed 1200x630 canvas, so
-            the line break is a design decision rather than something to leave to
-            the wrapping algorithm — a ch-based max-width put "read" alone on a
-            third line and knocked the headline off the card's optical centre. */}
+        {/* Explicit break: a fixed 1200x600 canvas, so where the line turns is a
+            design decision rather than something left to the wrapping algorithm. */}
         <h1 class="og__h">
           The <em>five subreddits</em><br />your buyers already read
         </h1>
@@ -46,7 +55,6 @@ import "../../styles/main.css";
         <footer class="og__foot">
           <span class="og__rule"></span>
           <p class="og__status">
-            <span class="og__k">SCOUT</span>
             <span>site <b>READ</b></span>
             <span>subreddits <b>5</b></span>
             <span>skill files <b>3</b></span>
@@ -58,77 +66,83 @@ import "../../styles/main.css";
 </html>
 
 <style>
-  /* Fixed pixel values throughout, not tokens — this is a 1200x630 canvas, not a
+  /* Fixed pixel values throughout, not tokens — this is a 1200x600 canvas, not a
      responsive page, and the type has to land on exact optical positions. The
      COLOURS still come from tokens so the card cannot drift from the palette. */
   :global(body) { margin: 0; }
-  /* The dev server injects its toolbar into every page, and it was landing inside
-     the captured frame. The card is only ever rendered from `npm run dev`, so it
-     has to be hidden here rather than relying on a production build. */
+  /* The dev server injects its toolbar into every page and it lands inside the
+     captured frame. The card is only ever rendered from `npm run dev`. */
   :global(astro-dev-toolbar) { display: none !important; }
 
   .og {
     width: 1200px;
-    height: 630px;
+    height: 600px;
     box-sizing: border-box;
-    padding: 45px;
-    background-color: var(--ink-050);
-    background-image: url("/texture.svg");
-    background-repeat: repeat;
+    padding: 40px;
+    background-color: var(--paper);
     display: flex;
   }
 
+  /* The warm panel, with the house's full-ink border and hard offset. Same
+     construction as the featured card on the tool page itself, so the card and
+     the page a reader lands on are visibly the same object. */
   .og__card {
     flex: 1;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    background: var(--paper-pure);
+    background: var(--surface-warm);
     border: 1.5px solid var(--ink-900);
     border-radius: 20px;
     box-shadow: 10px 10px 0 0 var(--ink-900);
-    padding: 58px 60px 52px;
+    padding: 52px 56px 46px;
   }
 
   .og__top { display: flex; align-items: center; justify-content: space-between; }
   .og__brand {
     font-family: var(--font-mono);
-    font-size: 24px;
+    font-size: 23px;
     letter-spacing: 0.02em;
     color: var(--blue-500);
   }
+  /* Copper: a label, never an action. */
   .og__meta {
     display: inline-flex; align-items: center; gap: 10px;
     font-family: var(--font-mono);
-    font-size: 17px;
-    letter-spacing: 0.12em;
-    color: var(--ink-500);
+    font-size: 16px;
+    letter-spacing: 0.14em;
+    color: var(--copper-700);
   }
-  .og__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--blue-500); }
+  .og__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--copper-600); }
 
-  /* margin-top:auto on the footer floors the strip, so the headline sits in the
-     optical middle of the card however many lines it runs to. */
+  /* `margin: auto 0` rather than a fixed top margin. The footer is floored and
+     the top row is fixed, so auto margins on both sides of the headline split
+     the leftover height evenly above and below it — the block sits on the card's
+     optical midline instead of hanging off the top row with all the slack
+     collecting in one dead slab underneath. */
   .og__h {
     font-family: var(--font-display);
     font-weight: var(--weight-regular);
     font-size: 84px;
     line-height: 1.06;
     letter-spacing: var(--tracking-tight);
-    color: var(--ink-900);
-    margin: 52px 0 0;
+    /* Near-black on pink, per the warm-layer rule. */
+    color: var(--text-on-warm);
+    margin: auto 0;
   }
   .og__h em { font-style: normal; color: var(--blue-500); }
 
   .og__foot { margin-top: auto; }
-  .og__rule { display: block; height: 1px; background: var(--ink-200); margin-bottom: 26px; }
+  /* The hairline warms rather than going cold. */
+  .og__rule { display: block; height: 1px; background: var(--border-warm); margin-bottom: 22px; }
   .og__status {
-    display: flex; align-items: center; gap: 40px;
+    display: flex; align-items: center; gap: 38px;
     font-family: var(--font-mono);
-    font-size: 21px;
+    font-size: 20px;
     letter-spacing: 0.02em;
-    color: var(--ink-800);
+    /* ink-500 goes hazy on pink; the warm layer has its own muted step. */
+    color: var(--text-on-warm-muted);
     margin: 0;
   }
-  .og__k { color: var(--ink-500); letter-spacing: 0.12em; }
   .og__status b { font-weight: 400; color: var(--blue-500); }
 </style>

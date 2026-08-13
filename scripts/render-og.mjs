@@ -5,8 +5,8 @@
  * site's own tokens and webfonts rather than a lookalike. This script is the only
  * thing that turns one into a file.
  *
- * Captured at deviceScaleFactor 2 — public/og.png is 2400x1260 for a card the
- * meta tags declare as 1200x630, and a new card has to match that set.
+ * Captured at deviceScaleFactor 2. Cards are authored at 1200x600 (a true 2:1, so
+ * X does not centre-crop them) and land as 2400x1200 files.
  *
  *   node scripts/render-og.mjs                       # all known cards
  *   node scripts/render-og.mjs subreddit-scout       # just one
@@ -32,7 +32,7 @@ const todo = wanted.length ? wanted : Object.keys(CARDS);
 const browser = await chromium.launch();
 try {
   const page = await browser.newPage({
-    viewport: { width: 1200, height: 630 },
+    viewport: { width: 1200, height: 600 },
     deviceScaleFactor: 2,
   });
 
@@ -57,7 +57,7 @@ try {
     const out = join(ROOT, "public", `og-${slug}.png`);
     // Clip rather than fullPage: the card is a fixed 1200x630 canvas and any
     // stray body margin would otherwise pad the image.
-    await page.screenshot({ path: out, clip: { x: 0, y: 0, width: 1200, height: 630 } });
+    await page.screenshot({ path: out, clip: { x: 0, y: 0, width: 1200, height: 600 } });
     console.log(`wrote public/og-${slug}.png`);
   }
 } finally {
