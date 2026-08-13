@@ -245,18 +245,16 @@ const TICKS = [
         <h3 class="scout-play__title aol-display" data-f="title"></h3>
         <p class="scout-play__goal" data-f="goal"></p>
 
-        <!-- The file IS the deliverable, so it becomes an object on the card — a
-             white panel with the filename on it and the buttons attached — rather
-             than a filename badge at the top and two loose full-width buttons at
-             the bottom with the goal text stranded between them. -->
-        <div class="scout-play__file">
-          <p class="scout-play__filename" data-f="filename"></p>
-          <!-- Default variant and size, i.e. the same primary button the hero and
-               the CTA band use. The sm/secondary pair here was a bespoke sizing
-               that nothing else on the site uses, and it read as chrome. -->
-          <div class="scout-play__cta">
-            <Button variant="primary" fullWidth arrow data-act="download">Download</Button>
-          </div>
+        <!-- Filename then button, both directly on the card. An earlier pass wrapped
+             these in a white panel meant to read as "the file, with its button
+             attached"; at this width the panel's padding just drew a white ring
+             around the button, so it read as an outline on the CTA. -->
+        <p class="scout-play__filename" data-f="filename"></p>
+        <!-- Default variant and size, i.e. the same primary button the hero and the
+             CTA band use. The sm/secondary pair here was a bespoke sizing nothing
+             else on the site uses, and it read as chrome. -->
+        <div class="scout-play__cta">
+          <Button variant="primary" fullWidth arrow data-act="download">Download</Button>
         </div>
 
         <details class="scout-play__more">
@@ -628,21 +626,17 @@ const TICKS = [
     color: var(--text-on-warm-muted);
     margin: 0 0 var(--space-5);
   }
-  /* `margin-top:auto` floors the panel, so the three files align across the row
-     however unevenly the titles and goals above them wrap. */
-  .scout-play__file {
-    margin-top: auto;
-    background: var(--paper-pure);
-    border: 1px solid var(--border-warm);
-    border-radius: var(--radius-sm);
-    padding: var(--space-4);
-  }
+  /* `margin-top:auto` floors the filename, taking the button with it, so the three
+     CTAs align across the row however unevenly the titles and goals above them
+     wrap. No panel, no fill — the button is the only object down here and it does
+     not need a box drawn around it. */
   .scout-play__filename {
+    margin-top: auto;
     font-family: var(--font-mono);
     font-size: var(--text-2xs);
     letter-spacing: var(--tracking-mono);
-    color: var(--ink-900);
-    margin: 0 0 var(--space-3);
+    color: var(--text-on-warm-muted);
+    margin-bottom: var(--space-3);
     overflow-wrap: anywhere;
   }
   .scout-play__cta { display: grid; }
