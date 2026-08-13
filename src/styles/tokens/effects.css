@@ -14,6 +14,15 @@
   --radius-lg:   8px;
   --radius-pill: 999px;
 
+  /* Icon steps — HackerNoon Pixel Icon Library is drawn on a 24px grid, so
+     these are the ONLY legal sizes. Anything off-step lands that grid on a
+     half pixel and blurs the mark; never go below 12px. Per the design
+     system's ICONOGRAPHY rules. */
+  --icon-sm: 12px;
+  --icon-md: 24px;
+  --icon-lg: 36px;
+  --icon-xl: 48px;
+
   /* ---- Border widths ---- */
   --border-hairline-width: 1px;
   --border-width:          1.5px;

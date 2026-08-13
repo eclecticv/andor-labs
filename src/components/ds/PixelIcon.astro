@@ -12,7 +12,9 @@
 interface Props {
   name:
     | "pencil-ruler" | "analytics" | "newspaper" | "trending" | "robot"
-    | "seedlings" | "refresh" | "users-crown" | "handshake" | "bolt";
+    | "seedlings" | "refresh" | "users-crown" | "handshake" | "bolt"
+    | "reddit" | "anthropic" | "open-ai"
+    | "flag-checkered" | "play-solid";
   size?: number;
   class?: string;
   [key: string]: any;
@@ -30,6 +32,14 @@ const PATHS: Record<string, string> = {
   "users-crown": `<polygon points="13 12 13 11 14 11 14 5 18 5 18 6 19 6 19 11 18 11 18 12 13 12"/><path d="m13,3h-1v1h-1v1h-1v-1h-1v-1h-1v1h-1v1h-1v-1h-1v-1h-1v7h1v1h1v1h5v-1h1v-1h1V3Zm-2,6h-1v1h-3v-1h-1v-2h5v2Z"/><polygon points="23 17 23 20 22 20 22 21 16 21 16 20 17 20 17 16 16 16 16 15 15 15 15 14 20 14 20 15 21 15 21 16 22 16 22 17 23 17"/><path d="m15,17v-1h-1v-1h-1v-1H4v1h-1v1h-1v1h-1v3h1v1h13v-1h1v-3h-1Zm-11,0v-1h9v1h1v2H3v-2h1Z"/>`,
   handshake: `<polygon points="18 8 18 7 11 7 11 8 10 8 10 9 9 9 9 10 8 10 8 12 11 12 11 11 12 11 12 10 13 10 13 9 15 9 15 10 16 10 16 11 17 11 17 12 18 12 18 13 19 13 19 14 21 14 21 13 23 13 23 15 22 15 22 16 20 16 20 17 19 17 19 18 18 18 18 19 17 19 17 20 14 20 14 21 8 21 8 20 6 20 6 19 5 19 5 18 4 18 4 17 3 17 3 16 2 16 2 15 1 15 1 13 3 13 3 14 4 14 4 15 5 15 5 16 6 16 6 17 7 17 7 18 8 18 8 19 9 19 9 18 8 18 8 17 7 17 7 16 9 16 9 17 10 17 10 18 11 18 11 19 13 19 13 18 12 18 12 17 11 17 11 16 10 16 10 15 12 15 12 16 13 16 13 17 14 17 14 18 17 18 17 17 15 17 15 16 14 16 14 15 13 15 13 14 15 14 15 15 16 15 16 16 18 16 18 15 17 15 17 14 16 14 16 13 15 13 15 12 13 12 13 13 11 13 11 14 8 14 8 13 7 13 7 12 6 12 6 10 7 10 7 9 8 9 8 8 9 8 9 7 6 7 6 8 5 8 5 7 3 7 3 6 1 6 1 4 3 4 3 5 5 5 5 6 6 6 6 5 18 5 18 6 19 6 19 5 21 5 21 4 23 4 23 6 21 6 21 7 19 7 19 8 18 8"/>`,
   bolt: `<path d="m14,10v-4h1v-3h1V1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h7v4h-1v3h-1v2h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h-7Zm4,2h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v-5h-5v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v5h5v1Z"/>`,
+  // Brand marks from the same HackerNoon set (icons/SVG/brands), so they
+  // carry the identical 24px pixel geometry as the glyphs above rather than
+  // importing a second icon language on top of the brand.
+  reddit: `<rect x="14" y="15" width="1" height="1"/><rect x="13" y="12" width="2" height="2"/><rect x="9" y="12" width="2" height="2"/><rect x="9" y="15" width="1" height="1"/><path d="m22,9v-2h-1v-2h-1v-1h-1v-1h-2v-1h-2v-1h-6v1h-2v1h-2v1h-1v1h-1v2h-1v2h-1v6h1v2h1v2h1v1h1v1h2v1h2v1h6v-1h2v-1h2v-1h1v-1h1v-2h1v-2h1v-6h-1Zm-3,5h-1v1h-1v2h-1v1h-2v1h-4v-1h-2v-1h-1v-3h-1v-1h-1v-2h1v-1h2v1h1v-1h3v-5h2v1h3v2h-2v-1h-2v3h2v1h1v-1h2v1h1v3Z"/><rect x="10" y="16" width="4" height="1"/>`,
+  anthropic: `<path d="M16,17V15H15V12H14V10H13V8H12V6H11V4H7V6H6V8H5v2H4v2H3v3H2v2H1v2H4V17H5V15h8v2h1v2h3V17Zm-5-5H7V10H8V8h2v2h1Z"/><polygon points="23 17 23 19 20 19 20 17 19 17 19 15 18 15 18 13 17 13 17 10 16 10 16 8 15 8 15 6 14 6 14 4 17 4 17 6 18 6 18 8 19 8 19 10 20 10 20 13 21 13 21 15 22 15 22 17 23 17"/>`,
+  "open-ai": `<path d="M22,8V7H21V6H19V4H18V3H17V2H16V1H11V2H10V3H9V2H6V3H4V4H3V6H2v5H1v5H2v1H3v1H5v2H6v1H7v1H8v1h5V22h1V21h1v1h3V21h2V20h1V18h1V13h1V8ZM9,6h1V4h1V3h5V4h1V5H12V6H11V7H10V9H9v2H8V8H9ZM5,17V16H4V15H3V11H4v2H5v2h8v1H12v1Zm10,1H14v2H13v1H8V20H7V19h5V18h1V17h1V15h1V13h1v3H15Zm5,0H19v1H18v1H16V18h1V16h1V14H17V12H16V11H15v1H14v2H10V13H9v1H7V13H6V12H5V10H4V6H5V5H6V4H8V6H7V8H6v2H7v2H8v1H9V12h1V10h4v1h1V10h2v1h1v1h1v2h1Zm1-5H20V11H19V9H11V8h1V7h7V8h1V9h1Z"/>`,
+  "flag-checkered": `<path d="m21,4v1h-2v1h-6v-1h-7v1h-1v-1h1v-2h-1v-1h-2v1h-1v2h1v17h2v-4h1v-1h7v1h6v-1h2v-1h1V4h-1Zm-9,11h-6v1h-1v-3h1v-1h6v3Zm0-5h-6v1h-1v-3h1v-1h6v3Zm8,5h-1v1h-5v-3h5v-1h1v3Zm0-5h-1v1h-5v-3h5v-1h1v3Z"/>`,
+  "play-solid": `<polygon points="22 11 22 13 21 13 21 14 20 14 20 15 18 15 18 16 16 16 16 17 15 17 15 18 13 18 13 19 11 19 11 20 10 20 10 21 8 21 8 22 6 22 6 23 3 23 3 22 2 22 2 2 3 2 3 1 6 1 6 2 8 2 8 3 10 3 10 4 11 4 11 5 13 5 13 6 15 6 15 7 16 7 16 8 18 8 18 9 20 9 20 10 21 10 21 11 22 11"/>`,
 };
 ---
 <svg

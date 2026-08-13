@@ -19,6 +19,11 @@ pnpm-debug.log*
 # environment variables
 .env
 .env.production
+# Pages Function secrets for `wrangler pages dev` — real keys, never committed.
+.dev.vars
+.dev.vars.*
+# wrangler's local state (contains a cache of bindings)
+.wrangler/
 
 # macOS-specific files
 .DS_Store
