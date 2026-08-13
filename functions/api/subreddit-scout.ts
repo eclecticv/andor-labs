@@ -21,11 +21,22 @@
  *   Cloudflare dashboard → Pages → andorlabs → Settings → Variables and Secrets
  *   GEMINI_API_KEY = <key from aistudio.google.com → Get API key>
  *   LOOPS_API_KEY  = <key from loops.so → Settings → API>
+ *
+ * Optional:
+ *   OPENCODE_API_KEY = <key from opencode.ai/zen> — enables the fallback model
+ *                      after Gemini fails twice. Unset is fine; the tool just
+ *                      loses its second provider.
  */
 
 interface Env {
   GEMINI_API_KEY?: string;
   LOOPS_API_KEY?: string;
+  /**
+   * Optional. When set, OpenCode Zen becomes the fallback after Gemini has
+   * failed twice. Absent, the tool behaves exactly as before — the fallback is
+   * skipped, not fatal.
+   */
+  OPENCODE_API_KEY?: string;
 }
 
 /**
@@ -49,6 +60,24 @@ interface Env {
  */
 const MODEL = "gemini-3.5-flash-lite";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+
+/**
+ * Fallback provider, tried only after Gemini has failed twice.
+ *
+ * OpenCode Zen is OpenAI-compatible, so this is a second HTTP shape rather than
+ * a second SDK. Deliberately a DIFFERENT vendor rather than a second Google
+ * model: the failure this covers is "Google is rate-limiting or down", and
+ * another Gemini id shares that fate.
+ *
+ * ⚠️ Structured output is NOT documented for this endpoint, so unlike the Gemini
+ * path there is no responseSchema guaranteeing well-formed JSON. `json_object`
+ * is requested because it is the widely-implemented OpenAI shape, and
+ * extractJson + normalizeReport carry the rest — they were written for exactly
+ * this class of sloppiness and predate this fallback. Expect the fallback to be
+ * a little less reliable than the primary; a degraded brief beats a 502.
+ */
+const OPENCODE_MODEL = "deepseek-v4-flash";
+const OPENCODE_ENDPOINT = "https://opencode.ai/zen/v1/chat/completions";
 
 /**
  * Response schema, passed to Gemini so the decoder is constrained rather than
@@ -721,6 +750,42 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return text;
   };
 
+  /** One call to OpenCode Zen. Returns the completion text, or throws. */
+  const askOpenCode = async (key: string): Promise<string> => {
+    const res = await fetch(OPENCODE_ENDPOINT, {
+      method: "POST",
+      headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        model: OPENCODE_MODEL,
+        // Same system/user split as the Gemini call, expressed the OpenAI way,
+        // so both providers are held to the identical prompt. If the two drift,
+        // the fallback silently starts producing a different brief.
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.4,
+      }),
+    });
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      throw new Error(`OpenCode ${res.status}: ${detail.slice(0, 300)}`);
+    }
+
+    const body = (await res.json()) as {
+      choices?: { message?: { content?: string }; finish_reason?: string }[];
+    };
+    const choice = body.choices?.[0];
+    // A length-truncated completion is not a brief, it is half a brief that will
+    // fail extractJson in a confusing way. Name it here instead.
+    if (choice?.finish_reason === "length") throw new Error("Completion truncated");
+    const text = choice?.message?.content ?? "";
+    if (!text) throw new Error("Empty completion");
+    return text;
+  };
+
   /**
    * Two attempts.
    *
@@ -731,12 +796,36 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
    * on a 27s model. Deliberately not a loop over N: if two consecutive attempts
    * fail, something is actually wrong and burning more quota will not fix it.
    */
+  /**
+   * Gemini twice, then OpenCode once.
+   *
+   * Two Gemini attempts because malformed JSON on the flash-lite tier is
+   * intermittent rather than systematic — the same prompt succeeds on a retry.
+   * The third attempt changes VENDOR rather than retrying the same one again,
+   * because by then the likely cause is Google-side (quota, 5xx) and a third
+   * Gemini call would just fail the same way.
+   *
+   * Skipped entirely when OPENCODE_API_KEY is unset, which is the default.
+   */
+  const attempts: { provider: string; run: () => Promise<string> }[] = [
+    { provider: "gemini", run: askGemini },
+    { provider: "gemini", run: askGemini },
+    ...(env.OPENCODE_API_KEY
+      ? [{ provider: "opencode", run: () => askOpenCode(env.OPENCODE_API_KEY as string) }]
+      : []),
+  ];
+
   let report: Report | undefined;
-  for (let attempt = 1; attempt <= 2 && !report; attempt += 1) {
+  for (let i = 0; i < attempts.length && !report; i += 1) {
+    const { provider, run } = attempts[i];
     try {
-      report = normalizeReport(extractJson(await askGemini()));
+      report = normalizeReport(extractJson(await run()));
+      // Only worth a line when the primary did not serve it — that is the
+      // signal that Gemini is having a bad day, and it is the only way to
+      // notice from the logs that the fallback is carrying traffic.
+      if (i > 0) console.log(`[scout] served by ${provider} on attempt ${i + 1}`);
     } catch (err) {
-      console.error(`[scout] attempt ${attempt}/2 failed:`, err);
+      console.error(`[scout] attempt ${i + 1}/${attempts.length} (${provider}) failed:`, err);
     }
   }
 
