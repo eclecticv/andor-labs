@@ -312,8 +312,12 @@ cards. All of these become easier once there is data, and none are needed to lau
 
 ## 14. Known risks
 
-1. **`LOOPS_API_KEY` is unset in Cloudflare.** Lead capture 503s in production today.
-   This tool inherits that bug and it must be fixed before launch or the leads are lost.
+1. **Preview has no secrets.** `GEMINI_API_KEY` and `LOOPS_API_KEY` are both set on
+   production — an earlier note that Loops was unset was stale, verified 2026-08-13 via
+   `wrangler pages secret list`. The preview environment, however, holds no secrets at
+   all, so the pipeline cannot run on preview branches. Preview shares the production
+   database for read-only rendering; if preview ever gets provider keys it needs its
+   own database at the same time.
 2. **Auto-publish of judgments about named companies** was chosen deliberately. Comedic
    framing, disclosure, and the removal path are the mitigations.
 3. **First adapter on the site.** `@astrojs/cloudflare` enters the production build
