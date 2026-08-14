@@ -1,117 +1,52 @@
 ---
-// RankBoard — the Rank My AdTech leaderboard.
+// RankBoard — one ranked list.
 //
-// Two shapes from one component:
-//   entries  → a flat ranked list (the landing page preview)
-//   board    → one ranked table per weight class (the leaderboard page)
-//
-// Divisions run HEAVYWEIGHT FIRST. Descending weight is how a fight card is
-// read — the main event is at the top — and it also puts the companies most
-// readers recognise where they will look first.
+// Divisional tables are gone with the weight classes. Category is the real
+// grouping now, but there are nineteen of them and a board that splits a dozen
+// companies nineteen ways is a page of empty headings. So the board stays flat
+// and each row carries its category; grouping returns when a category can fill
+// a table on its own.
 //
 // Styles live in src/styles/components.css (.aol-rb__*).
 import RankRow from "./RankRow.astro";
-import PixelIcon from "./PixelIcon.astro";
-import { DIVISIONS, type Division, type Entry } from "../../lib/rankings";
+import type { Entry } from "../../lib/rankings";
 
 interface Props {
-  /** Flat mode — a single ranked list, no division headers. */
-  entries?: Entry[];
-  /** Divisional mode. */
-  board?: Record<Division, Entry[]>;
+  entries: Entry[];
   championSlug?: string | null;
   /** Rows shown before the rest fold into a disclosure. */
   limit?: number;
-  /** slug → one keyword per juror, in seat order. */
-  keywords?: Record<string, string[]>;
 }
-const {
-  entries,
-  board,
-  championSlug = null,
-  limit = 0,
-  keywords = {},
-} = Astro.props;
-
-// Heaviest first. DIVISIONS is authored featherweight-up for the prose that
-// describes them, so the board reverses it rather than duplicating the list.
-const ordered = [...DIVISIONS].reverse();
+const { entries, championSlug = null, limit = 0 } = Astro.props;
+const shown = limit > 0 ? entries.slice(0, limit) : entries;
+const rest = limit > 0 ? entries.slice(limit) : [];
 ---
 
 <div class="aol-rb">
-  {
-    entries ? (
+  {entries.length === 0 ? (
+    <p class="aol-rb__empty">Nobody yet. Whoever goes first takes the crown by walking in.</p>
+  ) : (
+    <>
       <ol class="aol-rb__list">
-        {entries.map((entry, i) => (
-          <RankRow
-            entry={entry}
-            rank={i + 1}
-            leader={i === 0}
-            champion={entry.slug === championSlug}
-            keywords={keywords[entry.slug] ?? []}
-          />
+        {shown.map((entry, i) => (
+          <RankRow entry={entry} rank={i + 1} leader={i === 0}
+            champion={entry.slug === championSlug} />
         ))}
       </ol>
-    ) : (
-      ordered.map((division) => {
-        const rows = board?.[division.key] ?? [];
-        const shown = limit > 0 ? rows.slice(0, limit) : rows;
-        const rest = limit > 0 ? rows.slice(limit) : [];
-        return (
-          <section class="aol-rb__division" id={`division-${division.key}`}>
-            <header class="aol-rb__head">
-              <span class="aol-rb__head-icon">
-                <PixelIcon name={division.icon as any} size={24} />
-              </span>
-              <h3 class="aol-rb__title">{division.label}</h3>
-              <span class="aol-rb__count">{rows.length} ranked</span>
-              <p class="aol-rb__blurb">{division.blurb}</p>
-            </header>
 
-            {rows.length === 0 ? (
-              <p class="aol-rb__empty">
-                Nobody yet. The first company ranked in this division takes the crown by
-                walking in.
-              </p>
-            ) : (
-              <>
-                <ol class="aol-rb__list">
-                  {shown.map((entry, i) => (
-                    <RankRow
-                      entry={entry}
-                      rank={i + 1}
-                      leader={i === 0}
-                      champion={entry.slug === championSlug}
-                      keywords={keywords[entry.slug] ?? []}
-                    />
-                  ))}
-                </ol>
-
-                {/* <details> rather than a JS toggle: the hidden rows stay in the
-                    HTML, so they are still crawlable and still work with
-                    scripting off. The expand is progressive, not load-bearing. */}
-                {rest.length ? (
-                  <details class="aol-rb__more">
-                    <summary class="aol-rb__more-toggle">
-                      Show the other {rest.length} in {division.label.toLowerCase()}
-                    </summary>
-                    <ol class="aol-rb__list">
-                      {rest.map((entry, i) => (
-                        <RankRow
-                          entry={entry}
-                          rank={limit + i + 1}
-                          champion={entry.slug === championSlug}
-                          keywords={keywords[entry.slug] ?? []}
-                        />
-                      ))}
-                    </ol>
-                  </details>
-                ) : null}
-              </>
-            )}
-          </section>
-        );
-      })
-    )
-  }
+      {/* <details> rather than a JS toggle: the hidden rows stay in the HTML,
+          so they remain crawlable and work with scripting off. */}
+      {rest.length ? (
+        <details class="aol-rb__more">
+          <summary class="aol-rb__more-toggle">Show the other {rest.length}</summary>
+          <ol class="aol-rb__list">
+            {rest.map((entry, i) => (
+              <RankRow entry={entry} rank={limit + i + 1}
+                champion={entry.slug === championSlug} />
+            ))}
+          </ol>
+        </details>
+      ) : null}
+    </>
+  )}
 </div>

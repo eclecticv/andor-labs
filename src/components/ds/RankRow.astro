@@ -4,7 +4,7 @@
 // rest" are all literally the same markup — three near-copies of a row is how
 // a board starts drifting between the places it appears.
 import PixelIcon from "./PixelIcon.astro";
-import { scoreBand, type Entry } from "../../lib/rankings";
+import { scoreBand, categoryLabel, STAGE_LABELS, type Entry } from "../../lib/rankings";
 
 interface Props {
   entry: Entry;
@@ -13,10 +13,8 @@ interface Props {
   leader?: boolean;
   /** Best score on the whole board — takes the trophy instead. */
   champion?: boolean;
-  /** One word from each model on that panel, in seat order. */
-  keywords?: string[];
 }
-const { entry, rank, leader = false, champion = false, keywords = [] } = Astro.props;
+const { entry, rank, leader = false, champion = false } = Astro.props;
 const band = scoreBand(entry.total);
 ---
 
@@ -49,16 +47,15 @@ const band = scoreBand(entry.total);
         ) : null}
       </span>
 
-      {/* The panel's temperature, one word per model. This is the row's real
-          payload: a score says how they did, three keywords say how it felt to
-          three different labs — and where they disagree, you can see it. */}
-      {keywords.length ? (
-        <span class="aol-rb__keywords">
-          {keywords.map((k) => <span class="aol-rb__keyword">{k}</span>)}
-        </span>
-      ) : entry.one_liner ? (
-        <span class="aol-rb__one-liner">{entry.one_liner}</span>
-      ) : null}
+      {/* Category and stage, not the one-liner. The one-liner is the company's
+          own description of itself and every row of it reads the same; where a
+          company sits in the supply chain is the thing you actually scan for. */}
+      <span class="aol-rb__keywords">
+        <span class="aol-rb__keyword">{categoryLabel(entry.category)}</span>
+        {entry.stage && entry.stage !== "unknown" ? (
+          <span class="aol-rb__keyword">{STAGE_LABELS[entry.stage]}</span>
+        ) : null}
+      </span>
     </span>
 
     <span class:list={["aol-rb__band", band.solid && "aol-rb__band--solid"]} title={band.label}>

@@ -53,16 +53,50 @@ export const DIVISIONS: { key: Division; label: string; icon: string; blurb: str
   },
 ];
 
+/**
+ * The four dimensions, mirrored from functions/_lib/score.ts.
+ *
+ * Duplicated rather than imported for the same reason the Loops list ids are:
+ * Pages Functions bundle separately from the Astro build, and a cross-boundary
+ * import is a thing to discover at deploy time. Change one, change the other.
+ */
 export const AXES = [
-  { key: "paradigm", label: "Paradigm", max: 40, icon: "shapes",
-    question: "Does this assume 2026, or 2016 with an AI badge stapled on?" },
-  { key: "non_obviousness", label: "Non-obviousness", max: 25, icon: "lightbulb",
-    question: "Was the insight already in everybody else's deck?" },
-  { key: "vibe_code", label: "Vibe-code test", max: 20, icon: "laptop-code",
-    question: "Could a good engineer rebuild the core in a weekend?" },
-  { key: "conviction", label: "Conviction", max: 15, icon: "flag",
-    question: "One real position, or hedging across five categories?" },
+  { key: "positioning", label: "Positioning", max: 25, icon: "shapes",
+    question: "Can a stranger tell who this is for, and what it replaces?" },
+  { key: "content", label: "Content strategy", max: 25, icon: "newspaper",
+    question: "Is anything here written for a buyer rather than a crawler?" },
+  { key: "gtm_stack", label: "GTM stack maturity", max: 25, icon: "laptop-code",
+    question: "Could they tell you what is working, or is it a contact form?" },
+  { key: "innovation", label: "Innovation", max: 25, icon: "lightbulb",
+    question: "AI-native, or a wrapper with a badge?" },
 ] as const;
+
+export const CATEGORY_LABELS: Record<string, string> = {
+  "publisher-monetization": "Publisher Monetization",
+  ssp: "Supply-Side Platforms",
+  "header-bidding": "Header Bidding",
+  "ad-server": "Ad Serving",
+  paywall: "Paywall & Subscriptions",
+  "adblock-recovery": "Adblock Revenue Recovery",
+  dsp: "DSP & Media Buying",
+  curation: "Curation & Marketplaces",
+  creative: "Creative & DCO",
+  identity: "Identity & Alt ID",
+  "clean-rooms": "Data & Clean Rooms",
+  contextual: "Contextual & Semantic",
+  "fraud-quality": "Fraud & Traffic Quality",
+  "consent-privacy": "Consent & Privacy",
+  measurement: "Measurement & Attribution",
+  "retail-media": "Retail & Commerce Media",
+  "ctv-audio": "CTV & Audio",
+  "adops-agentic": "Ad Ops & Agentic Tooling",
+  other: "Other",
+};
+export const categoryLabel = (key: string | null) => CATEGORY_LABELS[key ?? ""] ?? "Other";
+
+export const STAGE_LABELS: Record<string, string> = {
+  "pre-seed": "Pre-seed", seed: "Seed", "series-a": "Series A", unknown: "Stage unknown",
+};
 
 export interface JurorTake {
   provider: string;
@@ -85,14 +119,18 @@ export interface Entry {
   founded_year: number | null;
   division: Division;
   provisional: number;
+  category: string | null;
+  stage: string | null;
   total: number;
-  paradigm: number;
-  non_obviousness: number;
-  vibe_code: number;
-  conviction: number;
+  positioning: number;
+  content: number;
+  gtm_stack: number;
+  innovation: number;
+  /** Per-dimension reasoning and the improvement line, as stored JSON. */
+  detail_json: string;
+  /** What the stack detector saw: category -> tool names. */
+  stack_json: string;
   verdict: string;
-  split_note: string | null;
-  platform_note: string | null;
   created_at: string;
 }
 
@@ -157,9 +195,9 @@ async function query<T>(sql: string, params: unknown[] = []): Promise<T[]> {
 
 const ENTRY_SELECT = `
   SELECT c.slug, c.name, c.domain, c.logo_url, c.one_liner, c.founded_year,
-         c.division, c.provisional,
-         r.total, r.paradigm, r.non_obviousness, r.vibe_code, r.conviction,
-         r.verdict, r.split_note, r.platform_note, r.created_at
+         c.division, c.provisional, c.category, c.stage,
+         r.total, r.positioning, r.content, r.gtm_stack, r.innovation,
+         r.detail_json, r.stack_json, r.verdict, r.created_at
   FROM company c
   JOIN ranking r ON r.company_id = c.id
   WHERE c.status = 'published'`;
@@ -179,39 +217,20 @@ export async function getBoard(): Promise<Record<Division, Entry[]>> {
   };
 }
 
-/**
- * slug → one keyword per juror, in seat order.
- *
- * Fetched for the whole board in a single query rather than per row: the
- * leaderboard renders every division at build time, and one round trip per
- * company would turn a page build into a hundred HTTP calls to D1's REST API.
- */
-export async function getKeywords(): Promise<Record<string, string[]>> {
-  const rows = await query<{ slug: string; keyword: string | null }>(
-    `SELECT c.slug, j.keyword
-     FROM juror_take j
-     JOIN ranking r ON r.id = j.ranking_id
-     JOIN company c ON c.id = r.company_id
-     WHERE c.status = 'published' AND j.abstained = 0 AND j.keyword IS NOT NULL
-     ORDER BY c.slug, j.id`,
-  );
-  const out: Record<string, string[]> = {};
-  for (const { slug, keyword } of rows) {
-    if (!keyword) continue;
-    (out[slug] ??= []).push(keyword);
+/** Per-dimension detail for one entry, parsed from its stored JSON. */
+export function detailFor(entry: Entry): Record<string, { reasoning: string; improve: string }> {
+  try {
+    return JSON.parse(entry.detail_json || "{}");
+  } catch {
+    return {};
   }
-  return out;
 }
 
-/** The panel behind one ranking, for the company page. */
-export async function getJurors(slug: string): Promise<JurorTake[]> {
-  return query<JurorTake>(
-    `SELECT j.provider, j.model_id, j.lens, j.reasoning, j.quote, j.keyword, j.abstained
-     FROM juror_take j
-     JOIN ranking r ON r.id = j.ranking_id
-     JOIN company c ON c.id = r.company_id
-     WHERE c.slug = ?
-     ORDER BY j.abstained ASC, j.id ASC`,
-    [slug],
-  );
+/** The GTM stack we detected, as category -> tool names. */
+export function stackFor(entry: Entry): Record<string, string[]> {
+  try {
+    return JSON.parse(entry.stack_json || "{}");
+  } catch {
+    return {};
+  }
 }

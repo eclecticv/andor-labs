@@ -1368,3 +1368,46 @@
    width beneath it. That is not a layout, it is two different layouts sharing a
    page: a ragged right edge, and half the screen empty. One column, one edge. */
 .aol-rmc .aol-rma__inner{ max-width:880px; }
+
+/* ---- Dimensions on a company page ----
+   Each dimension is a small unit: heading row, meter, reasoning, and the one
+   change that would raise it. The improve line is the commercial payload, so it
+   is the only element here that carries the accent. */
+.aol-rmc__dims{ list-style:none; margin:0; padding:0; display:grid; gap:var(--space-10); }
+.aol-rmc__dim{ display:grid; gap:10px; }
+.aol-rmc__dim-head{ display:flex; align-items:center; gap:12px; }
+.aol-rmc__dim-icon{ color:var(--ink-700); flex:none; display:block; }
+.aol-rmc__dim-name{
+  font-size:var(--text-md); font-weight:var(--weight-medium); color:var(--text-strong);
+}
+.aol-rmc__dim-score{
+  margin-left:auto; font-family:var(--font-mono); font-size:var(--text-md);
+  font-variant-numeric:tabular-nums; color:var(--text-strong);
+}
+.aol-rmc__dim-score em{ font-style:normal; color:var(--text-faint); font-size:var(--text-2xs); }
+.aol-rmc__dim-reasoning{
+  margin:0; font-size:var(--text-sm); line-height:var(--leading-normal);
+  color:var(--text-muted); max-width:var(--measure);
+}
+.aol-rmc__improve{
+  display:flex; align-items:flex-start; gap:8px; margin:2px 0 0;
+  padding:12px 14px; background:var(--signal-tint);
+  border-radius:var(--radius-sm);
+  font-size:var(--text-sm); color:var(--text-strong); max-width:var(--measure);
+}
+.aol-rmc__improve svg{ color:var(--signal); flex:none; margin-top:4px; }
+
+/* ---- Detected stack ---- */
+.aol-rmc__stack{ list-style:none; margin:0; padding:0; display:grid; gap:var(--space-3); }
+.aol-rmc__stack-row{
+  display:grid; grid-template-columns:190px minmax(0,1fr); gap:0 14px; align-items:baseline;
+}
+.aol-rmc__stack-cat{
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted);
+}
+.aol-rmc__stack-tools{ display:flex; flex-wrap:wrap; gap:6px; }
+
+@media (max-width:640px){
+  .aol-rmc__stack-row{ grid-template-columns:minmax(0,1fr); gap:5px; }
+}

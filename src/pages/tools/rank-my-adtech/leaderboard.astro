@@ -18,11 +18,9 @@ import SiteMotion from "../../../components/SiteMotion.astro";
 import PixelIcon from "../../../components/ds/PixelIcon.astro";
 import DitherLine from "../../../components/ds/DitherLine.astro";
 import RankBoard from "../../../components/ds/RankBoard.astro";
-import { getBoard, getEntries, getKeywords, DIVISIONS } from "../../../lib/rankings";
+import { getEntries, categoryLabel } from "../../../lib/rankings";
 
-const board = await getBoard();
 const all = await getEntries();
-const keywords = await getKeywords();
 const champion = all[0]?.slug ?? null;
 
 const title = "The Rank My AdTech leaderboard — adtech companies ranked on innovation";
@@ -41,21 +39,19 @@ const description = `Every adtech company we have ranked on innovation, by weigh
         </p>
         <h1 class="aol-rma__h1">The leaderboard.</h1>
         <p class="aol-rma__lede">
-          Every company the panel has judged, ranked inside its own weight class.
+          Every company we have scored, best first.
         </p>
         <p class="aol-rma__crosslink">
           <a href="/tools/rank-my-adtech/">Rank your own company →</a>
         </p>
 
-        {/* Jump links: three divisions is short enough that a nav is honest
-            rather than decorative, and it saves a scroll past the heavyweights
-            for anyone who came looking for the small companies. */}
+        {/* Only categories that actually have companies. A nav listing nineteen
+            categories where fifteen are empty advertises the emptiness. */}
         <ul class="aol-rma__jump">
-          {[...DIVISIONS].reverse().map((d) => (
+          {[...new Set(all.map((e) => e.category))].filter(Boolean).slice(0, 8).map((c) => (
             <li>
-              <a href={`#division-${d.key}`}>
-                <PixelIcon name={d.icon as any} size={12} /> {d.label}
-                <em>{board[d.key].length}</em>
+              <a href={`#cat-${c}`}>
+                {categoryLabel(c)}<em>{all.filter((e) => e.category === c).length}</em>
               </a>
             </li>
           ))}
@@ -66,7 +62,7 @@ const description = `Every adtech company we have ranked on innovation, by weigh
     <section class="aol-rma__board">
       <div class="aol-rma__inner">
         <DitherLine />
-        <RankBoard board={board} championSlug={champion} limit={10} keywords={keywords} />
+        <RankBoard entries={all} championSlug={champion} limit={20} />
 
         <p class="aol-rma__disclosure">
           <PixelIcon name="question-circle" size={12} /> Scores and keywords come from language

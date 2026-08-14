@@ -1,23 +1,20 @@
 ---
 /**
- * One company's ranking — the page a leaderboard row links to, and the page
- * that does the organic-search work for this tool.
+ * One company's ranking — the page a board row links to, and the page that does
+ * the organic-search work for this tool.
  *
- * ORDER IS DELIBERATE: verdict, share, panel, scoring.
- *   - The verdict is what the reader came for, so it goes first.
- *   - Share sits directly under it, at the moment of peak reaction. A share row
- *     at the bottom of the page is a share row nobody reaches.
- *   - The panel is the evidence for the verdict, so it follows the claim.
- *   - Scoring is the arithmetic behind the evidence, and goes last: a reader
- *     who wants the number already saw it in the header.
+ * ORDER IS DELIBERATE: verdict, share, dimensions, stack.
+ *   - The verdict is what the reader came for.
+ *   - Share sits directly under it, at peak reaction. A share row at the bottom
+ *     of a long page is a share row nobody reaches.
+ *   - Each dimension carries its score, the reasoning behind it, and the one
+ *     change that would raise it. That last line is the commercial payload: it
+ *     is the tool naming a problem And/or Labs sells the fix for.
+ *   - The detected stack goes last as evidence, not decoration.
  *
- * Generated at build time from D1. A company whose status is `removed` is
- * excluded from the query and has no page at all, which resolves as a 404
- * rather than the 410 a server-rendered site could return.
- *
- * Every string here originated on a third-party homepage and passed through a
- * language model. Astro escapes `{expr}` interpolation, which is what keeps
- * that safe — do not reach for set:html on this page.
+ * Generated at build time from D1. Every string here came off a third-party
+ * homepage by way of a language model, so it is untrusted — Astro escapes
+ * `{expr}` interpolation, which is what keeps that safe. No set:html here.
  */
 import Base from "../../../layouts/Base.astro";
 import SiteHeader from "../../../components/sections/SiteHeader.astro";
@@ -25,7 +22,9 @@ import SiteFooter from "../../../components/sections/SiteFooter.astro";
 import SiteMotion from "../../../components/SiteMotion.astro";
 import PixelIcon from "../../../components/ds/PixelIcon.astro";
 import DitherLine from "../../../components/ds/DitherLine.astro";
-import { getEntries, getJurors, scoreBand, AXES, DIVISIONS } from "../../../lib/rankings";
+import {
+  getEntries, scoreBand, detailFor, stackFor, categoryLabel, STAGE_LABELS, AXES,
+} from "../../../lib/rankings";
 
 export async function getStaticPaths() {
   const entries = await getEntries();
@@ -36,12 +35,21 @@ export async function getStaticPaths() {
 }
 
 const { entry, overallRank, total: boardSize } = Astro.props;
-const jurors = await getJurors(entry.slug);
 const band = scoreBand(entry.total);
-const division = DIVISIONS.find((d) => d.key === entry.division)!;
+const detail = detailFor(entry);
+const stack = stackFor(entry);
+const stackCount = Object.values(stack).reduce((n, tools) => n + tools.length, 0);
+
+const score = (key: string) =>
+  ({
+    positioning: entry.positioning,
+    content: entry.content,
+    gtm_stack: entry.gtm_stack,
+    innovation: entry.innovation,
+  })[key] ?? 0;
 
 const title = `${entry.name} — Rank My AdTech — And/or Labs`;
-const description = `${entry.name} scores ${entry.total}/100 on Rank My AdTech: paradigm ${entry.paradigm}, non-obviousness ${entry.non_obviousness}, vibe-code ${entry.vibe_code}, conviction ${entry.conviction}. Judged by ${jurors.length} models.`;
+const description = `${entry.name} scores ${entry.total}/100 on Rank My AdTech: positioning ${entry.positioning}, content ${entry.content}, GTM stack ${entry.gtm_stack}, innovation ${entry.innovation}.`;
 
 const pageUrl = new URL(`/tools/rank-my-adtech/${entry.slug}/`, Astro.site).href;
 const shareBrag =
@@ -50,20 +58,12 @@ const shareBrag =
     : entry.total >= 70
       ? "Good number. Post it before the panel changes its mind."
       : entry.total >= 40
-        ? "Respectable. The panel has been meaner."
+        ? "Respectable. We have been meaner."
         : "Brutal. Posting it anyway is the power move.";
 
-const shareText = `${entry.name} scored ${entry.total}/100 on Rank My AdTech — judged by three models on whether it is actually innovative.`;
+const shareText = `${entry.name} scored ${entry.total}/100 on Rank My AdTech.`;
 const xHref = `https://x.com/intent/post?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(pageUrl)}`;
 const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(pageUrl)}`;
-
-const axisValue = (key: string) =>
-  ({
-    paradigm: entry.paradigm,
-    non_obviousness: entry.non_obviousness,
-    vibe_code: entry.vibe_code,
-    conviction: entry.conviction,
-  })[key] ?? 0;
 ---
 
 <Base
@@ -72,7 +72,7 @@ const axisValue = (key: string) =>
   ogImage={`/og/rank/${entry.slug}.png`}
   ogImageWidth={1200}
   ogImageHeight={600}
-  ogImageAlt={`${entry.name} scores ${entry.total} out of 100 on Rank My AdTech, in the ${entry.division} division.`}
+  ogImageAlt={`${entry.name} scores ${entry.total} out of 100 on Rank My AdTech.`}
 >
   <SiteHeader />
   <main>
@@ -88,12 +88,12 @@ const axisValue = (key: string) =>
             <h1 class="aol-rmc__name">{entry.name}</h1>
             {entry.one_liner ? <p class="aol-rmc__one-liner">{entry.one_liner}</p> : null}
             <p class="aol-rmc__meta">
-              <span class="aol-rmc__division">
-                <PixelIcon name={division.icon as any} size={12} /> {division.label}
-              </span>
+              <span>{categoryLabel(entry.category)}</span>
+              {entry.stage && entry.stage !== "unknown" ? (
+                <><span>·</span><span>{STAGE_LABELS[entry.stage]}</span></>
+              ) : null}
               <span>·</span>
-              <span>#{overallRank} of {boardSize} overall</span>
-              {entry.founded_year ? (<><span>·</span><span>founded {entry.founded_year}</span></>) : null}
+              <span>#{overallRank} of {boardSize}</span>
               {entry.provisional ? (
                 <span class="aol-rb__provisional">
                   <PixelIcon name="question-circle" size={12} /> provisional
@@ -110,32 +110,11 @@ const axisValue = (key: string) =>
           </div>
         </header>
 
-        {/* ── Who was on duty ─────────────────────────────────────────────
-            Named upfront, before the verdict. The whole claim of this tool is
-            WHO judged you, and burying the model names under the reasoning
-            makes the panel feel like a stylistic flourish rather than the
-            method. */}
-        <ul class="aol-rmc__duty">
-          {jurors.map((j) => (
-            <li class="aol-rmc__duty-item">
-              <PixelIcon name="robot" size={12} />
-              <span class="aol-rmc__duty-model">{j.model_id}</span>
-              <span class="aol-rmc__duty-lens">as the {j.lens}</span>
-              {j.keyword ? <span class="aol-rmc__duty-kw">{j.keyword}</span> : null}
-            </li>
-          ))}
-        </ul>
-
         <DitherLine />
 
         {/* ── 1. The verdict ─────────────────────────────────────────────── */}
         <h2 class="aol-rmc__h2">The verdict.</h2>
         <p class="aol-rmc__verdict">{entry.verdict}</p>
-        {entry.split_note ? (
-          <p class="aol-rmc__split">
-            <PixelIcon name="vote-yeah" size={12} />{" "}{entry.split_note}
-          </p>
-        ) : null}
 
         {/* ── 2. Share, at peak reaction ─────────────────────────────────── */}
         <div class="aol-rmc__share">
@@ -150,65 +129,70 @@ const axisValue = (key: string) =>
           </p>
         </div>
 
-        {/* ── 3. The panel, in full ──────────────────────────────────────── */}
-        <h2 class="aol-rmc__h2">The panel.</h2>
-        <p class="aol-rmc__note">
-          Three models, three different labs, no sight of each other's answers. A fourth read
-          all three and wrote the verdict above.
-        </p>
-        <ul class="aol-rmc__jurors">
-          {jurors.map((juror) => (
-            <li class="aol-rmc__juror">
-              <span class="aol-rmc__juror-mark"><PixelIcon name="quote-left" size={24} /></span>
-              <span class="aol-rmc__juror-body">
-                <span class="aol-rmc__juror-by">
-                  {juror.model_id} · as the {juror.lens}
-                  {juror.keyword ? <em class="aol-rmc__juror-kw">{juror.keyword}</em> : null}
-                </span>
-                {juror.quote ? <span class="aol-rmc__juror-quote">{juror.quote}</span> : null}
-                {juror.reasoning ? (
-                  <span class="aol-rmc__juror-reasoning">{juror.reasoning}</span>
-                ) : null}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <DitherLine />
 
-        {/* ── 4. The arithmetic ──────────────────────────────────────────── */}
+        {/* ── 3. The four dimensions ─────────────────────────────────────── */}
         <h2 class="aol-rmc__h2">The scoring.</h2>
         <p class="aol-rmc__note">
-          Each axis is the panel's average. The total is their sum. Only the words are written.
+          Every dimension is judged against what is reasonable at this company's stage. A
+          four-person team is not marked down for lacking a content engine.
         </p>
-        <ul class="aol-rmc__axes">
+
+        <ul class="aol-rmc__dims">
           {AXES.map((axis) => {
-            const value = axisValue(axis.key);
+            const value = score(axis.key);
+            const d = detail[axis.key];
             return (
-              <li class="aol-rmc__axis">
-                <span class="aol-rmc__axis-icon"><PixelIcon name={axis.icon as any} size={24} /></span>
-                <span class="aol-rmc__axis-name">{axis.label}</span>
+              <li class="aol-rmc__dim">
+                <div class="aol-rmc__dim-head">
+                  <span class="aol-rmc__dim-icon"><PixelIcon name={axis.icon as any} size={24} /></span>
+                  <span class="aol-rmc__dim-name">{axis.label}</span>
+                  <span class="aol-rmc__dim-score">{value}<em>/{axis.max}</em></span>
+                </div>
                 <span class="aol-rmc__meter" role="img" aria-label={`${value} out of ${axis.max}`}>
                   <span class="aol-rmc__meter-fill"
                     style={`width:${((value / axis.max) * 100).toFixed(1)}%`} />
                 </span>
-                <span class="aol-rmc__axis-score">{value}<em>/{axis.max}</em></span>
-                <span class="aol-rmc__axis-q">{axis.question}</span>
+                {d?.reasoning ? <p class="aol-rmc__dim-reasoning">{d.reasoning}</p> : null}
+                {/* The commercial payload: a named problem with a named fix. */}
+                {d?.improve ? (
+                  <p class="aol-rmc__improve">
+                    <PixelIcon name="bolt" size={12} />
+                    <span>{d.improve}</span>
+                  </p>
+                ) : null}
               </li>
             );
           })}
         </ul>
 
-        {entry.platform_note ? (
+        {/* ── 4. What we actually found ──────────────────────────────────── */}
+        {stackCount ? (
           <>
-            <h2 class="aol-rmc__h2">Not scored, but noted.</h2>
-            <p class="aol-rmc__note">{entry.platform_note}</p>
+            <DitherLine />
+            <h2 class="aol-rmc__h2">The stack we could see.</h2>
+            <p class="aol-rmc__note">
+              Read from the markup, so it only shows tools that run in the browser. A
+              warehouse-native setup would look empty here and still be excellent.
+            </p>
+            <ul class="aol-rmc__stack">
+              {Object.entries(stack).map(([category, tools]) => (
+                <li class="aol-rmc__stack-row">
+                  <span class="aol-rmc__stack-cat">{category.replace(/-/g, " ")}</span>
+                  <span class="aol-rmc__stack-tools">
+                    {tools.map((t) => <span class="aol-rb__keyword">{t}</span>)}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </>
         ) : null}
 
         <DitherLine />
         <p class="aol-rma__disclosure">
-          <PixelIcon name="question-circle" size={12} /> Written by language models reading a
-          public homepage. An opinion, and meant to be funny. Not research. Want this page
-          gone? Email{" "}<a href={`mailto:hello@andorlabs.ca?subject=Rank%20My%20AdTech%20removal%3A%20${entry.name}`}>hello@andorlabs.ca</a>{" "}and it goes.
+          <PixelIcon name="question-circle" size={12} /> Written by a language model reading
+          public pages. An opinion, and meant to be funny. Not research. Want this page gone?
+          Email{" "}<a href={`mailto:hello@andorlabs.ca?subject=Rank%20My%20AdTech%20removal%3A%20${entry.name}`}>hello@andorlabs.ca</a>{" "}and it goes.
         </p>
         <p class="aol-rma__crosslink">
           <a href="/tools/rank-my-adtech/">Rank another company →</a>
@@ -221,8 +205,8 @@ const axisValue = (key: string) =>
 </Base>
 
 <script>
-  // Copy-link. Confirms in place rather than firing an alert — a native dialog
-  // here would block the page and is the wrong weight for "copied".
+  // Copy-link. Confirms in place — a native dialog here would block the page
+  // and is the wrong weight for "copied".
   document.querySelectorAll<HTMLButtonElement>("[data-copy]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const url = btn.dataset.copy;

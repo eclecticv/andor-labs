@@ -4,13 +4,13 @@
  */
 import { describe, expect, it } from "vitest";
 import {
-  normalizeScore, assertScoreUsable, buildPrompt, DIMENSIONS, CATEGORIES,
+  normalizeScore, assertScoreUsable, buildPrompt, DIMENSIONS, CATEGORY_KEYS,
 } from "../functions/_lib/score";
 
 const full = (over: Record<string, unknown> = {}) =>
   normalizeScore({
     eligible: true, name: "Acme", oneLiner: "AI for sales.",
-    category: "sales", stage: "seed",
+    category: "curation", stage: "seed",
     positioning: { score: 18, reasoning: "x".repeat(120), improve: "Name the buyer." },
     content:     { score: 10, reasoning: "x".repeat(120), improve: "Write for buyers." },
     gtm_stack:   { score: 12, reasoning: "x".repeat(120), improve: "Add analytics." },
@@ -48,12 +48,21 @@ describe("category and stage", () => {
   // Cohorts are category x stage, so a free-text category is the same as no
   // category — two companies doing the same thing would never meet.
   it("forces an unknown category to 'other'", () => {
-    expect(full({ category: "sales AI assistant" }).category).toBe("other");
-    expect(full({ category: "SALES" }).category).toBe("sales");
+    expect(full({ category: "AI curation platform" }).category).toBe("other");
+    expect(full({ category: "CURATION" }).category).toBe("curation");
   });
 
   it("accepts every category in the closed set", () => {
-    for (const c of CATEGORIES) expect(full({ category: c }).category).toBe(c);
+    for (const c of CATEGORY_KEYS) expect(full({ category: c }).category).toBe(c);
+  });
+
+  // The taxonomy is adtech-specific now, not generic AI verticals. A generic
+  // key must not survive, or cohorts fill with companies that share a word
+  // rather than a place in the supply chain.
+  it("rejects the generic AI categories it used to accept", () => {
+    for (const old of ["sales", "marketing", "support", "coding", "health"]) {
+      expect(full({ category: old }).category).toBe("other");
+    }
   });
 
   it("normalises stage spacing and falls back to unknown", () => {

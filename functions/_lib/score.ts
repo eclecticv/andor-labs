@@ -39,19 +39,61 @@ export const DIMENSIONS = [
 export type DimensionKey = (typeof DIMENSIONS)[number]["key"];
 
 /**
- * A closed category set, because cohorts depend on it.
+ * Adtech subcategories — a CLOSED set, because cohorts depend on it.
  *
  * Peer benchmarking compares a company against others in its category, so a
- * free-text category is the same as no category — two companies doing the same
- * thing would land in "AI sales assistant" and "sales AI" and never meet. The
- * model must pick from this list or fall back to `other`.
+ * free-text category is the same as no category: two companies doing the same
+ * thing land in "AI curation platform" and "curation AI" and never meet.
+ *
+ * The names inherit from the Organic Discovery Leaderboard's own taxonomy where
+ * one existed — that list was publisher-side because that board was about
+ * publisher discovery. This adds the buy side, measurement, and the channels
+ * where AI-native companies are actually forming. CMS is deliberately dropped:
+ * publishers use one, but a CMS company is not an adtech company.
+ *
+ * `side` exists so the board can group by where a company sits in the supply
+ * chain rather than listing eighteen categories flat.
  */
 export const CATEGORIES = [
-  "sales", "marketing", "support", "coding", "data", "security",
-  "health", "legal", "finance", "infrastructure", "agents", "search",
-  "content", "operations", "hiring", "education", "robotics", "other",
+  // ── sell side ────────────────────────────────────────────────────────────
+  { key: "publisher-monetization", label: "Publisher Monetization", side: "sell" },
+  { key: "ssp",                    label: "Supply-Side Platforms",  side: "sell" },
+  { key: "header-bidding",         label: "Header Bidding",         side: "sell" },
+  { key: "ad-server",              label: "Ad Serving",             side: "sell" },
+  { key: "paywall",                label: "Paywall & Subscriptions", side: "sell" },
+  { key: "adblock-recovery",       label: "Adblock Revenue Recovery", side: "sell" },
+
+  // ── buy side ─────────────────────────────────────────────────────────────
+  { key: "dsp",                    label: "DSP & Media Buying",     side: "buy" },
+  { key: "curation",               label: "Curation & Marketplaces", side: "buy" },
+  { key: "creative",               label: "Creative & DCO",         side: "buy" },
+
+  // ── data & addressability ────────────────────────────────────────────────
+  { key: "identity",               label: "Identity & Alt ID",      side: "data" },
+  { key: "clean-rooms",            label: "Data & Clean Rooms",     side: "data" },
+  { key: "contextual",             label: "Contextual & Semantic",  side: "data" },
+
+  // ── trust ────────────────────────────────────────────────────────────────
+  { key: "fraud-quality",          label: "Fraud & Traffic Quality", side: "trust" },
+  { key: "consent-privacy",        label: "Consent & Privacy",      side: "trust" },
+
+  // ── measurement ──────────────────────────────────────────────────────────
+  { key: "measurement",            label: "Measurement & Attribution", side: "measure" },
+
+  // ── channels ─────────────────────────────────────────────────────────────
+  { key: "retail-media",           label: "Retail & Commerce Media", side: "channel" },
+  { key: "ctv-audio",              label: "CTV & Audio",            side: "channel" },
+
+  // ── operations ───────────────────────────────────────────────────────────
+  { key: "adops-agentic",          label: "Ad Ops & Agentic Tooling", side: "ops" },
+
+  { key: "other",                  label: "Other",                  side: "ops" },
 ] as const;
-export type Category = (typeof CATEGORIES)[number];
+
+export type Category = (typeof CATEGORIES)[number]["key"];
+export const CATEGORY_KEYS = CATEGORIES.map((c) => c.key);
+export const categoryLabel = (key: string) =>
+  CATEGORIES.find((c) => c.key === key)?.label ?? "Other";
 
 export const STAGES = ["pre-seed", "seed", "series-a", "unknown"] as const;
 export type Stage = (typeof STAGES)[number];
@@ -107,14 +149,18 @@ ineligibleReason saying which:
   - AI is not a core driver of the product. A company that merely USES AI
     internally, or bolts a chatbot onto an unrelated product, is not eligible.
     The question is whether the product would still exist without the AI.
+  - It is not ADTECH or MARTECH: the business of buying, selling, serving,
+    measuring, verifying, targeting or monetising digital advertising. A company
+    that merely BUYS ads is not adtech. A general analytics or CRM company is
+    not adtech.
   - It is not a company with a product: agencies, consultancies, studios,
     portfolios, personal sites, open-source projects with no company.
-  - It is plainly past a Series A.
+  - It is plainly past a Series B. Series A is INSIDE the line and must not be
+    refused for being funded.
 If eligible=false, you may leave the dimension scores at 0 and the verdict empty.
 
 ═══ STEP 2 — CLASSIFY ═══
-category: EXACTLY ONE of ${CATEGORIES.join(", ")}. Pick by what the product does
-  for its buyer, not by the technology underneath. Use "other" only if nothing fits.
+category: EXACTLY ONE of these keys:\n${CATEGORIES.map((c) => `    ${c.key} — ${c.label}`).join("\n")}\n  Pick by where the company sits in the ad supply chain and who pays it, not by\n  the technology underneath. Use "other" only when nothing genuinely fits.
 stage: one of pre-seed, seed, series-a, unknown. Say unknown rather than guess.
 name: the company's name.
 oneLiner: what it does, under 90 characters, plain language, no marketing words.
@@ -226,7 +272,7 @@ export function normalizeScore(raw: unknown): ScoreResult {
     ineligibleReason: text(o.ineligibleReason, 240),
     name: text(o.name, 80) || "This company",
     oneLiner: text(o.oneLiner, 120),
-    category: (CATEGORIES as readonly string[]).includes(category) ? category : "other",
+    category: (CATEGORY_KEYS as readonly string[]).includes(category) ? (category as Category) : "other",
     stage: (STAGES as readonly string[]).includes(stage) ? stage : "unknown",
     dimensions,
     // Arithmetic in code, never asked of the model. A model given both prose and
