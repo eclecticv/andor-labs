@@ -59,11 +59,6 @@ export const GET: APIRoute = async ({ site }) => {
     "- What it does: reads a company homepage and returns five relevant subreddits",
     "  plus three portable agent skill files.",
     "",
-    `### [Organic Discovery Leaderboard](${new URL("/leaderboard", site).href})`,
-    "",
-    "- What it does: ranks established adtech vendors on organic search visibility",
-    "  and AI-citation rank across 11 categories.",
-    "",
   ];
 
   /**
