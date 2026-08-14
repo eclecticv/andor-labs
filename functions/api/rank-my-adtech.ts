@@ -266,10 +266,21 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   // lead matters most.
   if (email && env.LOOPS_API_KEY) await syncLeadToLoops(env.LOOPS_API_KEY, email, domain);
 
-  // One company is one row, permanently. This is the cost control as much as
-  // the dedup: a resubmission must not spend a model call reprinting an answer.
+  /**
+   * One company is one row — but only once it has a RANKING.
+   *
+   * The dedup used to match on the company row alone, which turned a company
+   * without a ranking into a permanent block: invisible on the board, because
+   * the board joins ranking, yet refusing every resubmission. Migration 0004
+   * dropped the ranking table and left company, and six domains became
+   * unrankable in exactly that way.
+   *
+   * So the check joins ranking, and any company row left without one is
+   * cleared before the insert rather than colliding with the UNIQUE domain.
+   */
   const existing = await env.RANKINGS.prepare(
-    "SELECT slug FROM company WHERE domain = ? AND status = 'published'",
+    `SELECT c.slug FROM company c JOIN ranking r ON r.company_id = c.id
+     WHERE c.domain = ? AND c.status = 'published'`,
   ).bind(domain).first<{ slug: string }>();
   if (existing) return json({ status: "already-ranked", slug: existing.slug, domain }, 200);
 
@@ -339,6 +350,13 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (clash) slug = `${slug}-${slugify(domain).slice(0, 12)}`;
 
   const logo = (await resolveLogo(site.html, site.finalUrl))?.url ?? null;
+
+  // Clear any rankless row for this domain so the UNIQUE constraint does not
+  // reject an insert that the dedup above deliberately allowed through.
+  await env.RANKINGS.prepare(
+    `DELETE FROM company WHERE domain = ?
+       AND id NOT IN (SELECT company_id FROM ranking)`,
+  ).bind(domain).run();
 
   const companyRow = await env.RANKINGS.prepare(
     `INSERT INTO company (domain, name, slug, logo_url, one_liner, division, category, stage, provisional)
