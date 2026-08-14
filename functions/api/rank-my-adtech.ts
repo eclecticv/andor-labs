@@ -839,7 +839,23 @@ async function triggerRebuild(env: Env): Promise<void> {
       return;
     }
 
-    await fetch(env.DEPLOY_HOOK_URL, { method: "POST" });
+    /**
+     * Only record a fire that actually fired.
+     *
+     * The first version ignored the response and stamped `last_fired_at`
+     * regardless, which combined with the five-minute throttle to produce the
+     * worst possible failure: a deploy hook URL in the wrong shape returned 404
+     * on every call, the throttle recorded each one as a success, and the board
+     * silently stopped refreshing while every log line looked healthy. Nothing
+     * appeared broken because nothing reported broken.
+     */
+    const hook = await fetch(env.DEPLOY_HOOK_URL, { method: "POST" });
+    if (!hook.ok) {
+      const body = (await hook.text().catch(() => "")).slice(0, 200);
+      console.error(`[rank] deploy hook returned ${hook.status} — board will not refresh: ${body}`);
+      await env.RANKINGS.prepare("UPDATE build_state SET pending = 1 WHERE id = 1").run();
+      return;
+    }
     await env.RANKINGS.prepare(
       "UPDATE build_state SET last_fired_at = datetime('now'), pending = 0 WHERE id = 1",
     ).run();
