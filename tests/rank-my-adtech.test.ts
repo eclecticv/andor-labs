@@ -201,3 +201,19 @@ describe("juror usability", () => {
     expect(t.keyword).toBe("unimpressed");
   });
 });
+
+describe("keyword house spelling", () => {
+  // Three keywords sit side by side on one row, so "sceptical" next to
+  // "skeptical" reads as sloppy rather than as three independent opinions.
+  it("settles the sceptical/skeptical split", () => {
+    const t = (k: string) =>
+      normalizeTake(
+        { paradigm: 1, nonObviousness: 1, vibeCode: 1, conviction: 1, keyword: k },
+        "gemini", "m", "engineer",
+      ).keyword;
+    expect(t("Skeptical")).toBe("sceptical");
+    expect(t("sceptical")).toBe("sceptical");
+    expect(t("underwhelmed")).toBe("unimpressed");
+    expect(t("intrigued")).toBe("intrigued");
+  });
+});

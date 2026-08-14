@@ -682,13 +682,37 @@ export function normalizeTake(raw: unknown, provider: string, modelId: string, l
     nonObviousness: clampInt(o.nonObviousness, AXIS_MAX.nonObviousness),
     vibeCode: clampInt(o.vibeCode, AXIS_MAX.vibeCode),
     conviction: clampInt(o.conviction, AXIS_MAX.conviction),
-    reasoning: clampText(o.reasoning, 900),
+    // 1400, not 900. Four to six sentences of argument routinely run past 900
+    // characters, and the clamp appends an ellipsis — so the tightest limit was
+    // cutting jurors off mid-word on the page, which reads as a bug rather than
+    // as brevity. This is a safety net for a runaway model, not an editorial cap.
+    reasoning: clampText(o.reasoning, 1400),
     quote: clampText(o.quote, 180),
     // One word, lowercase, letters only. Models reliably return "unimpressed."
     // with a full stop, or a two-word phrase; the row has space for neither.
-    keyword: clampText(o.keyword, 24).toLowerCase().replace(/[^a-z-]/g, "").slice(0, 16),
+    keyword: normalizeKeyword(clampText(o.keyword, 24)),
     abstained: false,
   };
+}
+
+/**
+ * House spelling for keywords.
+ *
+ * Different labs spell the same judgement differently, and three keywords sit
+ * side by side on a single leaderboard row — so a board with "sceptical" next
+ * to "skeptical" reads as sloppy rather than as three independent opinions.
+ * Canadian English, matching the rest of the site.
+ */
+const KEYWORD_SPELLING: Record<string, string> = {
+  skeptical: "sceptical",
+  skeptic: "sceptical",
+  unconvinced: "unconvinced",
+  underwhelmed: "unimpressed",
+};
+
+function normalizeKeyword(raw: string): string {
+  const word = raw.toLowerCase().replace(/[^a-z-]/g, "").slice(0, 16);
+  return KEYWORD_SPELLING[word] ?? word;
 }
 
 /**
