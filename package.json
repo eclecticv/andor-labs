@@ -23,7 +23,8 @@
     "react-compare-slider": "^4.0.0",
     "react-dom": "^19.2.7",
     "sanity": "^6.4.0",
-    "styled-components": "^6.4.3"
+    "styled-components": "^6.4.3",
+    "workers-og": "^0.0.27"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",

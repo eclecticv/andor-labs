@@ -1027,7 +1027,14 @@
   margin:var(--space-8) 0 0; font-size:var(--text-xs); color:var(--text-muted);
   max-width:var(--measure);
 }
-.aol-rma__disclosure{ display:flex; align-items:flex-start; gap:6px; }
+/* Block, NOT flex.
+   These paragraphs are running prose containing an inline mailto link, and a
+   flex container promotes every child — including each bare text node — to a
+   flex item. That laid the sentence out as three side-by-side columns with
+   "and it goes." stranded in its own box. The icon only ever needed baseline
+   alignment, which is a vertical-align job. */
+.aol-rma__disclosure{ display:block; }
+.aol-rma__disclosure > svg{ vertical-align:-2px; margin-right:5px; }
 .aol-rma__crosslink{ margin-top:var(--space-3); }
 
 /* ---- Result card, injected after a ranking ---- */
@@ -1121,11 +1128,15 @@
   margin:0; font-size:var(--text-md); line-height:var(--leading-normal);
   color:var(--text-body); max-width:var(--measure);
 }
+/* Block for the same reason as the disclosure: the split note is a sentence
+   with a leading glyph, not a row of boxes. It survives flex today only because
+   it happens to hold one text node — one inline link would break it. */
 .aol-rmc__split{
-  display:flex; align-items:flex-start; gap:6px;
+  display:block;
   margin:var(--space-4) 0 0; font-size:var(--text-sm);
   color:var(--text-muted); max-width:var(--measure);
 }
+.aol-rmc__split > svg{ vertical-align:-2px; margin-right:5px; }
 .aol-rmc__note{ margin:0 0 var(--space-4); font-size:var(--text-sm); color:var(--text-muted); max-width:var(--measure); }
 
 .aol-rmc__axes{ list-style:none; margin:0; padding:0; display:grid; gap:var(--space-5); }
@@ -1220,3 +1231,25 @@
   .aol-tools__link{ grid-template-columns:28px minmax(0,1fr); gap:0 var(--space-4); }
   .aol-tools__arrow{ display:none; }
 }
+
+/* ---- Share row on a company ranking (.aol-rmc__share) ----
+   The real share artefact is the per-company OG image; these are just the
+   one-click posts. Kept quiet — a row of loud buttons under a bad score would
+   read as gloating at the company rather than inviting them in on the joke. */
+.aol-rmc__share{ margin:var(--space-8) 0 0; }
+.aol-rmc__share-label{
+  display:flex; align-items:center; gap:10px; margin:0 0 var(--space-4);
+  font-size:var(--text-base); color:var(--text-strong);
+}
+.aol-rmc__share-label svg{ color:var(--signal); flex:none; }
+.aol-rmc__share-actions{ display:flex; flex-wrap:wrap; gap:var(--space-3); margin:0; }
+.aol-rmc__share-btn{
+  display:inline-flex; align-items:center;
+  font-family:var(--font-mono); font-size:var(--text-xs);
+  color:var(--text-body); text-decoration:none;
+  background:var(--paper); border:1px solid var(--border-default);
+  border-radius:var(--radius-pill); padding:7px 16px; cursor:pointer;
+  transition:border-color .12s ease, color .12s ease;
+}
+.aol-rmc__share-btn:hover{ border-color:var(--signal); color:var(--signal); }
+.aol-rmc__share-btn:focus-visible{ outline:2px solid var(--signal); outline-offset:2px; }
