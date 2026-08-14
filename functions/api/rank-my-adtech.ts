@@ -49,6 +49,8 @@
  * designed failure in failure() and writes nothing.
  */
 
+import { resolveLogo } from "../_lib/logo";
+
 interface Env {
   RANKINGS: D1Database;
   GEMINI_API_KEY?: string;
@@ -293,7 +295,7 @@ async function readSite(url: string): Promise<SiteRead> {
     return {
       text: [title, metas, text].filter(Boolean).join("\n"),
       title,
-      logo: extractLogo(html, finalUrl),
+      logo: (await resolveLogo(html, finalUrl))?.url ?? null,
       // Under 120 chars means we got a shell — a JS-rendered app, a consent
       // wall, or a bot block. Same reading as Scout uses.
       blocked: text.length < 120,
@@ -301,31 +303,6 @@ async function readSite(url: string): Promise<SiteRead> {
   } catch {
     return { text: "", title: null, logo: null, blocked: true };
   }
-}
-
-/** apple-touch-icon first (largest, squarest), then og:image, then nothing. */
-function extractLogo(html: string, baseUrl: string): string | null {
-  const abs = (href: string) => {
-    try {
-      return new URL(href, baseUrl).toString();
-    } catch {
-      return null;
-    }
-  };
-
-  const touch = Array.from(
-    html.matchAll(/<link[^>]+rel=["'][^"']*apple-touch-icon[^"']*["'][^>]*>/gi),
-  )
-    .map((m) => /href=["']([^"']+)["']/i.exec(m[0])?.[1])
-    .find(Boolean);
-  if (touch) return abs(touch);
-
-  const og = Array.from(html.matchAll(/<meta[^>]+property=["']og:image["'][^>]*>/gi))
-    .map((m) => /content=["']([^"']+)["']/i.exec(m[0])?.[1])
-    .find(Boolean);
-  if (og) return abs(og);
-
-  return null;
 }
 
 // ── Prompts ─────────────────────────────────────────────────────────────────
