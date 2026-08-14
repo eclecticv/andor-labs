@@ -36,7 +36,7 @@ Being a rigorous analyst product. Being comprehensive. Being neutral in tone.
 |---|---|---|
 | 1 | Who can be ranked | Anyone. Any company can be submitted; results auto-publish |
 | 2 | Jury shape | Panel of 3 independent models, in parallel, then a synthesizer |
-| 3 | Storage + render | D1, with `@astrojs/cloudflare` and per-route `prerender = false` |
+| 3 | Storage + render | D1, read at build time; pages static, refreshed by a deploy hook |
 | 4 | Scoring | Four axes to 100, weighted toward innovation |
 | 5 | Non-adtech | Hard reject before the panel runs |
 | 6 | Fair comparison | Three weight classes, each with its own ranked table |
@@ -217,27 +217,48 @@ the row, so history survives and the company page can return 410 rather than 404
 
 ## 9. Routes and rendering
 
-Add `@astrojs/cloudflare`. Mark exactly two routes `prerender = false`:
+**There is no adapter and the site stays fully static.**
+
+`@astrojs/cloudflare` dropped Cloudflare Pages support in v13. This site runs Astro 7,
+so every compatible adapter version targets Workers with Static Assets instead, and
+adding one produces a build error — the adapter emits an `ASSETS` binding, which is a
+reserved name in Pages projects. There is no adapter path to on-demand rendering on
+Pages. Cloudflare's own answer is to migrate the site to Workers, which is a larger
+piece of infrastructure work than this tool justifies today.
+
+So both pages are generated at build time:
 
 - `/tools/rank-my-adtech` — form plus three divisional tables
-- `/tools/rank-my-adtech/[slug]` — one company, full reasoning, all juror quotes
+- `/tools/rank-my-adtech/[slug]` — one page per company via `getStaticPaths`
 
-Everything else — homepage, blog, `/work`, `/leaderboard` — continues to prerender
-exactly as it does today. Adding an adapter does not convert the site to SSR; Astro
-prerenders by default and only opted-out routes become dynamic.
+**Freshness comes from rebuilding, not from rendering.** After a successful ranking the
+API calls a Cloudflare Pages deploy hook, debounced so a burst of submissions produces
+one build rather than twenty. The submitter sees their own verdict immediately in the
+API response; their public row appears on the next build, a couple of minutes later.
 
-Both dynamic routes are server-rendered so Google and the AI crawlers see the full
-table and the full reasoning. Client-side fetching would make the highest-value part
-of the tool invisible to the exact channel it exists to serve.
+This is the right trade because the board needs to be *crawlable and roughly current*,
+not correct to the second. A static board is fully visible to Google and the AI
+crawlers, which is the entire strategic point of the tool. Nobody refreshes a
+leaderboard waiting for a row to appear.
 
-`/leaderboard` is untouched. That is the Organic Discovery Leaderboard, different data
-and a different purpose. The two cross-link.
+### Reading D1 at build time
+
+Astro builds in Node, not in the Workers runtime, so the `RANKINGS` binding does not
+exist during the build. `src/lib/rankings.ts` queries the D1 REST API instead, using
+`CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_D1_TOKEN`.
+
+**A missing token must never fail the build.** It degrades to an empty board with a
+console warning, so a misconfigured environment costs you the leaderboard rather than
+the whole site.
 
 ### API
 
-`functions/api/rank-my-adtech.ts` — POST, runs the pipeline, writes to D1, returns the
-ranking. Follows the existing Scout structure: origin check, normalisation, extraction
-helpers, provider ladder.
+`functions/api/rank-my-adtech.ts` — POST, runs the pipeline, writes to D1, fires the
+deploy hook, returns the ranking. Follows the existing Scout structure: origin check,
+normalisation, extraction helpers, provider ladder.
+
+`/leaderboard` is untouched. That is the Organic Discovery Leaderboard, different data
+and a different purpose. The two cross-link.
 
 ---
 
