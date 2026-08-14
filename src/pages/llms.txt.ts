@@ -42,7 +42,7 @@ export const GET: APIRoute = async ({ site }) => {
     "",
     "## Tools",
     "",
-    `### [Rank My AdTech](${new URL("/tools/rank-my-adtech", site).href})`,
+    `### [Rank My AdTech](${new URL("/tools/rank-my-adtech/", site).href})`,
     "",
     "- What it does: scores an adtech company on innovation out of 100, judged by",
     "  three language models from three different providers, with a fourth writing",

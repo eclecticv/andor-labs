@@ -236,7 +236,7 @@ const description =
 
         if (data.status === "already-ranked") {
           say("Already ranked — taking you to the verdict.");
-          window.location.href = `/tools/rank-my-adtech/${data.slug}`;
+          window.location.href = `/tools/rank-my-adtech/${data.slug}/`;
           return;
         }
 
@@ -283,7 +283,7 @@ const description =
       }
 
       const permalink = node.querySelector("[data-permalink]") as HTMLAnchorElement | null;
-      if (permalink) permalink.href = `/tools/rank-my-adtech/${d.slug}`;
+      if (permalink) permalink.href = `/tools/rank-my-adtech/${d.slug}/`;
 
       const quotes = node.querySelector("[data-quotes]");
       if (quotes) {

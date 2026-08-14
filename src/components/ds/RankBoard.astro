@@ -51,7 +51,7 @@ const { board, championSlug = null } = Astro.props;
                 const isChampion = entry.slug === championSlug;
                 return (
                   <li class="aol-rb__row">
-                    <a class="aol-rb__link" href={`/tools/rank-my-adtech/${entry.slug}`}>
+                    <a class="aol-rb__link" href={`/tools/rank-my-adtech/${entry.slug}/`}>
                       <span class="aol-rb__rank">{i + 1}</span>
 
                       <span class="aol-rb__mark">
