@@ -786,9 +786,17 @@
   padding:12px 8px; margin:0 -8px;
   text-decoration:none; color:inherit;
   border-radius:var(--radius-sm);
-  transition:background-color .12s ease;
+  /* Named properties, never `all` — `all` animates things you did not mean to
+     and pays layout cost for them. A full-width row scales barely at all;
+     0.995 is enough to register on a 1200px target. */
+  transition:background-color 120ms var(--ease-out), transform 120ms var(--ease-out);
 }
-.aol-rb__link:hover{ background:var(--ink-050); }
+/* Hover is gated: touch devices fire :hover on tap, which leaves a row stuck
+   in its hover state after the finger lifts. */
+@media (hover:hover) and (pointer:fine){
+  .aol-rb__link:hover{ background:var(--ink-050); }
+}
+.aol-rb__link:active{ transform:scale(0.995); }
 .aol-rb__link:focus-visible{ outline:2px solid var(--signal); outline-offset:-2px; }
 
 /* Tabular figures so ranks and scores form a true column instead of shimmying
@@ -873,7 +881,7 @@
   font-family:var(--font-mono); font-size:var(--text-2xs);
   text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted);
 }
-.aol-rma__h1{
+.aol-rma__h1{ text-wrap:balance;
   font-family:var(--font-display); font-weight:var(--weight-regular);
   font-size:var(--text-3xl); line-height:var(--leading-tight);
   margin:0 0 var(--space-4); color:var(--text-strong);
@@ -882,7 +890,7 @@
   max-width:var(--measure); margin:0 0 var(--space-8);
   font-size:var(--text-md); line-height:var(--leading-normal); color:var(--text-body);
 }
-.aol-rma__h2{
+.aol-rma__h2{ text-wrap:balance;
   font-family:var(--font-display); font-weight:var(--weight-regular);
   font-size:var(--text-xl); line-height:var(--leading-snug);
   margin:var(--space-8) 0 var(--space-3); color:var(--text-strong);
@@ -988,7 +996,7 @@
 
 @media (max-width:640px){
   .aol-rma__fields{ grid-template-columns:1fr; }
-  .aol-rma__h1{ font-size:var(--text-2xl); }
+  .aol-rma__h1{ text-wrap:balance; font-size:var(--text-2xl); }
   .aol-rma__card{ padding:var(--space-5); }
   .aol-rma__card-head{ grid-template-columns:40px minmax(0,1fr); }
   .aol-rma__card-score{ grid-column:2; margin-top:var(--space-2); }
@@ -1003,7 +1011,7 @@
   gap:0 var(--space-5); align-items:center; margin-bottom:var(--space-8);
 }
 .aol-rmc__logo{ width:56px; height:56px; object-fit:contain; }
-.aol-rmc__name{
+.aol-rmc__name{ text-wrap:balance;
   font-family:var(--font-display); font-weight:var(--weight-regular);
   font-size:var(--text-2xl); line-height:var(--leading-tight);
   margin:0; color:var(--text-strong);
@@ -1024,7 +1032,7 @@
 }
 .aol-rmc__out{ font-family:var(--font-mono); font-size:var(--text-sm); color:var(--text-muted); }
 
-.aol-rmc__h2{
+.aol-rmc__h2{ text-wrap:balance;
   font-family:var(--font-display); font-weight:var(--weight-regular);
   font-size:var(--text-lg); margin:var(--space-10) 0 var(--space-3);
   color:var(--text-strong);
@@ -1088,7 +1096,7 @@
   .aol-rmc__head{ grid-template-columns:44px minmax(0,1fr); }
   .aol-rmc__logo{ width:44px; height:44px; }
   .aol-rmc__score{ grid-column:2; margin-top:var(--space-3); }
-  .aol-rmc__name{ font-size:var(--text-xl); }
+  .aol-rmc__name{ text-wrap:balance; font-size:var(--text-xl); }
   .aol-rmc__total{ font-size:var(--text-2xl); }
   .aol-rmc__axis{ grid-template-columns:24px minmax(0,1fr) 56px; }
   .aol-rmc__meter{ grid-column:1 / -1; margin-top:6px; }
@@ -1153,10 +1161,16 @@
   font-family:var(--font-mono); font-size:var(--text-xs);
   color:var(--text-body); text-decoration:none;
   background:var(--paper); border:1px solid var(--border-default);
-  border-radius:var(--radius-pill); padding:7px 16px; cursor:pointer;
-  transition:border-color .12s ease, color .12s ease;
+  border-radius:var(--radius-pill); padding:9px 16px; cursor:pointer;
+  /* min-height carries the 40px hit target the padding alone does not reach. */
+  min-height:40px;
+  transition:border-color 120ms var(--ease-out), color 120ms var(--ease-out),
+             transform 120ms var(--ease-out);
 }
-.aol-rmc__share-btn:hover{ border-color:var(--signal); color:var(--signal); }
+@media (hover:hover) and (pointer:fine){
+  .aol-rmc__share-btn:hover{ border-color:var(--signal); color:var(--signal); }
+}
+.aol-rmc__share-btn:active{ transform:scale(0.97); }
 .aol-rmc__share-btn:focus-visible{ outline:2px solid var(--signal); outline-offset:2px; }
 
 /* ---- Rank My AdTech v2 layout ----
@@ -1245,9 +1259,15 @@
   font-family:var(--font-mono); font-size:var(--text-xs);
   text-decoration:none; color:var(--text-body);
   border:1px solid var(--border-default); border-radius:var(--radius-pill);
-  padding:6px 14px; transition:border-color .12s ease, color .12s ease;
+  padding:9px 14px; min-height:40px;
+  transition:border-color 120ms var(--ease-out), color 120ms var(--ease-out),
+             transform 120ms var(--ease-out);
 }
-.aol-rma__jump a:hover{ border-color:var(--signal); color:var(--signal); }
+@media (hover:hover) and (pointer:fine){
+  .aol-rma__jump a:hover{ border-color:var(--signal); color:var(--signal); }
+}
+.aol-rma__jump a:active{ transform:scale(0.97); }
+.aol-rma__jump a:focus-visible{ outline:2px solid var(--signal); outline-offset:2px; }
 .aol-rma__jump em{ font-style:normal; color:var(--text-faint); }
 
 /* The designed failure wears the same card as a result — it is part of the bit,
@@ -1269,12 +1289,15 @@
 .aol-rb__more-toggle{
   cursor:pointer; list-style:none;
   font-family:var(--font-mono); font-size:var(--text-xs); color:var(--text-muted);
-  padding:10px 0; border-top:1px solid var(--border-hairline);
+  padding:13px 0; min-height:40px; border-top:1px solid var(--border-hairline);
 }
 .aol-rb__more-toggle::-webkit-details-marker{ display:none; }
 .aol-rb__more-toggle::before{ content:"+ "; color:var(--signal); }
 .aol-rb__more[open] .aol-rb__more-toggle::before{ content:"– "; }
-.aol-rb__more-toggle:hover{ color:var(--signal); }
+@media (hover:hover) and (pointer:fine){
+  .aol-rb__more-toggle:hover{ color:var(--signal); }
+}
+.aol-rb__more-toggle:focus-visible{ outline:2px solid var(--signal); outline-offset:2px; }
 
 /* ---- Models on duty ---- */
 .aol-rmc__duty{
@@ -1309,4 +1332,29 @@
 @media (max-width:560px){
   .aol-rma__how{ grid-template-columns:minmax(0,1fr); gap:var(--space-5); }
   .aol-rma__axis-row{ grid-template-columns:minmax(0,1fr); gap:var(--space-5); }
+}
+
+/* ---- Axes: question-led, two up ----
+   The how-it-works row above this is already four cells across. Repeating that
+   grid for the axes made the page read as a template — two identical rows of
+   four, stacked. These are four QUESTIONS, and the question is the interesting
+   part, so it leads at reading size while the label and its point value drop to
+   a mono eyebrow. Different rhythm, more contrast, half the width. */
+.aol-rma__axis-row{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:var(--space-8) var(--space-12); }
+.aol-rma__axis-cell{ gap:8px; }
+.aol-rma__axis-label{
+  display:flex; align-items:center; gap:7px;
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted);
+}
+.aol-rma__axis-label svg{ color:var(--ink-400); flex:none; }
+/* The point value is the only number here, so it carries the accent alone. */
+.aol-rma__axis-label em{ font-style:normal; color:var(--signal); margin-left:auto; }
+.aol-rma__axis-q{
+  font-size:var(--text-md); line-height:var(--leading-snug); color:var(--text-strong);
+  max-width:34ch;
+}
+@media (max-width:640px){
+  .aol-rma__axis-row{ grid-template-columns:minmax(0,1fr); gap:var(--space-6); }
+  .aol-rma__axis-q{ font-size:var(--text-base); }
 }
