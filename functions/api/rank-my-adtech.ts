@@ -82,7 +82,29 @@ const OPENCODE_SYNTH_DEFAULT = "claude-sonnet-5";
  * models it actually has removes that failure mode. Preference order below;
  * first match wins, and the result is cached for the life of the isolate.
  */
-const NIM_PREFERENCES = ["nemotron", "llama-3.3", "llama-3.1", "qwen", "deepseek"];
+/**
+ * Ordered by preference, matched as a PREFIX rather than a substring.
+ *
+ * Substring matching was wrong: "nemotron" also matches
+ * `mistralai/mistral-nemotron`, a Mistral model, which would quietly seat a
+ * juror from a lab this panel did not choose. Prefixes name the exact family.
+ */
+const NIM_PREFERENCES = [
+  "nvidia/nemotron-3-super",
+  "nvidia/llama-3.3-nemotron-super",
+  "nvidia/nemotron-3-nano",
+  "meta/llama-3.3",
+  "mistralai/mistral-large",
+];
+
+/**
+ * NIM's catalogue is ~100 models and most of them cannot hold a conversation —
+ * embedders, safety guards, rerankers, OCR and vision heads all sit in the same
+ * list. A juror handed one of those does not fail cleanly; it returns something
+ * shaped wrong and the take is discarded downstream for no visible reason.
+ */
+const NIM_NOT_CHAT = /embed|guard|safety|parse|retriev|clip|-vl|vlm|vision|video|translate|reward|rerank|ocr/i;
+
 let nimModelCache: string | null = null;
 
 async function resolveNimModel(key: string, override?: string): Promise<string | null> {
@@ -94,18 +116,25 @@ async function resolveNimModel(key: string, override?: string): Promise<string |
     });
     if (!res.ok) return null;
     const body = (await res.json()) as { data?: { id?: string }[] };
-    const ids = (body.data ?? []).map((m) => m.id).filter((id): id is string => !!id);
+    const ids = (body.data ?? [])
+      .map((m) => m.id)
+      .filter((id): id is string => !!id && !NIM_NOT_CHAT.test(id));
+
     for (const want of NIM_PREFERENCES) {
-      const hit = ids.find((id) => id.toLowerCase().includes(want));
-      if (hit) {
-        nimModelCache = hit;
-        return hit;
+      // Newest revision of a family wins: `...super-49b-v1.5` sorts after
+      // `...super-49b-v1`, so the last match is the one to seat.
+      const hits = ids.filter((id) => id.toLowerCase().startsWith(want)).sort();
+      if (hits.length) {
+        nimModelCache = hits[hits.length - 1];
+        return nimModelCache;
       }
     }
-    // A catalogue that matched nothing is still a catalogue; take the first id
-    // rather than abstaining over a preference list that has gone out of date.
-    nimModelCache = ids[0] ?? null;
-    return nimModelCache;
+
+    // Deliberately null rather than "whatever is first". An unrecognised
+    // catalogue means this list is out of date, and abstaining says so; seating
+    // an arbitrary model would publish a juror nobody chose.
+    console.warn("[rank] no NIM model matched the preference list — juror abstains");
+    return null;
   } catch {
     return null;
   }
@@ -399,19 +428,41 @@ async function callOpenAICompatible(
     body: JSON.stringify({
       model,
       temperature: 0.7,
-      max_tokens: 900,
+      /**
+       * Sized for a REASONING model, not for the answer.
+       *
+       * NIM's Nemotron tier thinks out loud into `reasoning_content` and that
+       * budget is spent before a single character of JSON appears — measured at
+       * ~1,200 reasoning tokens against 36 of answer on a trivial prompt, and
+       * far more on a real one. At 900 the juror never finished thinking and
+       * abstained on every call while looking like a truncation bug.
+       */
+      max_tokens: 2500,
       response_format: { type: "json_object" },
       messages: [{ role: "user", content: prompt }],
     }),
   });
-  if (!res.ok) throw new Error(`${base} ${res.status}`);
+  if (!res.ok) {
+    // Zen reports an exhausted balance as a 401, which is indistinguishable
+    // from a bad key at the status line. Carry the body so the log says which.
+    const detail = (await res.text().catch(() => "")).slice(0, 200);
+    throw new Error(`${base} ${res.status}${detail ? ` — ${detail}` : ""}`);
+  }
   const body = (await res.json()) as {
     choices?: { message?: { content?: string }; finish_reason?: string }[];
   };
   const choice = body.choices?.[0];
-  if (choice?.finish_reason === "length") throw new Error("truncated");
   const text = choice?.message?.content ?? "";
-  if (!text) throw new Error("empty completion");
+  /**
+   * `finish_reason: "length"` is NOT fatal on its own. A reasoning model can
+   * exhaust its budget mid-thought and still have emitted complete JSON, and
+   * discarding that is throwing away a juror who actually answered. Only an
+   * empty answer is fatal; a genuinely truncated one fails in extractJson,
+   * which is the correct place for it to fail.
+   */
+  if (!text) {
+    throw new Error(choice?.finish_reason === "length" ? "truncated before answering" : "empty completion");
+  }
   return text;
 }
 
