@@ -1,0 +1,125 @@
+---
+/**
+ * Render source for `public/og-rank-my-adtech.png`.
+ *
+ * Same construction as og-subreddit-scout: a /lab/ route so the sitemap filter
+ * already excludes it, authored at 1200x600 (true 2:1) and captured at 2x so X
+ * does not centre-crop it, on the warm panel because a social card is a
+ * set-apart block and the whole tool page is warm.
+ *
+ * The one thing this card does differently is the status line. Scout's reports
+ * what the tool produced; this one reports the terms of the bit — three jurors,
+ * four axes, no mercy. The card has to set the tone before a reader arrives,
+ * because a leaderboard that publicly scores named companies reads very
+ * differently depending on whether you knew it was a joke going in.
+ *
+ * To re-render:  node scripts/render-og.mjs
+ */
+import "../../styles/main.css";
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>OG — Rank My AdTech</title>
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body>
+    <div class="og">
+      <div class="og__card">
+        <header class="og__top">
+          <span class="og__brand">And/or Labs</span>
+          <span class="og__meta">FREE TOOL <i class="og__dot"></i></span>
+        </header>
+
+        {/* Explicit break: a fixed canvas, so the turn is a decision rather than
+            whatever the wrapping algorithm picks. */}
+        <h1 class="og__h">
+          Is your adtech<br /><em>actually</em> innovative?
+        </h1>
+
+        <footer class="og__foot">
+          <span class="og__rule"></span>
+          <p class="og__status">
+            <span>jurors <b>3</b></span>
+            <span>axes <b>4</b></span>
+            <span>mercy <b>0</b></span>
+          </p>
+        </footer>
+      </div>
+    </div>
+  </body>
+</html>
+
+<style>
+  /* Fixed pixels, not tokens — a 1200x600 canvas, not a responsive page. The
+     COLOURS stay on tokens so the card cannot drift from the palette. */
+  :global(body) { margin: 0; }
+  :global(astro-dev-toolbar) { display: none !important; }
+
+  .og {
+    width: 1200px;
+    height: 600px;
+    box-sizing: border-box;
+    padding: 40px;
+    background-color: var(--paper);
+    display: flex;
+  }
+
+  .og__card {
+    flex: 1;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-warm);
+    border: 1.5px solid var(--ink-900);
+    border-radius: 20px;
+    box-shadow: 10px 10px 0 0 var(--ink-900);
+    padding: 52px 56px 46px;
+  }
+
+  .og__top { display: flex; align-items: center; justify-content: space-between; }
+  .og__brand {
+    font-family: var(--font-mono);
+    font-size: 23px;
+    letter-spacing: 0.02em;
+    color: var(--blue-500);
+  }
+  /* Copper: a label, never an action. */
+  .og__meta {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 16px;
+    letter-spacing: 0.14em;
+    color: var(--copper-700);
+  }
+  .og__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--copper-600); }
+
+  /* auto margins on both sides so the headline sits on the card's optical
+     midline rather than hanging off the top row. */
+  .og__h {
+    font-family: var(--font-display);
+    font-weight: var(--weight-regular);
+    font-size: 84px;
+    line-height: 1.06;
+    letter-spacing: var(--tracking-tight);
+    color: var(--text-on-warm);
+    margin: auto 0;
+  }
+  /* Blue marks exactly one word. "actually" is the word the whole tool turns
+     on — everyone thinks they are innovative. */
+  .og__h em { font-style: normal; color: var(--blue-500); }
+
+  .og__foot { margin-top: auto; }
+  .og__rule { display: block; height: 1px; background: var(--border-warm); margin-bottom: 22px; }
+  .og__status {
+    display: flex; align-items: center; gap: 38px;
+    font-family: var(--font-mono);
+    font-size: 20px;
+    letter-spacing: 0.02em;
+    color: var(--text-on-warm-muted);
+    margin: 0;
+  }
+  .og__status b { font-weight: 400; color: var(--blue-500); }
+</style>

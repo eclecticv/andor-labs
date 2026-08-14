@@ -1178,3 +1178,45 @@
   .aol-rmc__meter{ grid-column:1 / -1; margin-top:6px; }
   .aol-rmc__axis-q{ grid-column:1 / -1; }
 }
+
+/* ---- Free tools index (.aol-tools) ---- */
+.aol-tools{ background:var(--paper); padding:var(--space-16) 0 var(--space-20); }
+.aol-tools__list{ list-style:none; margin:var(--space-8) 0 0; padding:0; display:grid; gap:0; }
+.aol-tools__item + .aol-tools__item{ border-top:1px solid var(--border-hairline); }
+.aol-tools__link{
+  display:grid; grid-template-columns:36px minmax(0,1fr) 20px;
+  align-items:start; gap:0 var(--space-5);
+  padding:var(--space-6) var(--space-3); margin:0 calc(var(--space-3) * -1);
+  text-decoration:none; color:inherit; border-radius:var(--radius-sm);
+  transition:background-color .12s ease;
+}
+.aol-tools__link:hover{ background:var(--ink-050); }
+.aol-tools__link:focus-visible{ outline:2px solid var(--signal); outline-offset:-2px; }
+/* Solid marks run blue per the weight rule, so the trophy is the one that
+   carries colour here and the other two stay ink. */
+.aol-tools__icon{ color:var(--ink-700); display:block; }
+.aol-tools__link:hover .aol-tools__icon{ color:var(--signal); }
+.aol-tools__body{ display:grid; gap:6px; min-width:0; }
+.aol-tools__name{
+  font-family:var(--font-display); font-size:var(--text-lg);
+  line-height:var(--leading-snug); color:var(--text-strong);
+}
+.aol-tools__blurb{
+  font-size:var(--text-sm); line-height:var(--leading-normal);
+  color:var(--text-body); max-width:var(--measure);
+}
+.aol-tools__meta{
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  text-transform:uppercase; letter-spacing:.04em; color:var(--text-muted);
+}
+/* The arrow moves on hover rather than appearing, so the row does not reflow. */
+.aol-tools__arrow{
+  color:var(--text-faint); font-size:var(--text-md); align-self:center;
+  transition:transform .14s ease, color .14s ease;
+}
+.aol-tools__link:hover .aol-tools__arrow{ transform:translateX(3px); color:var(--signal); }
+
+@media (max-width:640px){
+  .aol-tools__link{ grid-template-columns:28px minmax(0,1fr); gap:0 var(--space-4); }
+  .aol-tools__arrow{ display:none; }
+}

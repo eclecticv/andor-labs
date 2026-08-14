@@ -13,11 +13,17 @@ import { BOOKING_URL } from "../../config";
 // surfaces; it just does not get top-level billing until there are a few.
 const NAV: [string, string][] = [
   // Order tracks the page order (founder → what we do → pricing → compare → FAQ),
-  // with Blog last, since it leaves the homepage rather than scrolling within it.
+  // with the two off-homepage destinations last, since they leave the page
+  // rather than scrolling within it.
+  //
+  // Tools earns its billing under the same rule that keeps Work out: an index
+  // is worth a nav slot once it lands on more than one thing. It now holds two
+  // tools and the discovery leaderboard.
   ["About", "/#founder"],
   ["Pricing", "/#how-we-work"],
   ["Why us", "/#compare"],
   ["FAQ", "/#faq"],
+  ["Tools", "/tools/"],
   ["Blog", "/blog/"],
 ];
 ---

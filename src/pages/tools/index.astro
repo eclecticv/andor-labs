@@ -1,0 +1,100 @@
+---
+/**
+ * /tools — the index of free tools.
+ *
+ * Added when the second tool shipped. The header's own rule is that a section
+ * does not get top-level billing "until there are a few"; two tools plus the
+ * discovery leaderboard clears that bar, and without an index the newer tool
+ * would only be reachable from a link somebody already knows about.
+ *
+ * The homepage hero still points at Subreddit Scout specifically rather than
+ * here. That link is tuned to follow the promise the hero just made, and
+ * swapping a specific offer for a generic index would weaken it.
+ */
+import Base from "../../layouts/Base.astro";
+import SiteHeader from "../../components/sections/SiteHeader.astro";
+import SiteFooter from "../../components/sections/SiteFooter.astro";
+import SiteMotion from "../../components/SiteMotion.astro";
+import PixelIcon from "../../components/ds/PixelIcon.astro";
+import DitherLine from "../../components/ds/DitherLine.astro";
+import { getEntries } from "../../lib/rankings";
+
+const ranked = (await getEntries()).length;
+
+const TOOLS: {
+  name: string;
+  href: string;
+  icon: string;
+  blurb: string;
+  meta: string;
+}[] = [
+  {
+    name: "Rank My AdTech",
+    href: "/tools/rank-my-adtech",
+    icon: "trophy-solid",
+    blurb:
+      "Three models from three different labs read a company's homepage and argue about whether it is actually innovative. A fourth writes the verdict. Everything is published to a public leaderboard.",
+    meta: ranked > 0 ? `${ranked} companies ranked` : "Free · about 20 seconds",
+  },
+  {
+    name: "Subreddit Scout",
+    href: "/tools/subreddit-scout/",
+    icon: "reddit",
+    blurb:
+      "Give us your work email and we read the homepage behind it, then return five subreddits worth your time and three portable agent skills you can run in any harness.",
+    meta: "Free · includes downloadable SKILL.md files",
+  },
+  {
+    name: "Organic Discovery Leaderboard",
+    href: "/leaderboard",
+    icon: "analytics",
+    blurb:
+      "How adtech vendors rank on organic search visibility and AI-citation rank across Google, Claude, ChatGPT and Perplexity — a blended score, by category.",
+    meta: "Updated periodically · 11 categories",
+  },
+];
+
+const title = "Free tools — And/or Labs";
+const description =
+  "Free GTM tools from And/or Labs: rank your adtech company on innovation, find the subreddits worth your time, and see how vendors rank on organic and AI discovery.";
+---
+
+<Base title={title} description={description}>
+  <SiteHeader />
+  <main>
+    <section class="aol-tools">
+      <div class="aol-rma__inner">
+        <p class="aol-rma__eyebrow"><PixelIcon name="bolt" size={12} /> Free tools</p>
+        <h1 class="aol-rma__h1">Things you can use without talking to us.</h1>
+        <p class="aol-rma__lede">
+          We build these to think out loud. They are free, they need no account, and none of
+          them ends in a sales call unless you want one.
+        </p>
+
+        <DitherLine />
+
+        <ul class="aol-tools__list">
+          {
+            TOOLS.map((tool) => (
+              <li class="aol-tools__item">
+                <a class="aol-tools__link" href={tool.href}>
+                  <span class="aol-tools__icon">
+                    <PixelIcon name={tool.icon as any} size={36} />
+                  </span>
+                  <span class="aol-tools__body">
+                    <span class="aol-tools__name">{tool.name}</span>
+                    <span class="aol-tools__blurb">{tool.blurb}</span>
+                    <span class="aol-tools__meta">{tool.meta}</span>
+                  </span>
+                  <span class="aol-tools__arrow" aria-hidden="true">→</span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </section>
+  </main>
+  <SiteFooter />
+  <SiteMotion />
+</Base>

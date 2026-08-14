@@ -10,13 +10,25 @@
  * rebuilding: the ranking Function fires a Pages deploy hook after it writes.
  * See docs/superpowers/specs/2026-08-13-rank-my-adtech-design.md §9.
  *
- * Build-time environment (set these in the Pages build settings, not .dev.vars):
- *   CLOUDFLARE_ACCOUNT_ID
- *   CLOUDFLARE_D1_TOKEN     — an API token with D1 read on this account
- *   CLOUDFLARE_D1_DATABASE  — optional; defaults to the id below
+ * Build-time environment:
+ *   CLOUDFLARE_D1_TOKEN     — REQUIRED. An API token with D1 read on this
+ *                             account. Set it with
+ *                             `wrangler pages secret put CLOUDFLARE_D1_TOKEN
+ *                              --project-name andorlabs`. Pages keeps build and
+ *                             runtime variables in one namespace, so a secret is
+ *                             visible to `astro build` as well as to Functions.
+ *   CLOUDFLARE_ACCOUNT_ID   — optional; defaults below.
+ *   CLOUDFLARE_D1_DATABASE  — optional; defaults below.
+ *
+ * The account and database ids are defaults rather than required variables
+ * because neither is a secret, and because adding a plain variable to a Pages
+ * project means PATCHing the env_vars map — which returns existing secrets with
+ * empty values and would blank them on the way back in. One required secret is
+ * also simply less to get wrong.
  */
 
 const DEFAULT_DATABASE_ID = "662a14cc-7ed7-47d0-9dbb-a0e10d95ff43";
+const DEFAULT_ACCOUNT_ID = "63956fb1f50aec70801897b5de548e8d";
 
 export type Division = "featherweight" | "middleweight" | "heavyweight";
 
@@ -107,13 +119,13 @@ const env = (key: string): string | undefined =>
  * site — every other page here is unrelated to this tool and must still ship.
  */
 async function query<T>(sql: string, params: unknown[] = []): Promise<T[]> {
-  const account = env("CLOUDFLARE_ACCOUNT_ID");
+  const account = env("CLOUDFLARE_ACCOUNT_ID") ?? DEFAULT_ACCOUNT_ID;
   const token = env("CLOUDFLARE_D1_TOKEN");
   const database = env("CLOUDFLARE_D1_DATABASE") ?? DEFAULT_DATABASE_ID;
 
-  if (!account || !token) {
+  if (!token) {
     console.warn(
-      "[rankings] CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_D1_TOKEN unset — building an empty leaderboard.",
+      "[rankings] CLOUDFLARE_D1_TOKEN unset — building an empty leaderboard.",
     );
     return [];
   }

@@ -1,0 +1,29 @@
+// Config for the D1 migration tooling ONLY. Not the Pages project config.
+//
+// The filename is deliberately non-default. Cloudflare Pages does not support
+// partial configuration: the moment a `wrangler.toml` / `wrangler.jsonc` exists
+// at the root, it becomes the source of truth for the project and the matching
+// dashboard fields go read-only — which would put this site's production
+// secrets (GEMINI_API_KEY, LOOPS_API_KEY) inside a file that does not declare
+// them. The RANKINGS D1 binding is configured on the project itself instead,
+// alongside those secrets, exactly where every other binding already lives.
+//
+// `wrangler d1 execute` resolves a database by name without any config, but
+// `wrangler d1 migrations` needs one to find migrations_dir. So this file
+// exists purely to serve that command, and must always be passed explicitly:
+//
+//   npx wrangler d1 migrations list  andor-rankings -c d1.wrangler.jsonc --remote
+//   npx wrangler d1 migrations apply andor-rankings -c d1.wrangler.jsonc --local
+//   npx wrangler d1 migrations apply andor-rankings -c d1.wrangler.jsonc --remote
+{
+  "name": "andor-rankings-migrations",
+  "compatibility_date": "2026-07-08",
+  "d1_databases": [
+    {
+      "binding": "RANKINGS",
+      "database_name": "andor-rankings",
+      "database_id": "662a14cc-7ed7-47d0-9dbb-a0e10d95ff43",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

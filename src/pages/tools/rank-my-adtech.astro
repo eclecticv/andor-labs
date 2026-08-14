@@ -32,12 +32,25 @@ const all = await getEntries();
 const champion = all[0]?.slug ?? null;
 const ranked = all.length;
 
-const title = "Rank My AdTech — And/or Labs";
+/*
+  Description kept under ~158 characters — the limit Google truncates at, which
+  Subreddit Scout's own header comment already learned the hard way. The axis
+  names were the first thing cut: they are on the page, and a clause nobody is
+  shown is not doing any work.
+*/
+const title = "Rank My AdTech — free adtech innovation score";
 const description =
-  "Three models from three different labs read your homepage and score your company on innovation: paradigm, non-obviousness, the vibe-code test, and conviction. Winners get a crown. Everyone gets a verdict.";
+  "Three models from three different labs read your homepage and score your adtech company on innovation. Winners get a crown. Everyone gets a verdict.";
 ---
 
-<Base title={title} description={description}>
+<Base
+  title={title}
+  description={description}
+  ogImage="/og-rank-my-adtech.png"
+  ogImageWidth={2400}
+  ogImageHeight={1200}
+  ogImageAlt="Rank My AdTech — a free And/or Labs tool where three language models score your adtech company on innovation and publish the verdict to a public leaderboard."
+>
   <SiteHeader />
   <main>
     {/* ── Hero ───────────────────────────────────────────────────────────── */}

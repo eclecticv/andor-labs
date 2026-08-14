@@ -31,6 +31,7 @@ const ORIGIN = process.env.OG_ORIGIN ?? "http://127.0.0.1:4321";
 const CARDS = {
   site: { route: "/lab/og-site", out: "og.png" },
   "subreddit-scout": { route: "/lab/og-subreddit-scout", out: "og-subreddit-scout.png" },
+  "rank-my-adtech": { route: "/lab/og-rank-my-adtech", out: "og-rank-my-adtech.png" },
 };
 
 const wanted = process.argv.slice(2);

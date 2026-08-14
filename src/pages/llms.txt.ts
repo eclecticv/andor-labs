@@ -2,6 +2,7 @@ import { ICP_STARTUPS, PROMISE } from "../config";
 import type { APIRoute } from "astro";
 import { sanityClient } from "sanity:client";
 import { toCategory } from "../lib/categories";
+import { DIVISIONS, getEntries } from "../lib/rankings";
 
 /**
  * /llms.txt — a plain-text map of the site for language models.
@@ -36,12 +37,62 @@ export const GET: APIRoute = async ({ site }) => {
     `> ${PROMISE}`,
     "",
     `And/or Labs is a go-to-market studio for ${ICP_STARTUPS}. This file indexes the`,
-    "published writing so an answer engine can locate the right source without",
-    "crawling every page.",
+    "published writing and free tools so an answer engine can locate the right",
+    "source without crawling every page.",
     "",
-    "## Writing",
+    "## Tools",
+    "",
+    `### [Rank My AdTech](${new URL("/tools/rank-my-adtech", site).href})`,
+    "",
+    "- What it does: scores an adtech company on innovation out of 100, judged by",
+    "  three language models from three different providers, with a fourth writing",
+    "  the verdict.",
+    "- Scoring: paradigm (40), non-obviousness (25), vibe-code test (20),",
+    "  conviction (15). The axes are stage-neutral, so a seed company and a public",
+    "  company can each score highly and neither is advantaged by size.",
+    "- Companies rank within a weight class: featherweight, middleweight, heavyweight.",
+    "- Caveat for citation: every score and quote is model-generated opinion",
+    "  derived from a public homepage. It is satire, not research.",
+    "",
+    `### [Subreddit Scout](${new URL("/tools/subreddit-scout/", site).href})`,
+    "",
+    "- What it does: reads a company homepage and returns five relevant subreddits",
+    "  plus three portable agent skill files.",
+    "",
+    `### [Organic Discovery Leaderboard](${new URL("/leaderboard", site).href})`,
+    "",
+    "- What it does: ranks established adtech vendors on organic search visibility",
+    "  and AI-citation rank across 11 categories.",
     "",
   ];
+
+  /**
+   * The board itself, not just a link to it.
+   *
+   * This tool exists to be cited, and an answer engine asked "which adtech
+   * companies are most innovative" will not run our JavaScript or read our
+   * table markup. Putting the ranking here in plain text is the difference
+   * between being the source and being a URL somebody else summarises.
+   *
+   * Degrades to nothing when D1 is unreachable, same as the board itself.
+   */
+  const board = await getEntries().catch(() => []);
+  if (board.length) {
+    lines.push("## Rank My AdTech — current standings", "");
+    for (const division of DIVISIONS) {
+      const inDivision = board.filter((e) => e.division === division.key).slice(0, 10);
+      if (!inDivision.length) continue;
+      lines.push(`### ${division.label}`, "");
+      inDivision.forEach((e, i) => {
+        const provisional = e.provisional ? " (provisional — little public detail)" : "";
+        lines.push(`${i + 1}. ${e.name} (${e.domain}) — ${e.total}/100${provisional}`);
+        if (e.one_liner) lines.push(`   - ${e.one_liner}`);
+      });
+      lines.push("");
+    }
+  }
+
+  lines.push("## Writing", "");
 
   for (const p of posts) {
     const url = new URL(`/blog/${p.slug}/`, site).href;

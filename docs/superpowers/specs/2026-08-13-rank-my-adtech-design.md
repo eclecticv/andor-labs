@@ -245,7 +245,17 @@ leaderboard waiting for a row to appear.
 
 Astro builds in Node, not in the Workers runtime, so the `RANKINGS` binding does not
 exist during the build. `src/lib/rankings.ts` queries the D1 REST API instead, using
-`CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_D1_TOKEN`.
+`CLOUDFLARE_D1_TOKEN`. The account and database ids are compiled-in defaults, not
+variables — neither is a secret, and adding a plain variable to a Pages project means
+PATCHing the `env_vars` map, which returns existing secrets with empty values and would
+blank them on the way back in.
+
+The `RANKINGS` binding is configured **on the Pages project**, not in a wrangler config
+file, for the same reason: Pages does not support partial configuration, so a root
+`wrangler.toml` becomes the source of truth for the namespace that already holds
+`GEMINI_API_KEY` and `LOOPS_API_KEY`. `d1.wrangler.jsonc` exists only to give
+`wrangler d1 migrations` a `migrations_dir`, and is passed explicitly with `-c` so it is
+never auto-discovered.
 
 **A missing token must never fail the build.** It degrades to an empty board with a
 console warning, so a misconfigured environment costs you the leaderboard rather than

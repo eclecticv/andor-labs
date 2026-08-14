@@ -27,7 +27,11 @@
  *    See docs/superpowers/specs/2026-08-13-rank-my-adtech-design.md §4.
  *
  * Required environment:
- *   RANKINGS         = D1 binding (see wrangler.toml)
+ *   RANKINGS         = D1 binding, configured on the Pages project itself
+ *                      rather than in a wrangler config file. Pages does not
+ *                      support partial configuration, so a root wrangler.toml
+ *                      would take over the same namespace that holds this
+ *                      project's production secrets. See d1.wrangler.jsonc.
  *   GEMINI_API_KEY   = juror 1
  *   NVIDIA_API_KEY   = gate + juror 2   (build.nvidia.com, OpenAI-compatible)
  *   OPENCODE_API_KEY = juror 3 + synthesizer (opencode.ai/zen gateway)
