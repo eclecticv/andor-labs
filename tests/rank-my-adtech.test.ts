@@ -10,6 +10,7 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  assertUsable,
   averageScores,
   dropNonStatement,
   clampInt,
@@ -81,7 +82,7 @@ describe("averaging the panel", () => {
   const take = (p: number, n: number, v: number, c: number, abstained = false) => ({
     provider: "x", modelId: "m", lens: "vc" as const,
     paradigm: p, nonObviousness: n, vibeCode: v, conviction: c,
-    quote: "", abstained,
+    reasoning: "", quote: "", keyword: "", abstained,
   });
 
   it("ignores abstaining jurors instead of averaging in their zeroes", () => {
@@ -164,5 +165,39 @@ describe("non-statements", () => {
   it("keeps sentences that actually say something", () => {
     const real = "Almost entirely dependent on a single ad platform.";
     expect(dropNonStatement(real)).toBe(real);
+  });
+});
+
+describe("juror usability", () => {
+  const base = {
+    paradigm: 20, nonObviousness: 10, vibeCode: 10, conviction: 8,
+    quote: "A sharp line about the positioning.",
+    keyword: "unimpressed",
+    reasoning: "x".repeat(120),
+  };
+
+  // A juror that returns well-formed JSON saying nothing is not a juror. This
+  // runs inside the ladder, so failing here drops to the next model rather than
+  // seating someone whose panel entry would be blank.
+  it("rejects a take with thin reasoning", () => {
+    const t = normalizeTake({ ...base, reasoning: "Too short." }, "gemini", "m", "engineer");
+    expect(() => assertUsable(t)).toThrow(/reasoning too thin/);
+  });
+
+  it("rejects a take with no keyword", () => {
+    const t = normalizeTake({ ...base, keyword: "" }, "gemini", "m", "engineer");
+    expect(() => assertUsable(t)).toThrow(/keyword/);
+  });
+
+  it("accepts a complete take", () => {
+    const t = normalizeTake(base, "gemini", "m", "engineer");
+    expect(assertUsable(t).keyword).toBe("unimpressed");
+  });
+
+  // Models reliably return "Unimpressed." with a capital and a full stop, or a
+  // two-word phrase. A leaderboard row has space for neither.
+  it("normalises the keyword to one bare lowercase word", () => {
+    const t = normalizeTake({ ...base, keyword: "Unimpressed." }, "gemini", "m", "engineer");
+    expect(t.keyword).toBe("unimpressed");
   });
 });

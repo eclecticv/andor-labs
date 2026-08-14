@@ -18,8 +18,10 @@
  *    from one lab agree with each other and tell you nothing. Where genuinely
  *    different training regimes diverge is the only real signal here.
  *
- * 3. LOSING A JUROR MUST NOT LOSE THE RANKING. The panel fans out with
- *    allSettled and a failed provider is recorded as an abstention.
+ * 3. ABSTENTIONS ARE NOT ALLOWED. Every provider is a LADDER of models, and a
+ *    seat is filled by the first rung that answers usably. If a provider is
+ *    exhausted the whole ranking fails rather than publishing a two-model panel
+ *    under a page that promises three.
  *
  * 4. THE AXES ARE STAGE-NEUTRAL ON PURPOSE. Defensibility, platform risk and
  *    wedge strength all correlate with company size, so scoring them would rank
@@ -42,8 +44,9 @@
  *   DEPLOY_HOOK_URL  = Cloudflare Pages deploy hook; without it rankings are
  *                      stored but never appear on the public board.
  *
- * Absent provider keys degrade rather than fail: that juror abstains. The one
- * exception is a panel where every juror abstained, which is an error.
+ * All three provider keys are REQUIRED. There is no degraded mode: a ranking
+ * either seats three jurors and gets a written verdict, or it returns the
+ * designed failure in failure() and writes nothing.
  */
 
 interface Env {
@@ -61,8 +64,34 @@ interface Env {
 
 // ── Providers ───────────────────────────────────────────────────────────────
 
-const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+/**
+ * Every provider is a LADDER, not a model.
+ *
+ * The panel is not allowed to seat fewer than three jurors, so each provider
+ * gets an ordered list of candidates and the seat is filled by the first one
+ * that answers. A model retirement, a rate limit or a bad afternoon at one lab
+ * costs a rung rather than a juror.
+ *
+ * Ordered best-first, verified against each provider's live catalogue on
+ * 2026-08-14. Where a bigger model exists but is materially slower — NVIDIA's
+ * 550B ultra, for instance — it sits BELOW the fast one rather than above it:
+ * this whole pipeline runs inside one HTTP request, and a juror that times out
+ * is worth less than a slightly smaller juror that answers.
+ */
+/**
+ * 3.6 leads, not 3.7. The newer model is in the catalogue and advertises
+ * generateContent, but returns 503 on every call we have made — so putting it
+ * first bought nothing and cost a wasted round trip on every ranking. It stays
+ * on the ladder because a 503 is the kind of thing that comes back.
+ */
+const GEMINI_MODELS = [
+  "gemini-3.6-flash",
+  "gemini-3.7-flash",
+  "gemini-3.5-flash",
+  "gemini-3.5-flash-lite",
+];
+const geminiEndpoint = (model: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
 const NIM_BASE = "https://integrate.api.nvidia.com/v1";
 /**
@@ -80,38 +109,35 @@ const OPENCODE_BASE = "https://opencode.ai/zen/go/v1";
 /**
  * Verified against the Go catalogue on 2026-08-14 by calling each one.
  *
- * DeepSeek is the juror and OpenAI writes the verdict, which puts four
- * different labs across the four roles — Google, NVIDIA, DeepSeek, OpenAI. The
- * panel is picked for disagreement, so lineage diversity is the whole point.
+ * Qwen judges and OpenAI writes the verdict, which puts four different labs
+ * across the four roles — Google, NVIDIA, Alibaba, OpenAI. The panel is picked
+ * for disagreement, so lineage diversity is the whole point.
  *
- * Ruled out, all of which return HTTP 200 and are still unusable:
+ * deepseek-v4-pro sits BELOW qwen on the juror ladder despite being the better
+ * model: it reasons at length before answering, and once jurors started
+ * returning several sentences it began exhausting its token budget mid-thought.
+ * A rung that costs a full wasted round trip is worth less than a rung that
+ * answers.
+ *
+ * Ruled out entirely, all of which return HTTP 200 and are still unusable:
  *   grok-4.5     — "Endpoint is unavailable" from the provider
  *   kimi-k3      — empty content
  *   minimax-m3   — leaks raw <think> reasoning into the content field
  */
-const OPENCODE_JUROR_DEFAULT = "deepseek-v4-pro";
-const OPENCODE_SYNTH_DEFAULT = "gpt-5.6-luna";
+const OPENCODE_JUROR_MODELS = ["qwen3.8-max", "glm-5.3", "deepseek-v4-pro", "gpt-5.6-luna"];
+const OPENCODE_SYNTH_MODELS = ["gpt-5.6-luna", "qwen3.8-max", "deepseek-v4-pro", "glm-5.3"];
 
 /**
- * NIM ids are resolved at runtime rather than hardcoded.
- *
- * NVIDIA's catalogue rotates faster than this file will be edited, and a stale
- * id does not fail loudly — it 404s, the juror abstains, and the panel quietly
- * shrinks to two while looking entirely healthy. Asking the provider which
- * models it actually has removes that failure mode. Resolved once and cached
- * for the life of the isolate.
- *
- * Ordered by preference and matched as a PREFIX, not a substring. Substring
- * matching was wrong: "nemotron" also matches `mistralai/mistral-nemotron`, a
- * Mistral model, which would quietly seat a juror from a lab this panel did
- * not choose. Prefixes name the exact family.
+ * NIM ladder, best practical first. `nemotron-3-super-120b-a12b` leads rather
+ * than the 550B ultra because it is a mixture-of-experts with ~12B active
+ * parameters — near the quality, a fraction of the wall clock.
  */
-const NIM_PREFERENCES = [
-  "nvidia/nemotron-3-super",
-  "nvidia/llama-3.3-nemotron-super",
-  "nvidia/nemotron-3-nano",
-  "meta/llama-3.3",
-  "mistralai/mistral-large",
+const NIM_MODELS = [
+  "nvidia/nemotron-3-super-120b-a12b",
+  "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+  "nvidia/nemotron-3-ultra-550b-a55b",
+  "nvidia/nemotron-3-nano-30b-a3b",
+  "meta/llama-3.3-70b-instruct",
 ];
 
 /**
@@ -122,38 +148,34 @@ const NIM_PREFERENCES = [
  */
 const NIM_NOT_CHAT = /embed|guard|safety|parse|retriev|clip|-vl|vlm|vision|video|translate|reward|rerank|ocr/i;
 
-let nimModelCache: string | null = null;
+let nimCandidateCache: string[] | null = null;
 
-async function resolveNimModel(key: string, override?: string): Promise<string | null> {
-  if (override) return override;
-  if (nimModelCache) return nimModelCache;
+/**
+ * The NIM ladder, reconciled against what the account can actually see.
+ *
+ * Returns the preferred models that really exist, in preference order, then any
+ * other chat-capable NVIDIA model as deeper rungs. If the catalogue call itself
+ * fails we return the static ladder unchanged — a network blip reading /models
+ * is not a reason to refuse to seat a juror.
+ */
+async function nimCandidates(key: string, override?: string): Promise<string[]> {
+  if (override) return [override];
+  if (nimCandidateCache) return nimCandidateCache;
   try {
-    const res = await fetch(`${NIM_BASE}/models`, {
-      headers: { authorization: `Bearer ${key}` },
-    });
-    if (!res.ok) return null;
+    const res = await fetch(`${NIM_BASE}/models`, { headers: { authorization: `Bearer ${key}` } });
+    if (!res.ok) return NIM_MODELS;
     const body = (await res.json()) as { data?: { id?: string }[] };
-    const ids = (body.data ?? [])
-      .map((m) => m.id)
-      .filter((id): id is string => !!id && !NIM_NOT_CHAT.test(id));
-
-    for (const want of NIM_PREFERENCES) {
-      // Newest revision of a family wins: `...super-49b-v1.5` sorts after
-      // `...super-49b-v1`, so the last match is the one to seat.
-      const hits = ids.filter((id) => id.toLowerCase().startsWith(want)).sort();
-      if (hits.length) {
-        nimModelCache = hits[hits.length - 1];
-        return nimModelCache;
-      }
-    }
-
-    // Deliberately null rather than "whatever is first". An unrecognised
-    // catalogue means this list is out of date, and abstaining says so; seating
-    // an arbitrary model would publish a juror nobody chose.
-    console.warn("[rank] no NIM model matched the preference list — juror abstains");
-    return null;
+    const live = new Set(
+      (body.data ?? []).map((m) => m.id).filter((id): id is string => !!id && !NIM_NOT_CHAT.test(id)),
+    );
+    const preferred = NIM_MODELS.filter((m) => live.has(m));
+    const extras = [...live]
+      .filter((id) => id.startsWith("nvidia/") && !preferred.includes(id))
+      .sort();
+    nimCandidateCache = [...preferred, ...extras];
+    return nimCandidateCache.length ? nimCandidateCache : NIM_MODELS;
   } catch {
-    return null;
+    return NIM_MODELS;
   }
 }
 
@@ -206,7 +228,12 @@ interface JurorTake extends JurorScores {
   provider: string;
   modelId: string;
   lens: Lens;
+  /** Several sentences of actual argument — what the company page shows. */
+  reasoning: string;
+  /** The sharpest single line, pulled out as the juror's quote. */
   quote: string;
+  /** One word for this juror's temperature, e.g. "unimpressed". Leaderboard rows. */
+  keyword: string;
   abstained: boolean;
 }
 
@@ -361,25 +388,40 @@ public company can each max any of them, and neither gets any of them for free.
 4. conviction (0-${AXIS_MAX.conviction}) — one real position, or hedging across five categories
    to look bigger than it is?
 
-Also give ONE quote: your sharpest single sentence about this company, under 140
-characters. It will be published next to your model's name. Be funny if it is
-funny, but aim at the positioning, never at people, and never state a company is
-failing, fraudulent, or in financial trouble.
+Then three more fields, all published next to your model's name:
+
+- reasoning: FOUR TO SIX SENTENCES showing your actual argument. Name what you
+  saw on the page and what you concluded from it. Say which axis you were
+  hardest on and why. A reader must be able to tell whether the score was
+  reasoned or guessed, so a single clever line is a FAILURE here — that is what
+  the quote field is for. Do not restate the numbers.
+- quote: your sharpest single sentence, under 140 characters.
+- keyword: ONE lowercase word for your overall temperature — e.g. unimpressed,
+  curious, sold, sceptical, bored, intrigued, unconvinced, impressed. One word,
+  no punctuation.
+
+Be funny if it is funny, but aim at the positioning, never at people, and never
+state a company is failing, fraudulent, or in financial trouble.
 
 Return JSON only:
-{"paradigm":int,"nonObviousness":int,"vibeCode":int,"conviction":int,"quote":str}
+{"paradigm":int,"nonObviousness":int,"vibeCode":int,"conviction":int,
+ "reasoning":str,"quote":str,"keyword":str}
 
 PAGE TEXT:
 ${siteText.slice(0, 9_000)}`;
 }
 
 function synthPrompt(gate: Gate, takes: JurorTake[], scores: JurorScores, total: number): string {
+  // The synthesizer sees each juror's full ARGUMENT, not just their pull-quote.
+  // Handing it three soundbites produced a verdict that rewrote the soundbites;
+  // handing it the reasoning is what lets it find where the panel actually
+  // diverged and write a split note worth reading.
   const panel = takes
     .map(
       (t) =>
-        `${t.modelId} (as the ${t.lens}): paradigm ${t.paradigm}, nonObviousness ${t.nonObviousness}, vibeCode ${t.vibeCode}, conviction ${t.conviction}. Said: "${t.quote}"`,
+        `${t.modelId} (as the ${t.lens}) — ${t.keyword}. Scores: paradigm ${t.paradigm}, nonObviousness ${t.nonObviousness}, vibeCode ${t.vibeCode}, conviction ${t.conviction}.\nReasoning: ${t.reasoning}\nPull quote: "${t.quote}"`,
     )
-    .join("\n");
+    .join("\n\n");
 
   return `You write the verdict for "Rank My AdTech", a public leaderboard that
 scores adtech companies on innovation. The register is a boxing undercard called
@@ -418,8 +460,8 @@ platformNote: one dry sentence on how much of this business is rented from
 
 // ── Provider calls ──────────────────────────────────────────────────────────
 
-async function callGemini(key: string, prompt: string): Promise<string> {
-  const res = await fetch(`${GEMINI_ENDPOINT}?key=${key}`, {
+async function callGemini(key: string, model: string, prompt: string): Promise<string> {
+  const res = await fetch(`${geminiEndpoint(model)}?key=${key}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
@@ -457,8 +499,14 @@ async function callOpenAICompatible(
        * ~1,200 reasoning tokens against 36 of answer on a trivial prompt, and
        * far more on a real one. At 900 the juror never finished thinking and
        * abstained on every call while looking like a truncation bug.
+       *
+       * Raised again to 4000 once jurors began returning several sentences of
+       * reasoning rather than one line: deepseek-v4-pro reasons too, and at
+       * 2500 it spent the whole budget thinking and returned nothing, costing a
+       * full round trip before the ladder moved on. Headroom here is far
+       * cheaper than a wasted call.
        */
-      max_tokens: 2500,
+      max_tokens: 4000,
       response_format: { type: "json_object" },
       messages: [{ role: "user", content: prompt }],
     }),
@@ -485,6 +533,69 @@ async function callOpenAICompatible(
     throw new Error(choice?.finish_reason === "length" ? "truncated before answering" : "empty completion");
   }
   return text;
+}
+
+// ── Asking a provider, with rungs ───────────────────────────────────────────
+
+type Provider = "gemini" | "nvidia" | "opencode";
+
+/** The ordered candidates for a provider, reconciled with what it really has. */
+async function modelsFor(provider: Provider, env: Env): Promise<string[]> {
+  if (provider === "gemini") return GEMINI_MODELS;
+  if (provider === "opencode") return OPENCODE_JUROR_MODELS;
+  return env.NVIDIA_API_KEY ? nimCandidates(env.NVIDIA_API_KEY, env.NIM_MODEL) : [];
+}
+
+function keyFor(provider: Provider, env: Env): string | undefined {
+  return provider === "gemini"
+    ? env.GEMINI_API_KEY
+    : provider === "nvidia"
+      ? env.NVIDIA_API_KEY
+      : env.OPENCODE_API_KEY;
+}
+
+async function askOnce(provider: Provider, key: string, model: string, prompt: string) {
+  if (provider === "gemini") return callGemini(key, model, prompt);
+  return callOpenAICompatible(provider === "nvidia" ? NIM_BASE : OPENCODE_BASE, key, model, prompt);
+}
+
+/**
+ * Walk a provider's ladder until one rung answers usably.
+ *
+ * `accept` is what makes this more than a retry loop: a call can succeed at the
+ * HTTP layer and still be useless — a model that returns "..." or unparseable
+ * JSON has failed, and the ladder should keep climbing rather than hand that
+ * back. Throws only when every rung is exhausted, which is the one case the
+ * caller must treat as a real outage.
+ */
+async function askLadder<T>(
+  provider: Provider,
+  env: Env,
+  prompt: string,
+  accept: (text: string, model: string) => T,
+): Promise<{ model: string; value: T }> {
+  const key = keyFor(provider, env);
+  if (!key) throw new Error(`${provider}: no key configured`);
+
+  const models = await modelsFor(provider, env);
+  if (!models.length) throw new Error(`${provider}: no candidate models`);
+
+  const failures: string[] = [];
+  for (const model of models) {
+    try {
+      const value = accept(await askOnce(provider, key, model, prompt), model);
+      // Log WHY the higher rungs failed, not just how many. A ladder that
+      // silently drops a rung every call is a ladder whose top entry should be
+      // reordered, and the count alone never tells you that.
+      if (failures.length) {
+        console.log(`[rank] ${provider} seated ${model}; skipped — ${failures.join(" ; ")}`);
+      }
+      return { model, value };
+    } catch (err) {
+      failures.push(`${model}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  throw new Error(`${provider} exhausted — ${failures.join(" | ")}`);
 }
 
 // ── Normalising ─────────────────────────────────────────────────────────────
@@ -571,9 +682,27 @@ export function normalizeTake(raw: unknown, provider: string, modelId: string, l
     nonObviousness: clampInt(o.nonObviousness, AXIS_MAX.nonObviousness),
     vibeCode: clampInt(o.vibeCode, AXIS_MAX.vibeCode),
     conviction: clampInt(o.conviction, AXIS_MAX.conviction),
+    reasoning: clampText(o.reasoning, 900),
     quote: clampText(o.quote, 180),
+    // One word, lowercase, letters only. Models reliably return "unimpressed."
+    // with a full stop, or a two-word phrase; the row has space for neither.
+    keyword: clampText(o.keyword, 24).toLowerCase().replace(/[^a-z-]/g, "").slice(0, 16),
     abstained: false,
   };
+}
+
+/**
+ * A juror that answered but said nothing usable has not answered.
+ *
+ * This runs inside the ladder's `accept` callback, so a model that returns
+ * well-formed JSON with an empty reasoning field drops to the next rung instead
+ * of seating a juror whose panel entry would be blank.
+ */
+export function assertUsable(take: JurorTake): JurorTake {
+  if (take.reasoning.length < 80) throw new Error(`reasoning too thin (${take.reasoning.length})`);
+  if (!take.quote) throw new Error("no quote");
+  if (!take.keyword) throw new Error("no keyword");
+  return take;
 }
 
 /**
@@ -727,6 +856,37 @@ const json = (body: unknown, status: number) =>
     headers: { "content-type": "application/json; charset=utf-8" },
   });
 
+/**
+ * The designed failure.
+ *
+ * A ranking either publishes with three real jurors and a written verdict, or
+ * it does not publish. That is a deliberate trade — a half-panel behind a page
+ * that promises three models is worse than an outage — so the failure needs to
+ * be part of the bit rather than a raw 502 in a red box. Each stage says which
+ * part of the machine fell over, in the tool's own voice.
+ */
+function failure(stage: "gate" | "panel" | "verdict") {
+  const copy = {
+    gate: {
+      headline: "We could not get a look at them.",
+      detail:
+        "Every classifier we own tried to read that site and came back with nothing. Either it is very well defended or we are having a bad afternoon. The authorities have been notified.",
+    },
+    panel: {
+      headline: "A judge failed to appear.",
+      detail:
+        "This board seats three models from three different labs, and it does not publish with two — a smaller panel dressed up as a full one is the one thing we will not do. Someone is currently being spoken to. Try again shortly.",
+    },
+    verdict: {
+      headline: "The panel scored it, then refused to write it up.",
+      detail:
+        "Every model we asked to deliver the verdict either declined or produced something that could not be printed in front of an audience. The scores exist. The prose does not. The authorities have been notified.",
+    },
+  }[stage];
+
+  return { status: "failed" as const, stage, ...copy };
+}
+
 /** Matches Scout: localhost origins pass so `wrangler pages dev` works. */
 function isLocalOrigin(origin: string): boolean {
   try {
@@ -803,25 +963,27 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   // ── Gate ──────────────────────────────────────────────────────────────────
   const gateInput = `${GATE_PROMPT}\n\nDOMAIN: ${domain}\n\nPAGE TEXT:\n${site.text.slice(0, 8_000)}`;
+  // The gate is a binary decision, so one working model settles it — but it
+  // still climbs NVIDIA's ladder before falling through to Google's, because a
+  // gate that cannot answer means no ranking at all.
   let gate: Gate;
   try {
-    let gateRaw: string | null = null;
-    if (env.NVIDIA_API_KEY) {
-      const model = await resolveNimModel(env.NVIDIA_API_KEY, env.NIM_MODEL);
-      if (model) {
-        gateRaw = await callOpenAICompatible(NIM_BASE, env.NVIDIA_API_KEY, model, gateInput);
+    const asGate = (text: string) => normalizeGate(extractJson(text));
+    let result: { value: Gate } | null = null;
+    for (const provider of ["nvidia", "gemini"] as Provider[]) {
+      if (!keyFor(provider, env)) continue;
+      try {
+        result = await askLadder(provider, env, gateInput, asGate);
+        break;
+      } catch (err) {
+        console.error(`[rank] gate: ${provider} exhausted:`, err);
       }
     }
-    // Gemini is the fallback classifier, not a second opinion — the gate is a
-    // binary decision and one working model is enough to make it.
-    if (!gateRaw && env.GEMINI_API_KEY) {
-      gateRaw = await callGemini(env.GEMINI_API_KEY, gateInput);
-    }
-    if (!gateRaw) return json({ error: "The ranking service is not configured." }, 503);
-    gate = normalizeGate(extractJson(gateRaw));
+    if (!result) return json(failure("gate"), 502);
+    gate = result.value;
   } catch (err) {
     console.error("[rank] gate failed:", err);
-    return json({ error: "Could not read that company. Try again shortly." }, 502);
+    return json(failure("gate"), 502);
   }
 
   if (!gate.isAdtech) {
@@ -837,52 +999,33 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   // ── Panel ─────────────────────────────────────────────────────────────────
+  /**
+   * Three seats, three providers, and NO ABSTENTIONS.
+   *
+   * Each seat climbs its provider's ladder until a model answers usably, so a
+   * retirement or a rate limit costs a rung rather than a juror. If a provider
+   * is exhausted the whole ranking fails — publishing a two-model verdict under
+   * a page that promises three would be the dishonest way to stay up.
+   */
   const settled = await Promise.allSettled(
-    PANEL.map(async ({ provider, lens }): Promise<JurorTake> => {
-      const text = jurorPrompt(lens, gate, site.text, site.blocked);
-      if (provider === "gemini") {
-        if (!env.GEMINI_API_KEY) throw new Error("no gemini key");
-        return normalizeTake(extractJson(await callGemini(env.GEMINI_API_KEY, text)), "gemini", GEMINI_MODEL, lens);
-      }
-      if (provider === "nvidia") {
-        if (!env.NVIDIA_API_KEY) throw new Error("no nvidia key");
-        const model = await resolveNimModel(env.NVIDIA_API_KEY, env.NIM_MODEL);
-        if (!model) throw new Error("no nim model");
-        return normalizeTake(
-          extractJson(await callOpenAICompatible(NIM_BASE, env.NVIDIA_API_KEY, model, text)),
-          "nvidia",
-          model,
-          lens,
-        );
-      }
-      if (!env.OPENCODE_API_KEY) throw new Error("no opencode key");
-      const model = env.OPENCODE_JUROR_MODEL ?? OPENCODE_JUROR_DEFAULT;
-      return normalizeTake(
-        extractJson(await callOpenAICompatible(OPENCODE_BASE, env.OPENCODE_API_KEY, model, text)),
-        "opencode",
-        model,
-        lens,
-      );
-    }),
+    PANEL.map(({ provider, lens }) =>
+      askLadder(provider, env, jurorPrompt(lens, gate, site.text, site.blocked), (text, model) =>
+        assertUsable(normalizeTake(extractJson(text), provider, model, lens)),
+      ).then((r) => r.value),
+    ),
   );
 
-  const takes: JurorTake[] = settled.map((result, i) => {
-    if (result.status === "fulfilled") return result.value;
-    console.error(`[rank] juror ${PANEL[i].provider} abstained:`, result.reason);
-    return {
-      provider: PANEL[i].provider,
-      modelId: "—",
-      lens: PANEL[i].lens,
-      paradigm: 0, nonObviousness: 0, vibeCode: 0, conviction: 0,
-      quote: "",
-      abstained: true,
-    };
-  });
+  const failed = settled
+    .map((r, i) => (r.status === "rejected" ? `${PANEL[i].provider}: ${r.reason}` : null))
+    .filter(Boolean);
 
-  const live = takes.filter((t) => !t.abstained);
-  if (live.length === 0) {
-    return json({ error: "The whole panel is out. Try again shortly." }, 502);
+  if (failed.length) {
+    console.error("[rank] panel incomplete, refusing to publish:", failed.join(" || "));
+    return json(failure("panel"), 502);
   }
+
+  const takes: JurorTake[] = settled.map((r) => (r as PromiseFulfilledResult<JurorTake>).value);
+  const live = takes;
 
   const scores = averageScores(takes);
   const total = scores.paradigm + scores.nonObviousness + scores.vibeCode + scores.conviction;
@@ -901,54 +1044,55 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
    * the others are a working verdict rather than an equal one.
    */
   const prompt = synthPrompt(gate, live, scores, total);
-  const synthesizers: { provider: string; run: () => Promise<string> }[] = [
-    ...(env.OPENCODE_API_KEY
-      ? [{
-          provider: "opencode",
-          run: () => callOpenAICompatible(
-            OPENCODE_BASE, env.OPENCODE_API_KEY as string,
-            env.OPENCODE_SYNTH_MODEL ?? OPENCODE_SYNTH_DEFAULT, prompt,
-          ),
-        }]
-      : []),
-    ...(env.NVIDIA_API_KEY
-      ? [{
-          provider: "nvidia",
-          run: async () => {
-            const model = await resolveNimModel(env.NVIDIA_API_KEY as string, env.NIM_MODEL);
-            if (!model) throw new Error("no nim model");
-            return callOpenAICompatible(NIM_BASE, env.NVIDIA_API_KEY as string, model, prompt);
-          },
-        }]
-      : []),
-    ...(env.GEMINI_API_KEY
-      ? [{ provider: "gemini", run: () => callGemini(env.GEMINI_API_KEY as string, prompt) }]
-      : []),
-  ];
+
+  /**
+   * A verdict has to clear a FLOOR, not merely be non-empty.
+   *
+   * The previous version broke out of this ladder the moment the field was
+   * truthy, so a model that returned "..." won and every fallback below it was
+   * skipped. Chalice shipped with three dots as its published verdict. Sixty
+   * characters is not a quality bar, but it is enough to tell a verdict from a
+   * shrug, and anything shorter now falls through like a failure.
+   */
+  const MIN_VERDICT = 60;
 
   let verdict = "";
   let splitNote = "";
   let platformNote = "";
-  for (const { provider, run } of synthesizers) {
+
+  for (const provider of ["opencode", "nvidia", "gemini"] as Provider[]) {
+    if (!keyFor(provider, env)) continue;
     try {
-      const raw = extractJson(await run()) as Record<string, unknown>;
-      verdict = clampText(raw.verdict, 900);
-      splitNote = dropNonStatement(clampText(raw.splitNote, 300));
-      platformNote = dropNonStatement(clampText(raw.platformNote, 300));
-      if (verdict) {
-        // Only worth a line when the preferred writer did not serve it — that
-        // is the signal to go and look at the billing.
-        if (provider !== "opencode") console.log(`[rank] verdict written by ${provider}`);
-        break;
+      const models = provider === "opencode" ? OPENCODE_SYNTH_MODELS : await modelsFor(provider, env);
+      const key = keyFor(provider, env) as string;
+      for (const model of models) {
+        try {
+          const raw = extractJson(await askOnce(provider, key, model, prompt)) as Record<string, unknown>;
+          const candidate = clampText(raw.verdict, 900);
+          if (candidate.length < MIN_VERDICT) throw new Error(`verdict too short (${candidate.length})`);
+          verdict = candidate;
+          splitNote = dropNonStatement(clampText(raw.splitNote, 300));
+          platformNote = dropNonStatement(clampText(raw.platformNote, 300));
+          if (provider !== "opencode" || model !== OPENCODE_SYNTH_MODELS[0]) {
+            console.log(`[rank] verdict written by ${provider}/${model}`);
+          }
+          break;
+        } catch (err) {
+          console.error(`[rank] synthesizer ${provider}/${model} failed:`, err);
+        }
       }
     } catch (err) {
-      console.error(`[rank] synthesizer ${provider} failed:`, err);
+      console.error(`[rank] synthesizer ${provider} unavailable:`, err);
     }
+    if (verdict) break;
   }
-  // A ranking with scores and quotes but no write-up is still a ranking. Falling
-  // back to the sharpest juror line beats refusing to publish.
+
+  // Every writer on every provider failed to produce a usable verdict. The
+  // panel scored fine, but publishing a page whose headline section is a
+  // fallback sentence is not what this tool promises — fail it properly.
   if (!verdict) {
-    verdict = live.find((t) => t.quote)?.quote ?? "The panel scored this one and left it there.";
+    console.error("[rank] no synthesizer produced a usable verdict");
+    return json(failure("verdict"), 502);
   }
 
   // ── Persist ───────────────────────────────────────────────────────────────
@@ -986,16 +1130,18 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     await env.RANKINGS.batch(
       takes.map((t) =>
         env.RANKINGS.prepare(
-          `INSERT INTO juror_take (ranking_id, provider, model_id, lens, scores_json, quote, abstained)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO juror_take (ranking_id, provider, model_id, lens, scores_json, reasoning, quote, keyword, abstained)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         ).bind(
           rankingId, t.provider, t.modelId, t.lens,
-          t.abstained ? null : JSON.stringify({
+          JSON.stringify({
             paradigm: t.paradigm, nonObviousness: t.nonObviousness,
             vibeCode: t.vibeCode, conviction: t.conviction,
           }),
+          t.reasoning || null,
           t.quote || null,
-          t.abstained ? 1 : 0,
+          t.keyword || null,
+          0,
         ),
       ),
     );
@@ -1020,7 +1166,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       platformNote,
       panel: takes.map((t) => ({
         provider: t.provider, modelId: t.modelId, lens: t.lens,
-        quote: t.quote, abstained: t.abstained,
+        reasoning: t.reasoning, quote: t.quote, keyword: t.keyword,
+        abstained: t.abstained,
       })),
     },
     200,
