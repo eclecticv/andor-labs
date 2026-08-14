@@ -1253,3 +1253,155 @@
 }
 .aol-rmc__share-btn:hover{ border-color:var(--signal); color:var(--signal); }
 .aol-rmc__share-btn:focus-visible{ outline:2px solid var(--signal); outline-offset:2px; }
+
+/* ---- Rank My AdTech v2 layout ----
+   Hero splits: argument on the left, the one thing to do on the right. The form
+   is a card rather than inline fields so it reads as the action on a page that
+   is otherwise prose. */
+.aol-rma__split{
+  display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,0.85fr);
+  gap:var(--space-16); align-items:start;
+}
+.aol-rma__copy{ min-width:0; }
+.aol-rma__trust{
+  display:flex; align-items:flex-start; gap:6px;
+  margin:var(--space-5) 0 0; font-size:var(--text-sm); color:var(--text-muted);
+  max-width:var(--measure);
+}
+.aol-rma__trust svg{ color:var(--ink-600); flex:none; margin-top:3px; }
+
+.aol-rma__formcard{
+  background:var(--surface-warm); border:1px solid var(--border-warm);
+  border-radius:var(--radius-md); padding:var(--space-6);
+}
+.aol-rma__formcard .aol-rma__field{ display:grid; gap:6px; }
+.aol-rma__hint{
+  margin:var(--space-2) 0 var(--space-5);
+  font-size:var(--text-xs); color:var(--text-on-warm-muted);
+}
+.aol-rma__notice{
+  margin:var(--space-4) 0 0; font-size:var(--text-2xs);
+  color:var(--text-on-warm-muted);
+}
+
+/* One line, fixed height. A five-row checklist would make the resting state a
+   wall of greyed-out future steps; the run is ~70s so the line has time to
+   carry the theatre on its own. */
+.aol-rma__step{
+  display:flex; align-items:center; gap:10px;
+  margin-top:var(--space-4); padding:10px 12px;
+  background:var(--paper); border:1px solid var(--border-warm);
+  border-radius:var(--radius-sm); min-height:40px;
+}
+.aol-rma__step-n{
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  color:var(--text-faint); font-variant-numeric:tabular-nums; flex:none;
+}
+.aol-rma__step-text{ font-size:var(--text-xs); color:var(--text-muted); }
+.aol-rma__step[data-state="busy"] .aol-rma__step-text{ color:var(--text-warm); }
+.aol-rma__step[data-state="busy"] .aol-rma__step-n{ color:var(--signal); }
+
+/* ---- How it works: a row, not a screen ---- */
+.aol-rma__how{
+  list-style:none; margin:0 0 var(--space-12); padding:0;
+  display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:var(--space-6);
+}
+.aol-rma__how-step{ display:grid; gap:6px; align-content:start; }
+.aol-rma__how-n{
+  font-family:var(--font-mono); font-size:var(--text-2xs); color:var(--signal);
+}
+.aol-rma__how-icon{ color:var(--ink-700); }
+.aol-rma__how-title{
+  font-size:var(--text-base); font-weight:var(--weight-medium); color:var(--text-strong);
+  line-height:var(--leading-snug);
+}
+.aol-rma__how-body{ font-size:var(--text-xs); color:var(--text-muted); line-height:var(--leading-normal); }
+
+/* Axes as four cells rather than four stacked rows — same information, a third
+   of the height. */
+.aol-rma__axis-row{
+  list-style:none; margin:0; padding:0;
+  display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:var(--space-6);
+}
+.aol-rma__axis-cell{ display:grid; gap:5px; align-content:start; }
+
+.aol-rma__board-head{
+  display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-6);
+  flex-wrap:wrap;
+}
+.aol-rma__board-link{ font-family:var(--font-mono); font-size:var(--text-xs); }
+
+.aol-rma__jump{
+  list-style:none; display:flex; flex-wrap:wrap; gap:var(--space-3);
+  margin:var(--space-8) 0 0; padding:0;
+}
+.aol-rma__jump a{
+  display:inline-flex; align-items:center; gap:6px;
+  font-family:var(--font-mono); font-size:var(--text-xs);
+  text-decoration:none; color:var(--text-body);
+  border:1px solid var(--border-default); border-radius:var(--radius-pill);
+  padding:6px 14px; transition:border-color .12s ease, color .12s ease;
+}
+.aol-rma__jump a:hover{ border-color:var(--signal); color:var(--signal); }
+.aol-rma__jump em{ font-style:normal; color:var(--text-faint); }
+
+/* The designed failure wears the same card as a result — it is part of the bit,
+   not an error state bolted on beside it. */
+.aol-rma__card--fail{ border-color:var(--ink-900); }
+.aol-rma__fail-mark{ margin:0 0 var(--space-4); color:var(--ink-700); }
+
+/* ---- Panel keywords on a row ---- */
+.aol-rb__keywords{ display:flex; flex-wrap:wrap; gap:6px; }
+.aol-rb__keyword{
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  text-transform:lowercase; letter-spacing:.02em;
+  color:var(--text-muted); background:var(--ink-050);
+  border-radius:var(--radius-pill); padding:2px 9px;
+}
+
+/* ---- The rest of a division ---- */
+.aol-rb__more{ margin-top:var(--space-2); }
+.aol-rb__more-toggle{
+  cursor:pointer; list-style:none;
+  font-family:var(--font-mono); font-size:var(--text-xs); color:var(--text-muted);
+  padding:10px 0; border-top:1px solid var(--border-hairline);
+}
+.aol-rb__more-toggle::-webkit-details-marker{ display:none; }
+.aol-rb__more-toggle::before{ content:"+ "; color:var(--signal); }
+.aol-rb__more[open] .aol-rb__more-toggle::before{ content:"– "; }
+.aol-rb__more-toggle:hover{ color:var(--signal); }
+
+/* ---- Models on duty ---- */
+.aol-rmc__duty{
+  list-style:none; margin:var(--space-6) 0 0; padding:0;
+  display:flex; flex-wrap:wrap; gap:var(--space-3);
+}
+.aol-rmc__duty-item{
+  display:inline-flex; align-items:center; gap:7px;
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  border:1px solid var(--border-hairline); border-radius:var(--radius-pill);
+  padding:5px 12px; color:var(--text-muted);
+}
+.aol-rmc__duty-item svg{ color:var(--ink-400); flex:none; }
+.aol-rmc__duty-model{ color:var(--text-strong); }
+.aol-rmc__duty-kw{ color:var(--signal); }
+
+/* ---- Juror entries: quote leads, reasoning carries ---- */
+.aol-rmc__juror-kw{
+  font-style:normal; color:var(--signal); margin-left:8px;
+}
+.aol-rmc__juror-reasoning{
+  font-size:var(--text-sm); line-height:var(--leading-normal);
+  color:var(--text-muted); max-width:var(--measure);
+}
+.aol-rmc__jurors{ gap:var(--space-8); }
+
+@media (max-width:900px){
+  .aol-rma__split{ grid-template-columns:minmax(0,1fr); gap:var(--space-10); }
+  .aol-rma__how{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .aol-rma__axis-row{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+}
+@media (max-width:560px){
+  .aol-rma__how{ grid-template-columns:minmax(0,1fr); gap:var(--space-5); }
+  .aol-rma__axis-row{ grid-template-columns:minmax(0,1fr); gap:var(--space-5); }
+}

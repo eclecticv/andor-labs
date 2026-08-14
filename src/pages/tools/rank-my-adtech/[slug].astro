@@ -1,12 +1,19 @@
 ---
 /**
- * One company's ranking — the page the leaderboard row links to, and the page
+ * One company's ranking — the page a leaderboard row links to, and the page
  * that does the organic-search work for this tool.
  *
- * Generated at build time from D1 (src/lib/rankings.ts). A company whose status
- * is `removed` is excluded from the query and therefore has no page at all,
- * which resolves as a 404 rather than the 410 a server-rendered site could
- * return. Fine trade: removal is rare, and 404 still de-indexes.
+ * ORDER IS DELIBERATE: verdict, share, panel, scoring.
+ *   - The verdict is what the reader came for, so it goes first.
+ *   - Share sits directly under it, at the moment of peak reaction. A share row
+ *     at the bottom of the page is a share row nobody reaches.
+ *   - The panel is the evidence for the verdict, so it follows the claim.
+ *   - Scoring is the arithmetic behind the evidence, and goes last: a reader
+ *     who wants the number already saw it in the header.
+ *
+ * Generated at build time from D1. A company whose status is `removed` is
+ * excluded from the query and has no page at all, which resolves as a 404
+ * rather than the 410 a server-rendered site could return.
  *
  * Every string here originated on a third-party homepage and passed through a
  * language model. Astro escapes `{expr}` interpolation, which is what keeps
@@ -32,18 +39,10 @@ const { entry, overallRank, total: boardSize } = Astro.props;
 const jurors = await getJurors(entry.slug);
 const band = scoreBand(entry.total);
 const division = DIVISIONS.find((d) => d.key === entry.division)!;
-const live = jurors.filter((j) => !j.abstained);
 
 const title = `${entry.name} — Rank My AdTech — And/or Labs`;
-const description = `${entry.name} scores ${entry.total}/100 on Rank My AdTech: paradigm ${entry.paradigm}, non-obviousness ${entry.non_obviousness}, vibe-code ${entry.vibe_code}, conviction ${entry.conviction}. Judged by ${live.length} models.`;
+const description = `${entry.name} scores ${entry.total}/100 on Rank My AdTech: paradigm ${entry.paradigm}, non-obviousness ${entry.non_obviousness}, vibe-code ${entry.vibe_code}, conviction ${entry.conviction}. Judged by ${jurors.length} models.`;
 
-/**
- * Share furniture.
- *
- * The brag line changes with the score because the tool is a bit, and the bit
- * only works if a bad score is still fun to post. A 31 that says "brutal, post
- * it anyway" gets shared; a 31 presented straight gets closed.
- */
 const pageUrl = new URL(`/tools/rank-my-adtech/${entry.slug}/`, Astro.site).href;
 const shareBrag =
   entry.total >= 85
@@ -79,14 +78,12 @@ const axisValue = (key: string) =>
   <main>
     <section class="aol-rmc">
       <div class="aol-rma__inner">
-        <p class="aol-rmc__back"><a href="/tools/rank-my-adtech/">← The board</a></p>
+        <p class="aol-rmc__back"><a href="/tools/rank-my-adtech/leaderboard/">← The board</a></p>
 
         <header class="aol-rmc__head">
-          {
-            entry.logo_url ? (
-              <img class="aol-rmc__logo" src={entry.logo_url} alt="" width="56" height="56" />
-            ) : null
-          }
+          {entry.logo_url ? (
+            <img class="aol-rmc__logo" src={entry.logo_url} alt="" width="56" height="56" />
+          ) : null}
           <div class="aol-rmc__id">
             <h1 class="aol-rmc__name">{entry.name}</h1>
             {entry.one_liner ? <p class="aol-rmc__one-liner">{entry.one_liner}</p> : null}
@@ -97,13 +94,11 @@ const axisValue = (key: string) =>
               <span>·</span>
               <span>#{overallRank} of {boardSize} overall</span>
               {entry.founded_year ? (<><span>·</span><span>founded {entry.founded_year}</span></>) : null}
-              {
-                entry.provisional ? (
-                  <span class="aol-rb__provisional">
-                    <PixelIcon name="question-circle" size={12} /> provisional
-                  </span>
-                ) : null
-              }
+              {entry.provisional ? (
+                <span class="aol-rb__provisional">
+                  <PixelIcon name="question-circle" size={12} /> provisional
+                </span>
+              ) : null}
             </p>
           </div>
           <div class="aol-rmc__score">
@@ -115,83 +110,34 @@ const axisValue = (key: string) =>
           </div>
         </header>
 
+        {/* ── Who was on duty ─────────────────────────────────────────────
+            Named upfront, before the verdict. The whole claim of this tool is
+            WHO judged you, and burying the model names under the reasoning
+            makes the panel feel like a stylistic flourish rather than the
+            method. */}
+        <ul class="aol-rmc__duty">
+          {jurors.map((j) => (
+            <li class="aol-rmc__duty-item">
+              <PixelIcon name="robot" size={12} />
+              <span class="aol-rmc__duty-model">{j.model_id}</span>
+              <span class="aol-rmc__duty-lens">as the {j.lens}</span>
+              {j.keyword ? <span class="aol-rmc__duty-kw">{j.keyword}</span> : null}
+            </li>
+          ))}
+        </ul>
+
         <DitherLine />
 
-        {/* ── The verdict ─────────────────────────────────────────────── */}
+        {/* ── 1. The verdict ─────────────────────────────────────────────── */}
         <h2 class="aol-rmc__h2">The verdict.</h2>
         <p class="aol-rmc__verdict">{entry.verdict}</p>
         {entry.split_note ? (
           <p class="aol-rmc__split">
-            <PixelIcon name="vote-yeah" size={12} /> {entry.split_note}
+            <PixelIcon name="vote-yeah" size={12} />{entry.split_note}
           </p>
         ) : null}
 
-        {/* ── The axes ────────────────────────────────────────────────── */}
-        <h2 class="aol-rmc__h2">The scoring.</h2>
-        <ul class="aol-rmc__axes">
-          {
-            AXES.map((axis) => {
-              const value = axisValue(axis.key);
-              return (
-                <li class="aol-rmc__axis">
-                  <span class="aol-rmc__axis-icon"><PixelIcon name={axis.icon as any} size={24} /></span>
-                  <span class="aol-rmc__axis-name">{axis.label}</span>
-                  <span class="aol-rmc__meter" role="img"
-                    aria-label={`${value} out of ${axis.max}`}>
-                    <span
-                      class="aol-rmc__meter-fill"
-                      style={`width:${((value / axis.max) * 100).toFixed(1)}%`}
-                    />
-                  </span>
-                  <span class="aol-rmc__axis-score">{value}<em>/{axis.max}</em></span>
-                  <span class="aol-rmc__axis-q">{axis.question}</span>
-                </li>
-              );
-            })
-          }
-        </ul>
-
-        {/* ── The panel ───────────────────────────────────────────────── */}
-        <h2 class="aol-rmc__h2">The panel.</h2>
-        <p class="aol-rmc__note">
-          {live.length === jurors.length
-            ? `All ${jurors.length} judged independently, then a fourth model read their takes and wrote the verdict above.`
-            : `${live.length} of ${jurors.length} judged. The rest were unreachable and abstained — their score is not counted.`}
-        </p>
-        <ul class="aol-rmc__jurors">
-          {
-            jurors.map((juror) => (
-              <li class:list={["aol-rmc__juror", juror.abstained && "aol-rmc__juror--out"]}>
-                <span class="aol-rmc__juror-mark">
-                  <PixelIcon name={juror.abstained ? "question-circle" : "quote-left"} size={24} />
-                </span>
-                <span class="aol-rmc__juror-body">
-                  {juror.abstained ? (
-                    <span class="aol-rmc__juror-quote">Abstained — provider unreachable.</span>
-                  ) : (
-                    <span class="aol-rmc__juror-quote">{juror.quote}</span>
-                  )}
-                  <span class="aol-rmc__juror-by">
-                    {juror.model_id} · as the {juror.lens}
-                  </span>
-                </span>
-              </li>
-            ))
-          }
-        </ul>
-
-        {entry.platform_note ? (
-          <>
-            <h2 class="aol-rmc__h2">Not scored, but noted.</h2>
-            <p class="aol-rmc__note">{entry.platform_note}</p>
-          </>
-        ) : null}
-
-        {/* ── Share ───────────────────────────────────────────────────── */}
-        {/* The card people actually see is the OG image at /og/rank/<slug>.png,
-            rendered per company. These buttons just make posting it one click
-            instead of a copy-paste. */}
-        <DitherLine />
+        {/* ── 2. Share, at peak reaction ─────────────────────────────────── */}
         <div class="aol-rmc__share">
           <p class="aol-rmc__share-label">
             <PixelIcon name="trophy-solid" size={24} />
@@ -203,6 +149,65 @@ const axisValue = (key: string) =>
             <button class="aol-rmc__share-btn" type="button" data-copy={pageUrl}>Copy link</button>
           </p>
         </div>
+
+        <DitherLine />
+
+        {/* ── 3. The panel, in full ──────────────────────────────────────── */}
+        <h2 class="aol-rmc__h2">The panel.</h2>
+        <p class="aol-rmc__note">
+          Three models from three different labs judged this independently, without seeing
+          each other's answers. A fourth read all three and wrote the verdict above.
+        </p>
+        <ul class="aol-rmc__jurors">
+          {jurors.map((juror) => (
+            <li class="aol-rmc__juror">
+              <span class="aol-rmc__juror-mark"><PixelIcon name="quote-left" size={24} /></span>
+              <span class="aol-rmc__juror-body">
+                <span class="aol-rmc__juror-by">
+                  {juror.model_id} · as the {juror.lens}
+                  {juror.keyword ? <em class="aol-rmc__juror-kw">{juror.keyword}</em> : null}
+                </span>
+                {juror.quote ? <span class="aol-rmc__juror-quote">{juror.quote}</span> : null}
+                {juror.reasoning ? (
+                  <span class="aol-rmc__juror-reasoning">{juror.reasoning}</span>
+                ) : null}
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        <DitherLine />
+
+        {/* ── 4. The arithmetic ──────────────────────────────────────────── */}
+        <h2 class="aol-rmc__h2">The scoring.</h2>
+        <p class="aol-rmc__note">
+          Each axis is the panel's average, and the total is their sum. The number is
+          arithmetic; only the words above are written.
+        </p>
+        <ul class="aol-rmc__axes">
+          {AXES.map((axis) => {
+            const value = axisValue(axis.key);
+            return (
+              <li class="aol-rmc__axis">
+                <span class="aol-rmc__axis-icon"><PixelIcon name={axis.icon as any} size={24} /></span>
+                <span class="aol-rmc__axis-name">{axis.label}</span>
+                <span class="aol-rmc__meter" role="img" aria-label={`${value} out of ${axis.max}`}>
+                  <span class="aol-rmc__meter-fill"
+                    style={`width:${((value / axis.max) * 100).toFixed(1)}%`} />
+                </span>
+                <span class="aol-rmc__axis-score">{value}<em>/{axis.max}</em></span>
+                <span class="aol-rmc__axis-q">{axis.question}</span>
+              </li>
+            );
+          })}
+        </ul>
+
+        {entry.platform_note ? (
+          <>
+            <h2 class="aol-rmc__h2">Not scored, but noted.</h2>
+            <p class="aol-rmc__note">{entry.platform_note}</p>
+          </>
+        ) : null}
 
         <DitherLine />
         <p class="aol-rma__disclosure">
@@ -224,7 +229,7 @@ const axisValue = (key: string) =>
 
 <script>
   // Copy-link. Confirms in place rather than firing an alert — a native dialog
-  // here would block the page and is exactly the wrong weight for "copied".
+  // here would block the page and is the wrong weight for "copied".
   document.querySelectorAll<HTMLButtonElement>("[data-copy]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const url = btn.dataset.copy;

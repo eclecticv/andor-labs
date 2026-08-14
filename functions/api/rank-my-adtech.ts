@@ -923,7 +923,16 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return json({ error: "Work email, please — a personal one tells us nothing." }, 400);
   }
 
-  const domain = normalizeDomain(payload.domain ?? "");
+  /**
+   * The domain comes from the EMAIL, following Subreddit Scout.
+   *
+   * Consequence worth being explicit about: this means you can only rank your
+   * own employer. The tool was originally specified as "anyone can submit
+   * anyone", and inferring the domain quietly closes that — which also closes
+   * the competitor-bombing vector it opened. `domain` is still accepted in the
+   * payload so the flow stays testable, but the form no longer sends one.
+   */
+  const domain = normalizeDomain(payload.domain || emailDomain(email));
   if (!domain) return json({ error: "That does not look like a company domain." }, 400);
 
   // ── Rate limit ────────────────────────────────────────────────────────────
@@ -1096,7 +1105,19 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   // ── Persist ───────────────────────────────────────────────────────────────
+  /**
+   * Reserved slugs.
+   *
+   * Company pages live at /tools/rank-my-adtech/<slug>/, and the board sits at
+   * /tools/rank-my-adtech/leaderboard/. Astro resolves the static route first
+   * so a company called "Leaderboard" would not actually break the board — it
+   * would simply become unreachable, which is worse, because nothing would look
+   * broken. Renaming it here is cheap.
+   */
+  const RESERVED = new Set(["leaderboard", "index", "api", "og"]);
+
   let slug = slugify(gate.name) || slugify(domain);
+  if (RESERVED.has(slug)) slug = `${slug}-${slugify(domain).slice(0, 12)}`;
   const clash = await env.RANKINGS.prepare("SELECT 1 FROM company WHERE slug = ?")
     .bind(slug)
     .first();

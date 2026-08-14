@@ -68,7 +68,11 @@ export interface JurorTake {
   provider: string;
   model_id: string;
   lens: string;
+  /** Several sentences of argument — the substance of the panel section. */
+  reasoning: string | null;
   quote: string | null;
+  /** One word for this juror's temperature, shown on leaderboard rows. */
+  keyword: string | null;
   abstained: number;
 }
 
@@ -175,10 +179,34 @@ export async function getBoard(): Promise<Record<Division, Entry[]>> {
   };
 }
 
+/**
+ * slug → one keyword per juror, in seat order.
+ *
+ * Fetched for the whole board in a single query rather than per row: the
+ * leaderboard renders every division at build time, and one round trip per
+ * company would turn a page build into a hundred HTTP calls to D1's REST API.
+ */
+export async function getKeywords(): Promise<Record<string, string[]>> {
+  const rows = await query<{ slug: string; keyword: string | null }>(
+    `SELECT c.slug, j.keyword
+     FROM juror_take j
+     JOIN ranking r ON r.id = j.ranking_id
+     JOIN company c ON c.id = r.company_id
+     WHERE c.status = 'published' AND j.abstained = 0 AND j.keyword IS NOT NULL
+     ORDER BY c.slug, j.id`,
+  );
+  const out: Record<string, string[]> = {};
+  for (const { slug, keyword } of rows) {
+    if (!keyword) continue;
+    (out[slug] ??= []).push(keyword);
+  }
+  return out;
+}
+
 /** The panel behind one ranking, for the company page. */
 export async function getJurors(slug: string): Promise<JurorTake[]> {
   return query<JurorTake>(
-    `SELECT j.provider, j.model_id, j.lens, j.quote, j.abstained
+    `SELECT j.provider, j.model_id, j.lens, j.reasoning, j.quote, j.keyword, j.abstained
      FROM juror_take j
      JOIN ranking r ON r.id = j.ranking_id
      JOIN company c ON c.id = r.company_id
