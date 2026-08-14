@@ -2,11 +2,13 @@
 /**
  * Rank My AdTech — the tool's landing page.
  *
- * Copy left, form right. ONE field: the work email, from which the company
- * domain is inferred, exactly as Subreddit Scout does. That is not only a
- * simplification — it means you can only rank your own employer, which closes
- * the competitor-bombing vector the original "anyone can submit anyone" design
- * left open.
+ * Copy left, form right. ONE field: the company URL.
+ *
+ * No email. Entry is frictionless and anyone can submit anyone, which is the
+ * point of a public board — at the cost of the lead capture this tool was
+ * originally built around. The API still accepts an address and still syncs it
+ * to Loops when present, so that capture can return on the RESULT step without
+ * putting a second field in front of a first-time visitor.
  *
  * The full board lives at /tools/rank-my-adtech/leaderboard/. This page carries
  * a short preview so a first-time visitor can see the thing is alive without
@@ -49,7 +51,7 @@ const STEPS = [
 ];
 
 const HOW = [
-  { icon: "newspaper", title: "We read the homepage", body: "No account, no form beyond your email. We fetch the site behind your domain and reduce it to text." },
+  { icon: "newspaper", title: "We read the homepage", body: "Paste a URL. No account, no email, nothing else to fill in. We fetch the site and reduce it to text." },
   { icon: "robot", title: "Three models judge it", body: "One each from Google, NVIDIA and Alibaba. Different labs, different training, genuine disagreement." },
   { icon: "quote-left", title: "A fourth writes the verdict", body: "It reads all three arguments, finds where they split, and delivers the call." },
   { icon: "trophy-solid", title: "It goes on the board", body: "Published immediately, ranked inside your weight class, with a share card of your own." },
@@ -92,11 +94,11 @@ const description =
         <div class="aol-rma__formcard">
           <form id="rank-form" novalidate>
             <label class="aol-rma__field">
-              <span class="aol-rma__label">Work email</span>
-              <Input type="email" name="email" id="rank-email" placeholder="you@company.com"
-                autocomplete="email" required />
+              <span class="aol-rma__label">Company URL</span>
+              <Input type="text" name="url" id="rank-url" placeholder="company.com"
+                autocomplete="url" inputmode="url" required />
             </label>
-            <p class="aol-rma__hint">We rank the company behind your email. Nothing else to fill in.</p>
+            <p class="aol-rma__hint">Any adtech company. Yours, a competitor's, one you are curious about.</p>
             <Button type="submit" variant="primary" size="lg" fullWidth id="rank-submit" arrow>
               Rank it
             </Button>
@@ -107,8 +109,8 @@ const description =
             </div>
 
             <p class="aol-rma__notice">
-              Every ranking is published to the public board. We will email you occasionally;
-              unsubscribing takes one click.
+              Every ranking is published to the public board, under the company's own name.
+              No account, no email, no takebacks.
             </p>
           </form>
           <p class="aol-rma__status" id="rank-status" role="status" aria-live="polite"></p>
@@ -272,8 +274,8 @@ const description =
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const email = (document.getElementById("rank-email") as HTMLInputElement).value.trim();
-      if (!email) { say("We need a work email."); return; }
+      const url = (document.getElementById("rank-url") as HTMLInputElement).value.trim();
+      if (!url) { say("Give us a company URL."); return; }
 
       if (submit) submit.disabled = true;
       resultEl.hidden = true;
@@ -284,7 +286,7 @@ const description =
         const res = await fetch("/api/rank-my-adtech", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({ domain: url }),
         });
         const data = await res.json();
 

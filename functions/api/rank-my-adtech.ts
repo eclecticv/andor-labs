@@ -930,26 +930,36 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return json({ error: "Send JSON." }, 400);
   }
 
+  /**
+   * Email is OPTIONAL. The form asks for a URL and nothing else.
+   *
+   * That is a deliberate trade: entry is frictionless and anyone can submit
+   * anyone, at the cost of the lead capture this tool was originally built
+   * around. The Loops sync below still runs when an address is supplied, so the
+   * capture can come back on the result step without touching this handler.
+   *
+   * When an address IS given it is still held to the work-email standard —
+   * a disposable or free-mail address tells us nothing and is not worth storing.
+   */
   const email = (payload.email ?? "").trim().toLowerCase();
-  if (!EMAIL_RE.test(email)) return json({ error: "That email does not look right." }, 400);
-
-  const from = emailDomain(email);
-  if (DISPOSABLE_DOMAINS.has(from)) return json({ error: "Use a real address." }, 400);
-  if (FREE_EMAIL_DOMAINS.has(from)) {
-    return json({ error: "Work email, please — a personal one tells us nothing." }, 400);
+  if (email) {
+    if (!EMAIL_RE.test(email)) return json({ error: "That email does not look right." }, 400);
+    const from = emailDomain(email);
+    if (DISPOSABLE_DOMAINS.has(from)) return json({ error: "Use a real address." }, 400);
+    if (FREE_EMAIL_DOMAINS.has(from)) {
+      return json({ error: "Work email, please — a personal one tells us nothing." }, 400);
+    }
   }
 
   /**
-   * The domain comes from the EMAIL, following Subreddit Scout.
+   * The URL is the input. Anyone can submit anyone.
    *
-   * Consequence worth being explicit about: this means you can only rank your
-   * own employer. The tool was originally specified as "anyone can submit
-   * anyone", and inferring the domain quietly closes that — which also closes
-   * the competitor-bombing vector it opened. `domain` is still accepted in the
-   * payload so the flow stays testable, but the form no longer sends one.
+   * An email, if one is supplied, can still supply the domain — that keeps the
+   * older flow working — but the form sends a URL and the tool no longer
+   * assumes you are ranking your own employer.
    */
-  const domain = normalizeDomain(payload.domain || emailDomain(email));
-  if (!domain) return json({ error: "That does not look like a company domain." }, 400);
+  const domain = normalizeDomain(payload.domain || (email ? emailDomain(email) : ""));
+  if (!domain) return json({ error: "That does not look like a company URL." }, 400);
 
   // ── Rate limit ────────────────────────────────────────────────────────────
   const ipHash = await hashIp(request.headers.get("cf-connecting-ip") ?? "unknown");
@@ -962,13 +972,16 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return json({ error: "That is enough rankings for one day. Come back tomorrow." }, 429);
   }
 
+  // `email` is NOT NULL in the schema and an anonymous submission has none, so
+  // it stores an empty string rather than requiring a migration to relax the
+  // column. Empty means "submitted without an address", not "unknown".
   await env.RANKINGS.prepare("INSERT INTO submission (email, domain, ip_hash) VALUES (?, ?, ?)")
     .bind(email, domain, ipHash)
     .run();
 
   // Lead first, always. Scout learned this: the moments the model is flaky are
   // exactly the moments the lead matters most.
-  if (env.LOOPS_API_KEY) await syncLeadToLoops(env.LOOPS_API_KEY, email, domain);
+  if (email && env.LOOPS_API_KEY) await syncLeadToLoops(env.LOOPS_API_KEY, email, domain);
 
   // ── Already ranked? ───────────────────────────────────────────────────────
   // One company is one row, permanently. This is the cost control as much as it
