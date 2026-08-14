@@ -1342,8 +1342,11 @@
    a mono eyebrow. Different rhythm, more contrast, half the width. */
 .aol-rma__axis-row{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:var(--space-8) var(--space-12); }
 .aol-rma__axis-cell{ gap:8px; }
+/* Capped to the same measure as the question beneath it. Without this the label
+   row spans the full column while the question wraps at 34ch, and margin-left
+   flings the point value hundreds of pixels away from the label it belongs to. */
 .aol-rma__axis-label{
-  display:flex; align-items:center; gap:7px;
+  display:flex; align-items:center; gap:7px; max-width:34ch;
   font-family:var(--font-mono); font-size:var(--text-2xs);
   letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted);
 }
@@ -1358,3 +1361,10 @@
   .aol-rma__axis-row{ grid-template-columns:minmax(0,1fr); gap:var(--space-6); }
   .aol-rma__axis-q{ font-size:var(--text-base); }
 }
+
+/* ---- A company ranking is a reading page, so give it a reading column ----
+   It was inheriting the 1200px site container, which meant the prose wrapped at
+   its own measure around 530px while the scoring meters stretched the full
+   width beneath it. That is not a layout, it is two different layouts sharing a
+   page: a ragged right edge, and half the screen empty. One column, one edge. */
+.aol-rmc .aol-rma__inner{ max-width:880px; }
