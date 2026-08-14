@@ -35,9 +35,9 @@
  *   GEMINI_API_KEY   = juror 1
  *   NVIDIA_API_KEY   = gate + juror 2   (build.nvidia.com, OpenAI-compatible)
  *   OPENCODE_API_KEY = juror 3, and the preferred verdict writer
- *                      (opencode.ai/zen gateway). The verdict falls back to
- *                      NVIDIA then Gemini, so an empty Zen balance costs
- *                      prose quality rather than the verdict itself.
+ *                      (opencode.ai **Go**, not Zen — see OPENCODE_BASE). The
+ *                      verdict falls back to NVIDIA then Gemini, so an outage
+ *                      there costs prose quality rather than the verdict.
  *   LOOPS_API_KEY    = lead capture
  *   DEPLOY_HOOK_URL  = Cloudflare Pages deploy hook; without it rankings are
  *                      stored but never appear on the public board.
@@ -65,16 +65,32 @@ const GEMINI_MODEL = "gemini-3.5-flash-lite";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const NIM_BASE = "https://integrate.api.nvidia.com/v1";
-const OPENCODE_BASE = "https://opencode.ai/zen/v1";
+/**
+ * OpenCode **Go**, not Zen — different product, different path, different
+ * catalogue. Go is the $10/month subscription over ~26 curated open models;
+ * Zen is the pay-as-you-go gateway that also fronts Anthropic, OpenAI and xAI.
+ *
+ * Getting this wrong is not obvious from the outside: a Go key authenticates
+ * fine against Zen's `/models`, and only fails at `/chat/completions` — as a
+ * 401 with a CreditsError body, which reads exactly like an unpaid Zen account
+ * rather than "you are on the wrong endpoint".
+ */
+const OPENCODE_BASE = "https://opencode.ai/zen/go/v1";
 
 /**
- * OpenCode Zen ids, verified against its published catalogue. Grok is the juror
- * because it is the least agreeable model available and this is a panel picked
- * for disagreement; Sonnet writes the verdict because the verdict is the only
- * part a reader actually reads closely.
+ * Verified against the Go catalogue on 2026-08-14 by calling each one.
+ *
+ * DeepSeek is the juror and OpenAI writes the verdict, which puts four
+ * different labs across the four roles — Google, NVIDIA, DeepSeek, OpenAI. The
+ * panel is picked for disagreement, so lineage diversity is the whole point.
+ *
+ * Ruled out, all of which return HTTP 200 and are still unusable:
+ *   grok-4.5     — "Endpoint is unavailable" from the provider
+ *   kimi-k3      — empty content
+ *   minimax-m3   — leaks raw <think> reasoning into the content field
  */
-const OPENCODE_JUROR_DEFAULT = "grok-4.6";
-const OPENCODE_SYNTH_DEFAULT = "claude-sonnet-5";
+const OPENCODE_JUROR_DEFAULT = "deepseek-v4-pro";
+const OPENCODE_SYNTH_DEFAULT = "gpt-5.6-luna";
 
 /**
  * NIM ids are resolved at runtime rather than hardcoded.
@@ -393,7 +409,11 @@ verdict: 60-110 words. The call, in the voice above.
 splitNote: one sentence on where the panel disagreed, naming the models. Empty
   string if they broadly agreed.
 platformNote: one dry sentence on how much of this business is rented from
-  Google, Meta, Amazon or The Trade Desk. Not scored — just noted.`;
+  Google, Meta, Amazon or The Trade Desk. Not scored — just noted. If the page
+  gives you nothing concrete to say, return an EMPTY STRING. Never write that
+  the information was unavailable, unclear, or not specified — a sentence
+  describing the absence of a fact is worse than no sentence, and this field is
+  dropped entirely when empty.`;
 }
 
 // ── Provider calls ──────────────────────────────────────────────────────────
@@ -494,6 +514,22 @@ export const clampText = (value: unknown, max: number, fallback = ""): string =>
   if (!s) return fallback;
   return s.length <= max ? s : `${s.slice(0, max - 1).trimEnd()}…`;
 };
+
+/**
+ * Drop a sentence whose only content is that the model had nothing to say.
+ *
+ * These fields render as their own sections, so "the summary does not specify
+ * how much of the business is rented from Google" becomes a heading followed by
+ * an admission — strictly worse than omitting the section. The prompt asks for
+ * an empty string; this is the clamp for when it does not comply, same posture
+ * as the score clamps.
+ */
+const NON_STATEMENT =
+  /\b(does not (specify|say|mention|indicate)|not specified|no (information|detail|indication)|unclear from|cannot determine|insufficient (information|detail)|unable to determine)\b/i;
+
+export function dropNonStatement(value: string): string {
+  return NON_STATEMENT.test(value) ? "" : value;
+}
 
 export function slugify(value: string): string {
   return value
@@ -897,8 +933,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     try {
       const raw = extractJson(await run()) as Record<string, unknown>;
       verdict = clampText(raw.verdict, 900);
-      splitNote = clampText(raw.splitNote, 300);
-      platformNote = clampText(raw.platformNote, 300);
+      splitNote = dropNonStatement(clampText(raw.splitNote, 300));
+      platformNote = dropNonStatement(clampText(raw.platformNote, 300));
       if (verdict) {
         // Only worth a line when the preferred writer did not serve it — that
         // is the signal to go and look at the billing.

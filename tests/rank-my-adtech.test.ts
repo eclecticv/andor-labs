@@ -11,6 +11,7 @@
 import { describe, expect, it } from "vitest";
 import {
   averageScores,
+  dropNonStatement,
   clampInt,
   normalizeDomain,
   normalizeGate,
@@ -148,5 +149,20 @@ describe("score bands", () => {
   it("gives the bottom band the mask", () => {
     expect(scoreBand(39).icon).toBe("hockey-mask");
     expect(scoreBand(40).icon).toBe("face-thinking");
+  });
+});
+
+describe("non-statements", () => {
+  // These render as their own page sections, so a sentence whose only content
+  // is "the model had nothing to say" is worse than an omitted section.
+  it("drops sentences that only report an absence", () => {
+    expect(dropNonStatement("The summary does not specify how much is rented from Google.")).toBe("");
+    expect(dropNonStatement("Not specified on the page.")).toBe("");
+    expect(dropNonStatement("Unable to determine platform exposure.")).toBe("");
+  });
+
+  it("keeps sentences that actually say something", () => {
+    const real = "Almost entirely dependent on a single ad platform.";
+    expect(dropNonStatement(real)).toBe(real);
   });
 });
