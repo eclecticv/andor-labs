@@ -833,3 +833,348 @@
   background-size:6px 3px; background-repeat:repeat-x; background-position:center;
 }
 .aol-offer__icon{ color:var(--signal); flex:none; display:block; }
+
+/* ---- Rank My AdTech board (.aol-rb) ----
+   One ranked table per weight class. Divisions exist because scoring a seed
+   company against a public one on a single table is the bias the tool was built
+   to avoid, so they are presented as three boards rather than three filters —
+   a reader should never have to be told the comparison is fair.
+
+   Colour follows the design-system weight rule rather than inventing a scale:
+   solid marks take --signal, regular marks stay ink. In practice a row has at
+   most one blue element (the crown, the trophy, or the fire band) and the rest
+   is quiet, which is what keeps a long board readable. */
+.aol-rb{ display:grid; gap:var(--space-16); }
+.aol-rb__division{ display:block; }
+
+.aol-rb__head{
+  display:grid;
+  grid-template-columns:24px minmax(0,1fr) auto;
+  align-items:center;
+  gap:0 12px;
+  padding-bottom:10px;
+  border-bottom:1px solid var(--border-strong);
+}
+.aol-rb__head-icon{ color:var(--ink-700); display:block; }
+.aol-rb__title{
+  font-family:var(--font-display);
+  font-size:var(--text-lg); font-weight:var(--weight-regular);
+  line-height:var(--leading-snug); margin:0; color:var(--text-strong);
+}
+.aol-rb__count{
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  letter-spacing:.04em; text-transform:uppercase; color:var(--text-muted);
+}
+/* Blurb sits under the title in the same column so the icon rail stays clean. */
+.aol-rb__blurb{
+  grid-column:2 / -1; margin:2px 0 0;
+  font-size:var(--text-xs); color:var(--text-muted);
+}
+
+.aol-rb__list{ list-style:none; margin:0; padding:0; }
+.aol-rb__row + .aol-rb__row{ border-top:1px solid var(--border-hairline); }
+
+.aol-rb__link{
+  display:grid;
+  grid-template-columns:28px 24px 28px minmax(0,1fr) 24px auto;
+  align-items:center; gap:0 12px;
+  padding:12px 8px; margin:0 -8px;
+  text-decoration:none; color:inherit;
+  border-radius:var(--radius-sm);
+  transition:background-color .12s ease;
+}
+.aol-rb__link:hover{ background:var(--ink-050); }
+.aol-rb__link:focus-visible{ outline:2px solid var(--signal); outline-offset:-2px; }
+
+/* Tabular figures so ranks and scores form a true column instead of shimmying
+   by a pixel between 1 and 11. */
+.aol-rb__rank{
+  font-family:var(--font-mono); font-size:var(--text-xs);
+  font-variant-numeric:tabular-nums; color:var(--text-faint); text-align:right;
+}
+.aol-rb__mark{ display:block; min-height:24px; }
+.aol-rb__crown,
+.aol-rb__trophy{ color:var(--signal); display:block; }
+
+.aol-rb__logo{
+  width:28px; height:28px; object-fit:contain;
+  border-radius:var(--radius-xs); background:var(--paper);
+}
+/* A missing logo holds its space rather than collapsing the grid — favicons
+   fail often enough that a jagged left edge would be the common case. */
+.aol-rb__logo--blank{
+  border:1px solid var(--border-hairline); background:var(--ink-050);
+}
+
+.aol-rb__body{ display:grid; gap:1px; min-width:0; }
+.aol-rb__name{
+  display:flex; align-items:center; gap:8px;
+  font-size:var(--text-base); font-weight:var(--weight-medium);
+  color:var(--text-strong); line-height:var(--leading-snug);
+}
+.aol-rb__one-liner{
+  font-size:var(--text-xs); color:var(--text-muted);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.aol-rb__provisional{
+  display:inline-flex; align-items:center; gap:4px;
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  text-transform:uppercase; letter-spacing:.04em;
+  color:var(--text-warm); background:var(--surface-warm);
+  border:1px solid var(--border-warm); border-radius:var(--radius-pill);
+  padding:1px 8px 1px 6px; flex:none;
+}
+
+.aol-rb__band{ color:var(--ink-600); display:block; }
+/* Only the 85+ band is a solid glyph, so only it runs blue. The other three
+   bands are regular weight and stay ink — same rule the crown follows, applied
+   to the score column. */
+.aol-rb__band--solid{ color:var(--signal); }
+.aol-rb__score{
+  font-family:var(--font-mono); font-size:var(--text-lg);
+  font-variant-numeric:tabular-nums; color:var(--text-strong);
+  min-width:3ch; text-align:right;
+}
+
+.aol-rb__empty{
+  margin:14px 0 0; font-size:var(--text-sm); color:var(--text-muted);
+  font-style:italic;
+}
+
+@media (max-width:640px){
+  /* The one-liner and the band icon are the first things to go: on a phone the
+     row has to keep rank, name and score legible, and everything else is
+     available one tap away on the company's own page. */
+  .aol-rb__link{ grid-template-columns:22px 24px 28px minmax(0,1fr) auto; gap:0 10px; }
+  .aol-rb__band{ display:none; }
+  .aol-rb__one-liner{ display:none; }
+  .aol-rb__score{ font-size:var(--text-md); }
+}
+
+/* ---- Rank My AdTech page (.aol-rma) ----
+   The tool and its leaderboard share one address, so the page alternates
+   surfaces to keep the three jobs — submit, understand, browse — legibly
+   separate without a rule between each. */
+.aol-rma__inner{
+  max-width:var(--container-width); width:100%; margin:0 auto;
+  padding:0 var(--gutter);
+}
+.aol-rma__hero{ background:var(--paper); padding:var(--space-16) 0 var(--space-12); }
+.aol-rma__axes{ background:var(--surface-card); padding:var(--space-16) 0; }
+.aol-rma__board{ background:var(--paper); padding:var(--space-16) 0 var(--space-20); }
+
+.aol-rma__eyebrow{
+  display:flex; align-items:center; gap:6px; margin:0 0 var(--space-4);
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted);
+}
+.aol-rma__h1{
+  font-family:var(--font-display); font-weight:var(--weight-regular);
+  font-size:var(--text-3xl); line-height:var(--leading-tight);
+  margin:0 0 var(--space-4); color:var(--text-strong);
+}
+.aol-rma__lede{
+  max-width:var(--measure); margin:0 0 var(--space-8);
+  font-size:var(--text-md); line-height:var(--leading-normal); color:var(--text-body);
+}
+.aol-rma__h2{
+  font-family:var(--font-display); font-weight:var(--weight-regular);
+  font-size:var(--text-xl); line-height:var(--leading-snug);
+  margin:var(--space-8) 0 var(--space-3); color:var(--text-strong);
+}
+.aol-rma__note{
+  max-width:var(--measure); margin:0 0 var(--space-6);
+  font-size:var(--text-sm); color:var(--text-muted);
+}
+
+/* Two fields side by side above 640px: they are asked for together and read as
+   one question, so stacking them makes the form feel twice as long as it is. */
+.aol-rma__form{ max-width:640px; }
+.aol-rma__fields{ display:grid; grid-template-columns:1fr 1fr; gap:var(--space-4); }
+.aol-rma__field{ display:grid; gap:6px; }
+.aol-rma__label{
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  text-transform:uppercase; letter-spacing:.04em; color:var(--text-muted);
+}
+.aol-rma__form button{ margin-top:var(--space-4); }
+.aol-rma__notice{
+  margin:var(--space-3) 0 0; font-size:var(--text-xs);
+  color:var(--text-muted); max-width:var(--measure);
+}
+.aol-rma__status{
+  margin:var(--space-4) 0 0; min-height:1.4em;
+  font-family:var(--font-mono); font-size:var(--text-sm); color:var(--text-warm);
+}
+
+.aol-rma__axis-list{ list-style:none; margin:0; padding:0; display:grid; gap:var(--space-4); }
+.aol-rma__axis{ display:grid; grid-template-columns:24px minmax(0,1fr); gap:0 12px; align-items:start; }
+.aol-rma__axis-icon{ color:var(--ink-700); display:block; }
+.aol-rma__axis-body{ display:grid; gap:2px; }
+.aol-rma__axis-name{
+  font-size:var(--text-base); font-weight:var(--weight-medium); color:var(--text-strong);
+}
+/* The point value rides the axis name in mono so the weighting is visible at a
+   glance — 40 next to Paradigm is the whole argument that this measures
+   innovation rather than size. */
+.aol-rma__axis-name em{
+  font-family:var(--font-mono); font-style:normal; font-size:var(--text-2xs);
+  color:var(--signal); margin-left:6px;
+}
+.aol-rma__axis-q{ font-size:var(--text-sm); color:var(--text-muted); }
+
+.aol-rma__disclosure,
+.aol-rma__crosslink{
+  margin:var(--space-8) 0 0; font-size:var(--text-xs); color:var(--text-muted);
+  max-width:var(--measure);
+}
+.aol-rma__disclosure{ display:flex; align-items:flex-start; gap:6px; }
+.aol-rma__crosslink{ margin-top:var(--space-3); }
+
+/* ---- Result card, injected after a ranking ---- */
+.aol-rma__result-slot{ background:var(--surface-warm); padding:var(--space-12) 0; }
+.aol-rma__card{
+  background:var(--paper); border:1px solid var(--border-warm);
+  border-radius:var(--radius-md); padding:var(--space-8);
+}
+.aol-rma__card-head{
+  display:grid; grid-template-columns:48px minmax(0,1fr) auto;
+  gap:0 var(--space-4); align-items:center;
+}
+.aol-rma__card-logo{ width:48px; height:48px; object-fit:contain; }
+.aol-rma__card-name{
+  font-family:var(--font-display); font-weight:var(--weight-regular);
+  font-size:var(--text-xl); margin:0; color:var(--text-strong);
+}
+.aol-rma__card-one-liner{ margin:2px 0 0; font-size:var(--text-sm); color:var(--text-muted); }
+.aol-rma__card-score{ display:flex; align-items:baseline; gap:2px; }
+.aol-rma__card-total{
+  font-family:var(--font-mono); font-size:var(--text-3xl);
+  font-variant-numeric:tabular-nums; color:var(--text-strong); line-height:1;
+}
+.aol-rma__card-out{ font-family:var(--font-mono); font-size:var(--text-sm); color:var(--text-muted); }
+.aol-rma__card-meta{
+  margin:var(--space-4) 0 0; font-family:var(--font-mono);
+  font-size:var(--text-2xs); text-transform:uppercase; letter-spacing:.04em;
+  color:var(--text-muted);
+}
+.aol-rma__card-verdict{
+  margin:var(--space-4) 0 0; font-size:var(--text-base);
+  line-height:var(--leading-normal); color:var(--text-body); max-width:var(--measure);
+}
+.aol-rma__card-split{
+  margin:var(--space-3) 0 0; font-size:var(--text-sm); color:var(--text-muted);
+  max-width:var(--measure);
+}
+.aol-rma__quotes{ list-style:none; margin:var(--space-6) 0 0; padding:0; display:grid; gap:var(--space-3); }
+.aol-rma__quote{
+  border-left:2px solid var(--border-warm); padding-left:var(--space-4);
+  display:grid; gap:2px;
+}
+.aol-rma__quote-text{ font-size:var(--text-sm); color:var(--text-body); font-style:italic; }
+.aol-rma__quote-by{ font-family:var(--font-mono); font-size:var(--text-2xs); color:var(--text-muted); }
+.aol-rma__card-link{ margin:var(--space-6) 0 0; font-size:var(--text-sm); }
+
+@media (max-width:640px){
+  .aol-rma__fields{ grid-template-columns:1fr; }
+  .aol-rma__h1{ font-size:var(--text-2xl); }
+  .aol-rma__card{ padding:var(--space-5); }
+  .aol-rma__card-head{ grid-template-columns:40px minmax(0,1fr); }
+  .aol-rma__card-score{ grid-column:2; margin-top:var(--space-2); }
+  .aol-rma__card-logo{ width:40px; height:40px; }
+}
+
+/* ---- One company's ranking (.aol-rmc) ---- */
+.aol-rmc{ background:var(--paper); padding:var(--space-12) 0 var(--space-20); }
+.aol-rmc__back{ margin:0 0 var(--space-6); font-size:var(--text-sm); }
+.aol-rmc__head{
+  display:grid; grid-template-columns:56px minmax(0,1fr) auto;
+  gap:0 var(--space-5); align-items:center; margin-bottom:var(--space-8);
+}
+.aol-rmc__logo{ width:56px; height:56px; object-fit:contain; }
+.aol-rmc__name{
+  font-family:var(--font-display); font-weight:var(--weight-regular);
+  font-size:var(--text-2xl); line-height:var(--leading-tight);
+  margin:0; color:var(--text-strong);
+}
+.aol-rmc__one-liner{ margin:4px 0 0; font-size:var(--text-base); color:var(--text-body); }
+.aol-rmc__meta{
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+  margin:var(--space-3) 0 0; font-family:var(--font-mono);
+  font-size:var(--text-2xs); text-transform:uppercase; letter-spacing:.04em;
+  color:var(--text-muted);
+}
+.aol-rmc__division{ display:inline-flex; align-items:center; gap:5px; }
+.aol-rmc__score{ display:flex; align-items:baseline; gap:4px; }
+.aol-rmc__band{ color:var(--ink-600); align-self:center; }
+.aol-rmc__total{
+  font-family:var(--font-mono); font-size:var(--text-4xl); line-height:1;
+  font-variant-numeric:tabular-nums; color:var(--text-strong);
+}
+.aol-rmc__out{ font-family:var(--font-mono); font-size:var(--text-sm); color:var(--text-muted); }
+
+.aol-rmc__h2{
+  font-family:var(--font-display); font-weight:var(--weight-regular);
+  font-size:var(--text-lg); margin:var(--space-10) 0 var(--space-3);
+  color:var(--text-strong);
+}
+.aol-rmc__verdict{
+  margin:0; font-size:var(--text-md); line-height:var(--leading-normal);
+  color:var(--text-body); max-width:var(--measure);
+}
+.aol-rmc__split{
+  display:flex; align-items:flex-start; gap:6px;
+  margin:var(--space-4) 0 0; font-size:var(--text-sm);
+  color:var(--text-muted); max-width:var(--measure);
+}
+.aol-rmc__note{ margin:0 0 var(--space-4); font-size:var(--text-sm); color:var(--text-muted); max-width:var(--measure); }
+
+.aol-rmc__axes{ list-style:none; margin:0; padding:0; display:grid; gap:var(--space-5); }
+.aol-rmc__axis{
+  display:grid;
+  grid-template-columns:24px 150px minmax(0,1fr) 64px;
+  align-items:center; gap:0 12px;
+}
+.aol-rmc__axis-icon{ color:var(--ink-700); display:block; }
+.aol-rmc__axis-name{ font-size:var(--text-sm); font-weight:var(--weight-medium); color:var(--text-strong); }
+/* Meter, not a chart: the bar is scaled to each axis's own maximum so a reader
+   compares performance against what was available rather than against 40. */
+.aol-rmc__meter{
+  display:block; height:6px; background:var(--ink-100);
+  border-radius:var(--radius-pill); overflow:hidden;
+}
+.aol-rmc__meter-fill{ display:block; height:100%; background:var(--signal); }
+.aol-rmc__axis-score{
+  font-family:var(--font-mono); font-size:var(--text-sm);
+  font-variant-numeric:tabular-nums; color:var(--text-strong); text-align:right;
+}
+.aol-rmc__axis-score em{ font-style:normal; color:var(--text-faint); font-size:var(--text-2xs); }
+.aol-rmc__axis-q{
+  grid-column:2 / -1; font-size:var(--text-xs); color:var(--text-muted); margin-top:2px;
+}
+
+.aol-rmc__jurors{ list-style:none; margin:0; padding:0; display:grid; gap:var(--space-5); }
+.aol-rmc__juror{ display:grid; grid-template-columns:24px minmax(0,1fr); gap:0 12px; align-items:start; }
+.aol-rmc__juror-mark{ color:var(--ink-400); display:block; }
+.aol-rmc__juror-body{ display:grid; gap:4px; }
+.aol-rmc__juror-quote{
+  font-size:var(--text-base); line-height:var(--leading-normal);
+  color:var(--text-body); font-style:italic;
+}
+.aol-rmc__juror-by{
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  text-transform:uppercase; letter-spacing:.04em; color:var(--text-muted);
+}
+/* An abstention is shown rather than hidden — a two-model panel presented as a
+   three-model panel would be the dishonest version of this page. */
+.aol-rmc__juror--out .aol-rmc__juror-quote{ font-style:normal; color:var(--text-faint); }
+
+@media (max-width:640px){
+  .aol-rmc__head{ grid-template-columns:44px minmax(0,1fr); }
+  .aol-rmc__logo{ width:44px; height:44px; }
+  .aol-rmc__score{ grid-column:2; margin-top:var(--space-3); }
+  .aol-rmc__name{ font-size:var(--text-xl); }
+  .aol-rmc__total{ font-size:var(--text-2xl); }
+  .aol-rmc__axis{ grid-template-columns:24px minmax(0,1fr) 56px; }
+  .aol-rmc__meter{ grid-column:1 / -1; margin-top:6px; }
+  .aol-rmc__axis-q{ grid-column:1 / -1; }
+}

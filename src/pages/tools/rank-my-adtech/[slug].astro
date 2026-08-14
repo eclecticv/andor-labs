@@ -1,0 +1,175 @@
+---
+/**
+ * One company's ranking — the page the leaderboard row links to, and the page
+ * that does the organic-search work for this tool.
+ *
+ * Generated at build time from D1 (src/lib/rankings.ts). A company whose status
+ * is `removed` is excluded from the query and therefore has no page at all,
+ * which resolves as a 404 rather than the 410 a server-rendered site could
+ * return. Fine trade: removal is rare, and 404 still de-indexes.
+ *
+ * Every string here originated on a third-party homepage and passed through a
+ * language model. Astro escapes `{expr}` interpolation, which is what keeps
+ * that safe — do not reach for set:html on this page.
+ */
+import Base from "../../../layouts/Base.astro";
+import SiteHeader from "../../../components/sections/SiteHeader.astro";
+import SiteFooter from "../../../components/sections/SiteFooter.astro";
+import SiteMotion from "../../../components/SiteMotion.astro";
+import PixelIcon from "../../../components/ds/PixelIcon.astro";
+import DitherLine from "../../../components/ds/DitherLine.astro";
+import { getEntries, getJurors, scoreBand, AXES, DIVISIONS } from "../../../lib/rankings";
+
+export async function getStaticPaths() {
+  const entries = await getEntries();
+  return entries.map((entry, index) => ({
+    params: { slug: entry.slug },
+    props: { entry, overallRank: index + 1, total: entries.length },
+  }));
+}
+
+const { entry, overallRank, total: boardSize } = Astro.props;
+const jurors = await getJurors(entry.slug);
+const band = scoreBand(entry.total);
+const division = DIVISIONS.find((d) => d.key === entry.division)!;
+const live = jurors.filter((j) => !j.abstained);
+
+const title = `${entry.name} — Rank My AdTech — And/or Labs`;
+const description = `${entry.name} scores ${entry.total}/100 on Rank My AdTech: paradigm ${entry.paradigm}, non-obviousness ${entry.non_obviousness}, vibe-code ${entry.vibe_code}, conviction ${entry.conviction}. Judged by ${live.length} models.`;
+
+const axisValue = (key: string) =>
+  ({
+    paradigm: entry.paradigm,
+    non_obviousness: entry.non_obviousness,
+    vibe_code: entry.vibe_code,
+    conviction: entry.conviction,
+  })[key] ?? 0;
+---
+
+<Base title={title} description={description}>
+  <SiteHeader />
+  <main>
+    <section class="aol-rmc">
+      <div class="aol-rma__inner">
+        <p class="aol-rmc__back"><a href="/tools/rank-my-adtech">← The board</a></p>
+
+        <header class="aol-rmc__head">
+          {
+            entry.logo_url ? (
+              <img class="aol-rmc__logo" src={entry.logo_url} alt="" width="56" height="56" />
+            ) : null
+          }
+          <div class="aol-rmc__id">
+            <h1 class="aol-rmc__name">{entry.name}</h1>
+            {entry.one_liner ? <p class="aol-rmc__one-liner">{entry.one_liner}</p> : null}
+            <p class="aol-rmc__meta">
+              <span class="aol-rmc__division">
+                <PixelIcon name={division.icon as any} size={12} /> {division.label}
+              </span>
+              <span>·</span>
+              <span>#{overallRank} of {boardSize} overall</span>
+              {entry.founded_year ? (<><span>·</span><span>founded {entry.founded_year}</span></>) : null}
+              {
+                entry.provisional ? (
+                  <span class="aol-rb__provisional">
+                    <PixelIcon name="question-circle" size={12} /> provisional
+                  </span>
+                ) : null
+              }
+            </p>
+          </div>
+          <div class="aol-rmc__score">
+            <span class:list={["aol-rmc__band", band.solid && "aol-rb__band--solid"]}>
+              <PixelIcon name={band.icon as any} size={36} />
+            </span>
+            <span class="aol-rmc__total">{entry.total}</span>
+            <span class="aol-rmc__out">/100</span>
+          </div>
+        </header>
+
+        <DitherLine />
+
+        {/* ── The verdict ─────────────────────────────────────────────── */}
+        <h2 class="aol-rmc__h2">The verdict.</h2>
+        <p class="aol-rmc__verdict">{entry.verdict}</p>
+        {entry.split_note ? (
+          <p class="aol-rmc__split">
+            <PixelIcon name="vote-yeah" size={12} /> {entry.split_note}
+          </p>
+        ) : null}
+
+        {/* ── The axes ────────────────────────────────────────────────── */}
+        <h2 class="aol-rmc__h2">The scoring.</h2>
+        <ul class="aol-rmc__axes">
+          {
+            AXES.map((axis) => {
+              const value = axisValue(axis.key);
+              return (
+                <li class="aol-rmc__axis">
+                  <span class="aol-rmc__axis-icon"><PixelIcon name={axis.icon as any} size={24} /></span>
+                  <span class="aol-rmc__axis-name">{axis.label}</span>
+                  <span class="aol-rmc__meter" role="img"
+                    aria-label={`${value} out of ${axis.max}`}>
+                    <span class="aol-rmc__meter-fill" style={`width:${(value / axis.max) * 100}%`} />
+                  </span>
+                  <span class="aol-rmc__axis-score">{value}<em>/{axis.max}</em></span>
+                  <span class="aol-rmc__axis-q">{axis.question}</span>
+                </li>
+              );
+            })
+          }
+        </ul>
+
+        {/* ── The panel ───────────────────────────────────────────────── */}
+        <h2 class="aol-rmc__h2">The panel.</h2>
+        <p class="aol-rmc__note">
+          {live.length === jurors.length
+            ? `All ${jurors.length} judged independently, then a fourth model read their takes and wrote the verdict above.`
+            : `${live.length} of ${jurors.length} judged. The rest were unreachable and abstained — their score is not counted.`}
+        </p>
+        <ul class="aol-rmc__jurors">
+          {
+            jurors.map((juror) => (
+              <li class:list={["aol-rmc__juror", juror.abstained && "aol-rmc__juror--out"]}>
+                <span class="aol-rmc__juror-mark">
+                  <PixelIcon name={juror.abstained ? "question-circle" : "quote-left"} size={24} />
+                </span>
+                <span class="aol-rmc__juror-body">
+                  {juror.abstained ? (
+                    <span class="aol-rmc__juror-quote">Abstained — provider unreachable.</span>
+                  ) : (
+                    <span class="aol-rmc__juror-quote">{juror.quote}</span>
+                  )}
+                  <span class="aol-rmc__juror-by">
+                    {juror.model_id} · as the {juror.lens}
+                  </span>
+                </span>
+              </li>
+            ))
+          }
+        </ul>
+
+        {entry.platform_note ? (
+          <>
+            <h2 class="aol-rmc__h2">Not scored, but noted.</h2>
+            <p class="aol-rmc__note">{entry.platform_note}</p>
+          </>
+        ) : null}
+
+        <DitherLine />
+        <p class="aol-rma__disclosure">
+          <PixelIcon name="question-circle" size={12} /> Generated by language models reading
+          a public homepage. An opinion, meant to be funny, and not research. Want this page
+          gone? Email
+          <a href={`mailto:hello@andorlabs.ca?subject=Rank%20My%20AdTech%20removal%3A%20${entry.name}`}>hello@andorlabs.ca</a>
+          and it goes.
+        </p>
+        <p class="aol-rma__crosslink">
+          <a href="/tools/rank-my-adtech">Rank another company →</a>
+        </p>
+      </div>
+    </section>
+  </main>
+  <SiteFooter />
+  <SiteMotion />
+</Base>

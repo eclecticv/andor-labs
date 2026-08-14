@@ -14,7 +14,13 @@ interface Props {
     | "pencil-ruler" | "analytics" | "newspaper" | "trending" | "robot"
     | "seedlings" | "refresh" | "users-crown" | "handshake" | "bolt"
     | "reddit" | "anthropic" | "open-ai"
-    | "flag-checkered" | "play-solid";
+    | "flag-checkered" | "play-solid"
+    // Rank My AdTech. Solid weight is reserved for the three celebratory marks
+    // so a leaderboard row has one loud note rather than a wall of blue.
+    | "crown-solid" | "trophy-solid" | "fire-solid"
+    | "star" | "face-thinking" | "hockey-mask"
+    | "shapes" | "lightbulb" | "laptop-code" | "flag"
+    | "quote-left" | "vote-yeah" | "bank" | "question-circle";
   size?: number;
   class?: string;
   [key: string]: any;
@@ -40,6 +46,36 @@ const PATHS: Record<string, string> = {
   "open-ai": `<path d="M22,8V7H21V6H19V4H18V3H17V2H16V1H11V2H10V3H9V2H6V3H4V4H3V6H2v5H1v5H2v1H3v1H5v2H6v1H7v1H8v1h5V22h1V21h1v1h3V21h2V20h1V18h1V13h1V8ZM9,6h1V4h1V3h5V4h1V5H12V6H11V7H10V9H9v2H8V8H9ZM5,17V16H4V15H3V11H4v2H5v2h8v1H12v1Zm10,1H14v2H13v1H8V20H7V19h5V18h1V17h1V15h1V13h1v3H15Zm5,0H19v1H18v1H16V18h1V16h1V14H17V12H16V11H15v1H14v2H10V13H9v1H7V13H6V12H5V10H4V6H5V5H6V4H8V6H7V8H6v2H7v2H8v1H9V12h1V10h4v1h1V10h2v1h1v1h1v2h1Zm1-5H20V11H19V9H11V8h1V7h7V8h1V9h1Z"/>`,
   "flag-checkered": `<path d="m21,4v1h-2v1h-6v-1h-7v1h-1v-1h1v-2h-1v-1h-2v1h-1v2h1v17h2v-4h1v-1h7v1h6v-1h2v-1h1V4h-1Zm-9,11h-6v1h-1v-3h1v-1h6v3Zm0-5h-6v1h-1v-3h1v-1h6v3Zm8,5h-1v1h-5v-3h5v-1h1v3Zm0-5h-1v1h-5v-3h5v-1h1v3Z"/>`,
   "play-solid": `<polygon points="22 11 22 13 21 13 21 14 20 14 20 15 18 15 18 16 16 16 16 17 15 17 15 18 13 18 13 19 11 19 11 20 10 20 10 21 8 21 8 22 6 22 6 23 3 23 3 22 2 22 2 2 3 2 3 1 6 1 6 2 8 2 8 3 10 3 10 4 11 4 11 5 13 5 13 6 15 6 15 7 16 7 16 8 18 8 18 9 20 9 20 10 21 10 21 11 22 11"/>`,
+
+  // ── Rank My AdTech ────────────────────────────────────────────────────────
+  // Rank markers. Solid, so they take the blue and read as celebration: the
+  // crown goes to whoever leads a division, the trophy to the best score on the
+  // board, and fire to anything above 85.
+  "crown-solid": `<polygon points="23 7 23 9 22 9 22 10 21 10 21 14 20 14 20 17 19 17 19 19 18 19 18 21 6 21 6 19 5 19 5 17 4 17 4 14 3 14 3 10 2 10 2 9 1 9 1 7 2 7 2 6 4 6 4 7 5 7 5 9 4 9 4 10 5 10 5 11 6 11 6 12 8 12 8 11 9 11 9 9 10 9 10 7 11 7 11 6 10 6 10 4 11 4 11 3 13 3 13 4 14 4 14 6 13 6 13 7 14 7 14 9 15 9 15 11 16 11 16 12 18 12 18 11 19 11 19 10 20 10 20 9 19 9 19 7 20 7 20 6 22 6 22 7 23 7"/>`,
+  "trophy-solid": `<path d="m18,4v-2H6v2H1v5h1v2h1v1h1v1h1v1h1v1h3v1h2v3h-4v3h10v-3h-4v-3h2v-1h3v-1h1v-1h1v-1h1v-1h1v-2h1v-5h-5ZM5,12v-1h-1v-2h-1v-3h2v1h1v2h1v3h1v1h-2v-1h-1Zm16-3h-1v2h-1v1h-1v1h-2v-1h1v-2h1v-3h1v-1h2v3Z"/>`,
+  "fire-solid": `<path d="m19,13v-3h-1v-1h-1v-3h-1v-2h-1v-1h-1v-1h-1v-1h-2v1h1v2h-1v2h-1v1h-1v1h-1v1h-1v1h-1v3h1v2h-1v-1h-1v-2h-1v2h-1v3h1v2h1v1h1v1h1v1h1v1h8v-1h1v-1h1v-1h1v-2h1v-5h-1Zm-2,7h-1v1h-2v1h-4v-1h-1v-4h1v-1h1v-1h1v-1h1v-3h-1v-1h-1v-1h1v1h2v2h1v5h-1v2h1v-1h1v-1h1v3Z"/>`,
+
+  // Score bands below fire. `hockey-mask` carries the sub-40 verdict: it does
+  // the work a skull would without being unkind about it, which is the whole
+  // tonal brief for a low score.
+  star: `<path d="m16,8v-2h-1v-2h-1v-2h-1v-1h-2v1h-1v2h-1v2h-1v2H1v2h1v1h1v1h1v1h1v1h1v5h-1v4h2v-1h2v-1h2v-1h2v1h2v1h2v1h2v-4h-1v-5h1v-1h1v-1h1v-1h1v-1h1v-2h-7Zm4,3h-1v1h-1v1h-1v1h-1v5h1v1h-2v-1h-2v-1h-2v1h-2v1h-2v-1h1v-5h-1v-1h-1v-1h-1v-1h-1v-1h4v-1h1v-1h1v-2h1v-2h2v2h1v2h1v1h1v1h4v1Z"/>`,
+  "face-thinking": `<polygon points="12 7 13 7 13 8 11 8 11 7 10 7 10 6 8 6 8 7 6 7 6 6 7 6 7 5 11 5 11 6 12 6 12 7"/><polygon points="13 13 13 14 10 14 10 13 8 13 8 12 11 12 11 13 13 13"/><rect x="8" y="8" width="2" height="2"/><rect x="14" y="9" width="2" height="2"/><polygon points="19 8 19 10 18 10 18 9 17 9 17 8 15 8 15 7 18 7 18 8 19 8"/><polygon points="14 15 14 17 13 17 13 18 11 18 11 20 10 20 10 22 9 22 9 23 5 23 5 22 4 22 4 16 5 16 5 15 6 15 6 18 8 18 8 17 10 17 10 16 12 16 12 15 14 15"/><polygon points="23 9 23 15 22 15 22 17 21 17 21 19 20 19 20 20 19 20 19 21 17 21 17 22 15 22 15 23 11 23 11 21 15 21 15 20 17 20 17 19 18 19 18 18 19 18 19 17 20 17 20 15 21 15 21 9 20 9 20 7 19 7 19 6 18 6 18 5 17 5 17 4 15 4 15 3 9 3 9 4 7 4 7 5 6 5 6 6 5 6 5 7 4 7 4 9 3 9 3 14 4 14 4 15 3 15 3 16 2 16 2 15 1 15 1 9 2 9 2 7 3 7 3 5 4 5 4 4 5 4 5 3 7 3 7 2 9 2 9 1 15 1 15 2 17 2 17 3 19 3 19 4 20 4 20 5 21 5 21 7 22 7 22 9 23 9"/>`,
+  // Source ships a full-bleed transparent <rect> as a background layer; dropped
+  // here because it would swallow clicks and means nothing at 24px.
+  "hockey-mask": `<rect x="18" y="9" width="1" height="2"/><rect x="17" y="11" width="1" height="1"/><rect x="15" y="12" width="2" height="1"/><rect x="14" y="11" width="1" height="1"/><rect x="14" y="8" width="4" height="1"/><rect x="13" y="4" width="2" height="2"/><rect x="13" y="19" width="1" height="1"/><rect x="13" y="16" width="1" height="1"/><rect x="13" y="13" width="1" height="1"/><rect x="13" y="9" width="1" height="2"/><rect x="11" y="6" width="2" height="2"/><rect x="10" y="19" width="1" height="1"/><rect x="10" y="16" width="1" height="1"/><rect x="10" y="13" width="1" height="1"/><rect x="10" y="9" width="1" height="2"/><rect x="9" y="11" width="1" height="1"/><rect x="9" y="4" width="2" height="2"/><rect x="7" y="12" width="2" height="1"/><rect x="6" y="11" width="1" height="1"/><path d="m20,6v-1h-1v-1h-1v-1h-1v-1h-2v-1h-6v1h-2v1h-1v1h-1v1h-1v1h-1v12h1v1h1v1h1v1h1v1h2v1h6v-1h2v-1h1v-1h1v-1h1v-1h1V6h-1Zm0,10h-1v2h-1v1h-1v1h-1v1h-2v1h-4v-1h-2v-1h-1v-1h-1v-1h-1v-2h-1v-8h1v-2h1v-1h1v-1h1v-1h2v-1h4v1h2v1h1v1h1v1h1v2h1v8Z"/><rect x="6" y="8" width="4" height="1"/><rect x="5" y="9" width="1" height="2"/>`,
+
+  // The four axes, in scoring order.
+  shapes: `<path d="M16,8V6H15V4H14V2H13V1H11V2H10V4H9V6H8V8H7v2H17V8ZM9,9V7h1V5h1V3h2V5h1V7h1V9Z"/><path d="M22,13V12H14v1H13v8h1v1h8V21h1V13Zm0,7H21v1H15V20H14V14h1V13h6v1h1Z"/><path d="M10,15V13H8V12H4v1H2v2H1v4H2v2H4v1H8V21h2V19h1V15Zm0,3H9v2H7v1H5V20H3V18H2V16H3V14H5V13H7v1H9v2h1Z"/>`,
+  lightbulb: `<polygon points="14 21 14 22 13 22 13 23 11 23 11 22 10 22 10 21 14 21"/><rect x="11" y="4" width="2" height="1"/><rect x="10" y="5" width="1" height="1"/><path d="m19,7v-2h-1v-1h-1v-1h-1v-1h-2v-1h-4v1h-2v1h-1v1h-1v1h-1v2h-1v4h1v2h1v1h1v1h1v1h1v4h6v-4h1v-1h1v-1h1v-1h1v-2h1v-4h-1Zm-1,4h-1v2h-1v1h-1v1h-1v1h-4v-1h-1v-1h-1v-1h-1v-2h-1v-4h1v-2h1v-1h2v-1h4v1h2v1h1v2h1v4Z"/><rect x="9" y="6" width="1" height="1"/><rect x="8" y="7" width="1" height="2"/>`,
+  "laptop-code": `<polygon points="3 14 3 5 4 5 4 4 20 4 20 5 21 5 21 14 19 14 19 6 5 6 5 14 3 14"/><polygon points="10 11 11 11 11 13 10 13 10 12 9 12 9 11 8 11 8 9 9 9 9 8 10 8 10 7 11 7 11 9 10 9 10 11"/><polygon points="14 9 13 9 13 7 14 7 14 8 15 8 15 9 16 9 16 11 15 11 15 12 14 12 14 13 13 13 13 11 14 11 14 9"/><path d="M1,15v3H2v1H3v1H21V19h1V18h1V15Zm2,3V17H21v1Z"/>`,
+  flag: `<path d="m21,4v1h-2v1h-6v-1h-7v1h-1v-1h1v-2h-1v-1h-2v1h-1v2h1v17h2v-4h1v-1h7v1h6v-1h2v-1h1V4h-1Zm-1,11h-1v1h-6v-1h-7v1h-1v-8h1v-1h7v1h6v-1h1v8Z"/>`,
+
+  // Panel furniture: the pull-quote mark, the split-decision mark, and the
+  // heavyweight division.
+  "quote-left": `<path d="m22,13v-1h-5v-4h1v-1h2v-1h1v-3h-1v-1h-2v1h-2v1h-1v1h-1v2h-1v14h1v1h8v-1h1v-8h-1Zm-7,0h1v1h5v6h-6v-7Z"/><path d="m10,13v-1h-5v-4h1v-1h2v-1h1v-3h-1v-1h-2v1h-2v1h-1v1h-1v2h-1v14h1v1h8v-1h1v-8h-1Zm-7,0h1v1h5v6H3v-7Z"/>`,
+  "vote-yeah": `<polygon points="16 8 16 9 15 9 15 10 14 10 14 11 13 11 13 12 12 12 12 13 10 13 10 12 9 12 9 11 8 11 8 10 9 10 9 9 10 9 10 10 12 10 12 9 13 9 13 8 14 8 14 7 15 7 15 8 16 8"/><path d="m18,5v-1H6v1h-1v12h14V5h-1Zm-1,10H7V6h10v9Z"/><polygon points="23 15 23 19 22 19 22 20 2 20 2 19 1 19 1 15 2 15 2 14 4 14 4 16 3 16 3 18 21 18 21 16 20 16 20 14 22 14 22 15 23 15"/>`,
+  bank: `<polygon points="14 4 14 6 13 6 13 7 11 7 11 6 10 6 10 4 11 4 11 3 13 3 13 4 14 4"/><path d="m21,20v-1h-1v-9h-2v9h-2v-9h-2v9h-4v-9h-2v9h-2v-9h-2v9h-1v1H1v2h1v1h20v-1h1v-2h-2Zm0,2H3v-1h1v-1h16v1h1v1Z"/><polygon points="22 7 22 8 21 8 21 9 3 9 3 8 2 8 2 7 4 7 4 8 20 8 20 7 22 7"/><polygon points="23 5 23 7 22 7 22 6 19 6 19 5 17 5 17 4 15 4 15 3 13 3 13 2 11 2 11 3 9 3 9 4 7 4 7 5 5 5 5 6 2 6 2 7 1 7 1 5 4 5 4 4 6 4 6 3 8 3 8 2 10 2 10 1 14 1 14 2 16 2 16 3 18 3 18 4 20 4 20 5 23 5"/>`,
+  "question-circle": `<rect x="11" y="17" width="2" height="2"/><polygon points="16 7 16 11 15 11 15 12 14 12 14 13 13 13 13 15 11 15 11 12 12 12 12 11 13 11 13 10 14 10 14 8 13 8 13 7 11 7 11 8 10 8 10 9 8 9 8 7 9 7 9 6 10 6 10 5 14 5 14 6 15 6 15 7 16 7"/><path d="M22,9V7H21V5H20V4H19V3H17V2H15V1H9V2H7V3H5V4H4V5H3V7H2V9H1v6H2v2H3v2H4v1H5v1H7v1H9v1h6V22h2V21h2V20h1V19h1V17h1V15h1V9Zm-2,6v2H19v1H18v1H17v1H15v1H9V20H7V19H6V18H5V17H4V15H3V9H4V7H5V6H6V5H7V4H9V3h6V4h2V5h1V6h1V7h1V9h1v6Z"/>`,
 };
 ---
 <svg

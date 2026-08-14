@@ -1,0 +1,294 @@
+---
+/**
+ * Rank My AdTech — a free tool and a public leaderboard at the same address.
+ *
+ * The reader submits a work email and a company domain. A cheap model decides
+ * whether it is adtech; if so, three models from three independent providers
+ * score it on four axes, a fourth writes the verdict, and the row is published.
+ *
+ * The page is static and the board is read from D1 AT BUILD TIME (see
+ * src/lib/rankings.ts). Freshness comes from rebuilding: the Function fires a
+ * Pages deploy hook after it writes. The submitter sees their own verdict
+ * immediately from the API response; their public row lands on the next build.
+ *
+ * Results are rendered by cloning the <template> below and filling it with
+ * textContent — NEVER innerHTML. Every string in a ranking is derived from an
+ * arbitrary third-party homepage by way of a language model, which makes it
+ * untrusted data no matter how friendly it reads. Same rule as Scout.
+ */
+import Base from "../../layouts/Base.astro";
+import SiteHeader from "../../components/sections/SiteHeader.astro";
+import SiteFooter from "../../components/sections/SiteFooter.astro";
+import SiteMotion from "../../components/SiteMotion.astro";
+import Button from "../../components/ds/Button.astro";
+import Input from "../../components/ds/Input.astro";
+import PixelIcon from "../../components/ds/PixelIcon.astro";
+import DitherLine from "../../components/ds/DitherLine.astro";
+import RankBoard from "../../components/ds/RankBoard.astro";
+import { getBoard, getEntries, AXES } from "../../lib/rankings";
+
+const board = await getBoard();
+const all = await getEntries();
+const champion = all[0]?.slug ?? null;
+const ranked = all.length;
+
+const title = "Rank My AdTech — And/or Labs";
+const description =
+  "Three models from three different labs read your homepage and score your company on innovation: paradigm, non-obviousness, the vibe-code test, and conviction. Winners get a crown. Everyone gets a verdict.";
+---
+
+<Base title={title} description={description}>
+  <SiteHeader />
+  <main>
+    {/* ── Hero ───────────────────────────────────────────────────────────── */}
+    <section class="aol-rma__hero">
+      <div class="aol-rma__inner">
+        <p class="aol-rma__eyebrow">
+          <PixelIcon name="vote-yeah" size={12} /> Free tool · {ranked} companies ranked
+        </p>
+        <h1 class="aol-rma__h1">Rank My AdTech.</h1>
+        <p class="aol-rma__lede">
+          Three models from three different labs read your homepage and argue about whether
+          you are actually innovative. A fourth writes the verdict. Everything is published.
+          Winners get a crown, and everyone gets an opinion they did not ask for.
+        </p>
+
+        {/* ── Form ─────────────────────────────────────────────────────── */}
+        <form class="aol-rma__form" id="rank-form" novalidate>
+          <div class="aol-rma__fields">
+            <label class="aol-rma__field">
+              <span class="aol-rma__label">Work email</span>
+              <Input type="email" name="email" id="rank-email" placeholder="you@company.com"
+                autocomplete="email" required />
+            </label>
+            <label class="aol-rma__field">
+              <span class="aol-rma__label">Company to rank</span>
+              <Input type="text" name="domain" id="rank-domain" placeholder="company.com"
+                autocomplete="off" required />
+            </label>
+          </div>
+          <Button type="submit" variant="primary" size="lg" id="rank-submit" arrow>
+            Rank it
+          </Button>
+          <p class="aol-rma__notice">
+            Any adtech company can be submitted, and every ranking is published to the board
+            below. We will email you occasionally; unsubscribing takes one click.
+          </p>
+        </form>
+
+        <p class="aol-rma__status" id="rank-status" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    {/* ── Result, injected client-side ───────────────────────────────────── */}
+    <section class="aol-rma__result-slot" id="rank-result" hidden></section>
+
+    {/* ── How it scores ──────────────────────────────────────────────────── */}
+    <section class="aol-rma__axes">
+      <div class="aol-rma__inner">
+        <DitherLine />
+        <h2 class="aol-rma__h2">What the panel argues about.</h2>
+        <p class="aol-rma__note">
+          Four axes, a hundred points, and sixty-five of them are innovation. Every axis is
+          one a three-person team and a public company can both max out, and neither gets
+          for free — which is why a big company cannot win here just by being big.
+        </p>
+        <ol class="aol-rma__axis-list">
+          {
+            AXES.map((axis) => (
+              <li class="aol-rma__axis">
+                <span class="aol-rma__axis-icon">
+                  <PixelIcon name={axis.icon as any} size={24} />
+                </span>
+                <span class="aol-rma__axis-body">
+                  <span class="aol-rma__axis-name">
+                    {axis.label} <em>{axis.max}</em>
+                  </span>
+                  <span class="aol-rma__axis-q">{axis.question}</span>
+                </span>
+              </li>
+            ))
+          }
+        </ol>
+      </div>
+    </section>
+
+    {/* ── The board ──────────────────────────────────────────────────────── */}
+    <section class="aol-rma__board">
+      <div class="aol-rma__inner">
+        <DitherLine />
+        <h2 class="aol-rma__h2">The board.</h2>
+        <p class="aol-rma__note">
+          Companies rank inside their own weight class. Scoring a seed company against a
+          public one on a single table would decide the winner before anyone read anything.
+        </p>
+        <RankBoard board={board} championSlug={champion} />
+
+        <p class="aol-rma__disclosure">
+          <PixelIcon name="question-circle" size={12} /> Every score and every quote on this
+          board is generated by language models reading a public homepage. It is an opinion,
+          it is meant to be funny, and it is not research. Want a row removed? Email
+          <a href="mailto:hello@andorlabs.ca?subject=Rank%20My%20AdTech%20removal">hello@andorlabs.ca</a>
+          and it goes.
+        </p>
+        <p class="aol-rma__crosslink">
+          Looking for the other one? The <a href="/leaderboard">Organic Discovery Leaderboard</a>
+          ranks established adtech vendors on search and AI-citation visibility.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  {/* Result template — cloned and filled with textContent, never innerHTML. */}
+  <template id="rank-result-tpl">
+    <div class="aol-rma__inner">
+      <article class="aol-rma__card">
+        <header class="aol-rma__card-head">
+          <img class="aol-rma__card-logo" alt="" width="48" height="48" data-logo hidden />
+          <div>
+            <h2 class="aol-rma__card-name" data-name></h2>
+            <p class="aol-rma__card-one-liner" data-one-liner></p>
+          </div>
+          <div class="aol-rma__card-score">
+            <span class="aol-rma__card-total" data-total></span>
+            <span class="aol-rma__card-out">/100</span>
+          </div>
+        </header>
+        <p class="aol-rma__card-meta"><span data-division></span> <span data-provisional></span></p>
+        <p class="aol-rma__card-verdict" data-verdict></p>
+        <p class="aol-rma__card-split" data-split hidden></p>
+        <ul class="aol-rma__quotes" data-quotes></ul>
+        <p class="aol-rma__card-link">
+          <a data-permalink href="#">See the full panel →</a>
+        </p>
+      </article>
+    </div>
+  </template>
+
+  <template id="rank-quote-tpl">
+    <li class="aol-rma__quote">
+      <span class="aol-rma__quote-mark"></span>
+      <span class="aol-rma__quote-text" data-quote></span>
+      <span class="aol-rma__quote-by" data-by></span>
+    </li>
+  </template>
+
+  <SiteFooter />
+  <SiteMotion />
+</Base>
+
+<script>
+  const form = document.getElementById("rank-form") as HTMLFormElement | null;
+  const statusEl = document.getElementById("rank-status");
+  const resultEl = document.getElementById("rank-result");
+  const submit = document.getElementById("rank-submit") as HTMLButtonElement | null;
+  const cardTpl = document.getElementById("rank-result-tpl") as HTMLTemplateElement | null;
+  const quoteTpl = document.getElementById("rank-quote-tpl") as HTMLTemplateElement | null;
+
+  if (form && statusEl && resultEl && cardTpl && quoteTpl) {
+    const say = (msg: string) => {
+      statusEl.textContent = msg;
+    };
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = (document.getElementById("rank-email") as HTMLInputElement).value.trim();
+      const domain = (document.getElementById("rank-domain") as HTMLInputElement).value.trim();
+      if (!email || !domain) {
+        say("Both fields, please.");
+        return;
+      }
+
+      if (submit) submit.disabled = true;
+      resultEl.hidden = true;
+      say("Convening the panel. This takes about twenty seconds.");
+
+      try {
+        const res = await fetch("/api/rank-my-adtech", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ email, domain }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          say(data?.error ?? "That did not work. Try again shortly.");
+          return;
+        }
+
+        if (data.status === "not-adtech") {
+          say(data.verdict);
+          return;
+        }
+
+        if (data.status === "already-ranked") {
+          say("Already ranked — taking you to the verdict.");
+          window.location.href = `/tools/rank-my-adtech/${data.slug}`;
+          return;
+        }
+
+        say("");
+        render(data);
+      } catch {
+        say("The panel is unreachable. Try again shortly.");
+      } finally {
+        if (submit) submit.disabled = false;
+      }
+    });
+
+    /**
+     * Fill the template with textContent only.
+     *
+     * Every field here originated on somebody else's homepage and passed through
+     * a language model. Treating it as markup would be handing an arbitrary
+     * third party a script tag on andorlabs.ca.
+     */
+    function render(d: any) {
+      const node = cardTpl!.content.cloneNode(true) as DocumentFragment;
+      const set = (sel: string, value: string) => {
+        const el = node.querySelector(`[data-${sel}]`);
+        if (el) el.textContent = value ?? "";
+      };
+
+      set("name", d.name);
+      set("one-liner", d.oneLiner);
+      set("total", String(d.total));
+      set("division", d.division);
+      set("provisional", d.provisional ? "· provisional evidence" : "");
+      set("verdict", d.verdict);
+
+      const split = node.querySelector("[data-split]") as HTMLElement | null;
+      if (split && d.splitNote) {
+        split.textContent = d.splitNote;
+        split.hidden = false;
+      }
+
+      const logo = node.querySelector("[data-logo]") as HTMLImageElement | null;
+      if (logo && d.logo) {
+        logo.src = d.logo;
+        logo.hidden = false;
+      }
+
+      const permalink = node.querySelector("[data-permalink]") as HTMLAnchorElement | null;
+      if (permalink) permalink.href = `/tools/rank-my-adtech/${d.slug}`;
+
+      const quotes = node.querySelector("[data-quotes]");
+      if (quotes) {
+        for (const juror of d.panel ?? []) {
+          if (juror.abstained || !juror.quote) continue;
+          const q = quoteTpl!.content.cloneNode(true) as DocumentFragment;
+          const text = q.querySelector("[data-quote]");
+          const by = q.querySelector("[data-by]");
+          if (text) text.textContent = juror.quote;
+          if (by) by.textContent = `— ${juror.modelId}, as the ${juror.lens}`;
+          quotes.appendChild(q);
+        }
+      }
+
+      resultEl!.textContent = "";
+      resultEl!.appendChild(node);
+      resultEl!.hidden = false;
+      resultEl!.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+</script>

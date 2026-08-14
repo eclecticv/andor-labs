@@ -1,0 +1,112 @@
+---
+// RankBoard — the Rank My AdTech leaderboard, one ranked table per weight class.
+//
+// Deliberately NOT built on ds/Leaderboard.astro. That component is a
+// table-of-contents idiom — name, dotted leader, score — sized for the Organic
+// Discovery board. A row here carries a logo, a one-liner, a band icon and a
+// link to the company's own page, which is a different object wearing the same
+// word. Bending one into the other would have cost both.
+//
+// Rank markers follow the design-system weight rule: solid renders blue, so the
+// crown on a division leader is the one loud note in a row and everything else
+// stays ink. Styles live in src/styles/components.css (.aol-rb__*).
+import PixelIcon from "./PixelIcon.astro";
+import { DIVISIONS, scoreBand, type Division, type Entry } from "../../lib/rankings";
+
+interface Props {
+  board: Record<Division, Entry[]>;
+  /** Highest score across every division — earns the trophy, not just a crown. */
+  championSlug?: string | null;
+}
+const { board, championSlug = null } = Astro.props;
+---
+
+<div class="aol-rb">
+  {
+    DIVISIONS.map((division) => {
+      const entries = board[division.key] ?? [];
+      return (
+        <section class="aol-rb__division" id={`division-${division.key}`}>
+          <header class="aol-rb__head">
+            <span class="aol-rb__head-icon">
+              <PixelIcon name={division.icon as any} size={24} />
+            </span>
+            <h3 class="aol-rb__title">{division.label}</h3>
+            <span class="aol-rb__count">
+              {entries.length} {entries.length === 1 ? "ranked" : "ranked"}
+            </span>
+            <p class="aol-rb__blurb">{division.blurb}</p>
+          </header>
+
+          {entries.length === 0 ? (
+            <p class="aol-rb__empty">
+              Nobody yet. The first company ranked in this division takes the crown by
+              walking in.
+            </p>
+          ) : (
+            <ol class="aol-rb__list">
+              {entries.map((entry, i) => {
+                const band = scoreBand(entry.total);
+                const isLeader = i === 0;
+                const isChampion = entry.slug === championSlug;
+                return (
+                  <li class="aol-rb__row">
+                    <a class="aol-rb__link" href={`/tools/rank-my-adtech/${entry.slug}`}>
+                      <span class="aol-rb__rank">{i + 1}</span>
+
+                      <span class="aol-rb__mark">
+                        {isChampion ? (
+                          <PixelIcon name="trophy-solid" size={24} class="aol-rb__trophy" />
+                        ) : isLeader ? (
+                          <PixelIcon name="crown-solid" size={24} class="aol-rb__crown" />
+                        ) : null}
+                      </span>
+
+                      {entry.logo_url ? (
+                        <img
+                          class="aol-rb__logo"
+                          src={entry.logo_url}
+                          alt=""
+                          width="28"
+                          height="28"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : (
+                        <span class="aol-rb__logo aol-rb__logo--blank" aria-hidden="true" />
+                      )}
+
+                      <span class="aol-rb__body">
+                        <span class="aol-rb__name">
+                          {entry.name}
+                          {entry.provisional ? (
+                            <span class="aol-rb__provisional" title="Too little on the site to judge properly">
+                              <PixelIcon name="question-circle" size={12} />
+                              provisional
+                            </span>
+                          ) : null}
+                        </span>
+                        {entry.one_liner ? (
+                          <span class="aol-rb__one-liner">{entry.one_liner}</span>
+                        ) : null}
+                      </span>
+
+                      <span
+                        class:list={["aol-rb__band", band.solid && "aol-rb__band--solid"]}
+                        title={band.label}
+                      >
+                        <PixelIcon name={band.icon as any} size={24} />
+                      </span>
+
+                      <span class="aol-rb__score">{entry.total}</span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </section>
+      );
+    })
+  }
+</div>
