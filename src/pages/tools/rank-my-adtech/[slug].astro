@@ -110,7 +110,10 @@ const axisValue = (key: string) =>
                   <span class="aol-rmc__axis-name">{axis.label}</span>
                   <span class="aol-rmc__meter" role="img"
                     aria-label={`${value} out of ${axis.max}`}>
-                    <span class="aol-rmc__meter-fill" style={`width:${(value / axis.max) * 100}%`} />
+                    <span
+                      class="aol-rmc__meter-fill"
+                      style={`width:${((value / axis.max) * 100).toFixed(1)}%`}
+                    />
                   </span>
                   <span class="aol-rmc__axis-score">{value}<em>/{axis.max}</em></span>
                   <span class="aol-rmc__axis-q">{axis.question}</span>

@@ -414,7 +414,7 @@ async function callOpenAICompatible(
 // ── Normalising ─────────────────────────────────────────────────────────────
 
 /** Models wrap JSON in prose and fences often enough that this is not optional. */
-function extractJson(text: string): unknown {
+export function extractJson(text: string): unknown {
   const fenced = /```(?:json)?\s*([\s\S]*?)```/i.exec(text);
   const candidate = (fenced?.[1] ?? text).trim();
   try {
@@ -427,19 +427,19 @@ function extractJson(text: string): unknown {
   }
 }
 
-const clampInt = (value: unknown, max: number): number => {
+export const clampInt = (value: unknown, max: number): number => {
   const n = typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
   if (!Number.isFinite(n)) return 0;
   return Math.max(0, Math.min(max, Math.round(n)));
 };
 
-const clampText = (value: unknown, max: number, fallback = ""): string => {
+export const clampText = (value: unknown, max: number, fallback = ""): string => {
   const s = typeof value === "string" ? value.trim() : "";
   if (!s) return fallback;
   return s.length <= max ? s : `${s.slice(0, max - 1).trimEnd()}…`;
 };
 
-function slugify(value: string): string {
+export function slugify(value: string): string {
   return value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -447,7 +447,7 @@ function slugify(value: string): string {
     .slice(0, 60);
 }
 
-function normalizeGate(raw: unknown): Gate {
+export function normalizeGate(raw: unknown): Gate {
   const o = (raw ?? {}) as Record<string, unknown>;
   const division = String(o.division ?? "").toLowerCase() as Division;
   const year = Number.parseInt(String(o.foundedYear ?? ""), 10);
@@ -469,7 +469,7 @@ function normalizeGate(raw: unknown): Gate {
   };
 }
 
-function normalizeTake(raw: unknown, provider: string, modelId: string, lens: Lens): JurorTake {
+export function normalizeTake(raw: unknown, provider: string, modelId: string, lens: Lens): JurorTake {
   const o = (raw ?? {}) as Record<string, unknown>;
   return {
     provider,
@@ -491,7 +491,7 @@ function normalizeTake(raw: unknown, provider: string, modelId: string, lens: Le
  * and a total will return prose arguing for 80 next to a total of 40, and the
  * number is the part a leaderboard sorts on.
  */
-function averageScores(takes: JurorTake[]): JurorScores {
+export function averageScores(takes: JurorTake[]): JurorScores {
   const live = takes.filter((t) => !t.abstained);
   const mean = (pick: (t: JurorTake) => number, max: number) =>
     live.length ? Math.max(0, Math.min(max, Math.round(live.reduce((s, t) => s + pick(t), 0) / live.length))) : 0;
@@ -562,7 +562,7 @@ const DISPOSABLE_DOMAINS = new Set([
 const emailDomain = (email: string) => email.split("@")[1]?.trim().toLowerCase() ?? "";
 
 /** Normalize a submitted domain to its bare host, or null when unusable. */
-function normalizeDomain(input: string): string | null {
+export function normalizeDomain(input: string): string | null {
   const raw = input.trim().toLowerCase();
   const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
   try {
