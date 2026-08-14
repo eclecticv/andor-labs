@@ -822,7 +822,7 @@
 .aol-rb__body{ display:grid; gap:1px; min-width:0; }
 .aol-rb__name{
   display:flex; align-items:center; gap:8px;
-  font-size:var(--text-base); font-weight:var(--weight-medium);
+  font-size:var(--text-md); font-weight:var(--weight-semibold);
   color:var(--text-strong); line-height:var(--leading-snug);
 }
 .aol-rb__one-liner{
@@ -892,12 +892,12 @@
 }
 .aol-rma__h2{ text-wrap:balance;
   font-family:var(--font-display); font-weight:var(--weight-regular);
-  font-size:var(--text-xl); line-height:var(--leading-snug);
+  font-size:var(--text-2xl); line-height:var(--leading-snug);
   margin:var(--space-8) 0 var(--space-3); color:var(--text-strong);
 }
 .aol-rma__note{
   max-width:var(--measure); margin:0 0 var(--space-6);
-  font-size:var(--text-sm); color:var(--text-muted);
+  font-size:var(--text-base); color:var(--text-muted);
 }
 
 /* Two fields side by side above 640px: they are asked for together and read as
@@ -924,6 +924,7 @@
 .aol-rma__axis-icon{ color:var(--ink-700); display:block; }
 .aol-rma__axis-body{ display:grid; gap:2px; }
 .aol-rma__axis-name{
+  font-weight:var(--weight-semibold);
   font-size:var(--text-base); font-weight:var(--weight-medium); color:var(--text-strong);
 }
 /* The point value rides the axis name in mono so the weighting is visible at a
@@ -933,11 +934,11 @@
   font-family:var(--font-mono); font-style:normal; font-size:var(--text-2xs);
   color:var(--signal); margin-left:6px;
 }
-.aol-rma__axis-q{ font-size:var(--text-sm); color:var(--text-muted); }
+.aol-rma__axis-q{ font-size:var(--text-base); color:var(--text-muted); }
 
 .aol-rma__disclosure,
 .aol-rma__crosslink{
-  margin:var(--space-8) 0 0; font-size:var(--text-xs); color:var(--text-muted);
+  margin:var(--space-8) 0 0; font-size:var(--text-sm); color:var(--text-muted);
   max-width:var(--measure);
 }
 /* Block, NOT flex.
@@ -1034,7 +1035,7 @@
 
 .aol-rmc__h2{ text-wrap:balance;
   font-family:var(--font-display); font-weight:var(--weight-regular);
-  font-size:var(--text-lg); margin:var(--space-10) 0 var(--space-3);
+  font-size:var(--text-xl); margin:var(--space-10) 0 var(--space-3);
   color:var(--text-strong);
 }
 .aol-rmc__verdict{
@@ -1050,7 +1051,7 @@
   color:var(--text-muted); max-width:var(--measure);
 }
 .aol-rmc__split > svg{ vertical-align:-2px; margin-right:5px; }
-.aol-rmc__note{ margin:0 0 var(--space-4); font-size:var(--text-sm); color:var(--text-muted); max-width:var(--measure); }
+.aol-rmc__note{ margin:0 0 var(--space-4); font-size:var(--text-base); color:var(--text-muted); max-width:var(--measure); }
 
 .aol-rmc__axes{ list-style:none; margin:0; padding:0; display:grid; gap:var(--space-5); }
 .aol-rmc__axis{
@@ -1184,7 +1185,7 @@
 .aol-rma__copy{ min-width:0; }
 .aol-rma__trust{
   display:flex; align-items:flex-start; gap:6px;
-  margin:var(--space-5) 0 0; font-size:var(--text-sm); color:var(--text-muted);
+  margin:var(--space-5) 0 0; font-size:var(--text-base); color:var(--text-muted);
   max-width:var(--measure);
 }
 .aol-rma__trust svg{ color:var(--ink-600); flex:none; margin-top:3px; }
@@ -1196,10 +1197,10 @@
 .aol-rma__formcard .aol-rma__field{ display:grid; gap:6px; }
 .aol-rma__hint{
   margin:var(--space-2) 0 var(--space-5);
-  font-size:var(--text-xs); color:var(--text-on-warm-muted);
+  font-size:var(--text-sm); color:var(--text-on-warm-muted);
 }
 .aol-rma__notice{
-  margin:var(--space-4) 0 0; font-size:var(--text-2xs);
+  margin:var(--space-4) 0 0; font-size:var(--text-xs);
   color:var(--text-on-warm-muted);
 }
 
@@ -1216,7 +1217,7 @@
   font-family:var(--font-mono); font-size:var(--text-2xs);
   color:var(--text-faint); font-variant-numeric:tabular-nums; flex:none;
 }
-.aol-rma__step-text{ font-size:var(--text-xs); color:var(--text-muted); }
+.aol-rma__step-text{ font-size:var(--text-sm); color:var(--text-muted); }
 .aol-rma__step[data-state="busy"] .aol-rma__step-text{ color:var(--text-warm); }
 .aol-rma__step[data-state="busy"] .aol-rma__step-n{ color:var(--signal); }
 
@@ -1231,10 +1232,11 @@
 }
 .aol-rma__how-icon{ color:var(--ink-700); }
 .aol-rma__how-title{
-  font-size:var(--text-base); font-weight:var(--weight-medium); color:var(--text-strong);
+  font-weight:var(--weight-semibold);
+  font-size:var(--text-md); font-weight:var(--weight-semibold); color:var(--text-strong);
   line-height:var(--leading-snug);
 }
-.aol-rma__how-body{ font-size:var(--text-xs); color:var(--text-muted); line-height:var(--leading-normal); }
+.aol-rma__how-body{ font-size:var(--text-sm); color:var(--text-muted); line-height:var(--leading-normal); }
 
 /* Axes as four cells rather than four stacked rows — same information, a third
    of the height. */
@@ -1278,7 +1280,7 @@
 /* ---- Panel keywords on a row ---- */
 .aol-rb__keywords{ display:flex; flex-wrap:wrap; gap:6px; }
 .aol-rb__keyword{
-  font-family:var(--font-mono); font-size:var(--text-2xs);
+  font-family:var(--font-mono); font-size:var(--text-xs);
   text-transform:lowercase; letter-spacing:.02em;
   color:var(--text-muted); background:var(--ink-050);
   border-radius:var(--radius-pill); padding:2px 9px;
@@ -1378,6 +1380,7 @@
 .aol-rmc__dim-head{ display:flex; align-items:center; gap:12px; }
 .aol-rmc__dim-icon{ color:var(--ink-700); flex:none; display:block; }
 .aol-rmc__dim-name{
+  font-weight:var(--weight-semibold);
   font-size:var(--text-md); font-weight:var(--weight-medium); color:var(--text-strong);
 }
 .aol-rmc__dim-score{
@@ -1386,14 +1389,14 @@
 }
 .aol-rmc__dim-score em{ font-style:normal; color:var(--text-faint); font-size:var(--text-2xs); }
 .aol-rmc__dim-reasoning{
-  margin:0; font-size:var(--text-sm); line-height:var(--leading-normal);
+  margin:0; font-size:var(--text-base); line-height:var(--leading-normal);
   color:var(--text-muted); max-width:var(--measure);
 }
 .aol-rmc__improve{
   display:flex; align-items:flex-start; gap:8px; margin:2px 0 0;
   padding:12px 14px; background:var(--signal-tint);
   border-radius:var(--radius-sm);
-  font-size:var(--text-sm); color:var(--text-strong); max-width:var(--measure);
+  font-size:var(--text-base); color:var(--text-strong); max-width:var(--measure);
 }
 .aol-rmc__improve svg{ color:var(--signal); flex:none; margin-top:4px; }
 
@@ -1411,3 +1414,7 @@
 @media (max-width:640px){
   .aol-rmc__stack-row{ grid-template-columns:minmax(0,1fr); gap:5px; }
 }
+
+/* The category leads the row's keyword strip: it is the fact, the four words
+   after it are the reading. */
+.aol-rb__keyword--cat{ color:var(--signal); background:var(--signal-tint); }

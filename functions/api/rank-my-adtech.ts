@@ -358,6 +358,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     DIMENSIONS.map((d) => [d.key, {
       reasoning: scored!.dimensions[d.key].reasoning,
       improve: scored!.dimensions[d.key].improve,
+      keyword: scored!.dimensions[d.key].keyword,
     }]),
   );
 

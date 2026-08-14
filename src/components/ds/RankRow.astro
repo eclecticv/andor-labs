@@ -4,7 +4,7 @@
 // rest" are all literally the same markup — three near-copies of a row is how
 // a board starts drifting between the places it appears.
 import PixelIcon from "./PixelIcon.astro";
-import { scoreBand, categoryLabel, STAGE_LABELS, type Entry } from "../../lib/rankings";
+import { scoreBand, categoryLabel, keywordsFor, type Entry } from "../../lib/rankings";
 
 interface Props {
   entry: Entry;
@@ -16,6 +16,7 @@ interface Props {
 }
 const { entry, rank, leader = false, champion = false } = Astro.props;
 const band = scoreBand(entry.total);
+const keywords = keywordsFor(entry);
 ---
 
 <li class="aol-rb__row">
@@ -51,10 +52,8 @@ const band = scoreBand(entry.total);
           own description of itself and every row of it reads the same; where a
           company sits in the supply chain is the thing you actually scan for. */}
       <span class="aol-rb__keywords">
-        <span class="aol-rb__keyword">{categoryLabel(entry.category)}</span>
-        {entry.stage && entry.stage !== "unknown" ? (
-          <span class="aol-rb__keyword">{STAGE_LABELS[entry.stage]}</span>
-        ) : null}
+        <span class="aol-rb__keyword aol-rb__keyword--cat">{categoryLabel(entry.category)}</span>
+        {keywords.map((k) => <span class="aol-rb__keyword">{k}</span>)}
       </span>
     </span>
 

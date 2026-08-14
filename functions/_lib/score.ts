@@ -103,6 +103,59 @@ export interface DimensionResult {
   reasoning: string;
   /** The single change that would raise this score. Powers the CTA. */
   improve: string;
+  /** One word for this dimension, drawn from the band its score falls in. */
+  keyword: string;
+}
+
+/**
+ * Summary words, banded by score.
+ *
+ * The first version handed the model eight example words and asked for "your
+ * overall temperature". Across five companies it returned "sceptical" four
+ * times and "unimpressed" three, including for dimensions it had just scored
+ * well — because a model summarising a critical analysis in one word defaults
+ * to the critical register regardless of the number it assigned.
+ *
+ * A longer example list would not have fixed that. Banding does: the word is
+ * chosen from the band its own score falls into, and normalizeKeyword refuses
+ * anything outside that band. Variety then follows from the scores varying,
+ * which they do, instead of depending on the model's restraint.
+ */
+export const KEYWORD_BANDS = {
+  strong: {
+    min: 17,
+    words: ["sharp", "convinced", "sold", "impressed", "formidable", "deliberate",
+            "confident", "credible", "distinctive", "disciplined", "assured", "compelling"],
+  },
+  mixed: {
+    min: 9,
+    words: ["curious", "unconvinced", "promising", "uneven", "cautious", "intrigued",
+            "hedging", "partial", "developing", "workmanlike", "patchy", "guarded"],
+  },
+  weak: {
+    min: 0,
+    words: ["unimpressed", "sceptical", "generic", "vague", "derivative", "bare",
+            "hollow", "unclear", "undercooked", "invisible", "boilerplate", "absent"],
+  },
+} as const;
+
+export function bandFor(score: number): keyof typeof KEYWORD_BANDS {
+  if (score >= KEYWORD_BANDS.strong.min) return "strong";
+  if (score >= KEYWORD_BANDS.mixed.min) return "mixed";
+  return "weak";
+}
+
+/**
+ * Keep a keyword only if it belongs to the band its score earned.
+ *
+ * An off-band word is not corrected into a lie — it falls back to the first
+ * word of the correct band, which is honest about the score even when the
+ * model's chosen word was not.
+ */
+export function normalizeKeyword(raw: unknown, score: number): string {
+  const band = KEYWORD_BANDS[bandFor(score)];
+  const word = String(raw ?? "").toLowerCase().replace(/[^a-z-]/g, "").slice(0, 16);
+  return (band.words as readonly string[]).includes(word) ? word : band.words[0];
 }
 
 export interface ScoreResult {
@@ -209,6 +262,12 @@ For EACH dimension return:
   improve    ONE sentence: the single highest-leverage change they could make.
              Concrete and specific to them. This is shown to the company as
              advice, so make it worth acting on.
+  keyword    ONE word summarising this dimension. It MUST come from the list
+             matching the score you just gave, and you must not reuse the same
+             word across two dimensions:
+               score 17-25 → ${KEYWORD_BANDS.strong.words.join(", ")}
+               score 9-16  → ${KEYWORD_BANDS.mixed.words.join(", ")}
+               score 0-8   → ${KEYWORD_BANDS.weak.words.join(", ")}
 
 ═══ STEP 4 — VERDICT ═══
 verdict: 60-100 words. Light, confident, slightly over the top — a boxing
@@ -219,10 +278,10 @@ financial trouble. Every criticism leaves a door open. Do not restate the scores
 ═══ JSON SHAPE ═══
 {"eligible":bool,"ineligibleReason":str,"name":str,"oneLiner":str,
  "category":str,"stage":str,
- "positioning":{"score":int,"reasoning":str,"improve":str},
- "content":{"score":int,"reasoning":str,"improve":str},
- "gtm_stack":{"score":int,"reasoning":str,"improve":str},
- "innovation":{"score":int,"reasoning":str,"improve":str},
+ "positioning":{"score":int,"reasoning":str,"improve":str,"keyword":str},
+ "content":{"score":int,"reasoning":str,"improve":str,"keyword":str},
+ "gtm_stack":{"score":int,"reasoning":str,"improve":str,"keyword":str},
+ "innovation":{"score":int,"reasoning":str,"improve":str,"keyword":str},
  "verdict":str}
 
 ═══ EVIDENCE ═══
@@ -257,10 +316,12 @@ export function normalizeScore(raw: unknown): ScoreResult {
   const dimensions = {} as Record<DimensionKey, DimensionResult>;
   for (const d of DIMENSIONS) {
     const src = (o[d.key] ?? {}) as Record<string, unknown>;
+    const score = clampScore(src.score, d.max);
     dimensions[d.key] = {
-      score: clampScore(src.score, d.max),
+      score,
       reasoning: text(src.reasoning, 1200),
       improve: text(src.improve, 300),
+      keyword: normalizeKeyword(src.keyword, score),
     };
   }
 
@@ -295,6 +356,7 @@ export function assertScoreUsable(r: ScoreResult): ScoreResult {
     const dim = r.dimensions[d.key];
     if (dim.reasoning.length < 80) throw new Error(`${d.key}: reasoning too thin`);
     if (!dim.improve) throw new Error(`${d.key}: no improvement line`);
+    if (!dim.keyword) throw new Error(`${d.key}: no keyword`);
   }
   if (r.verdict.length < 60) throw new Error("verdict too short");
   return r;

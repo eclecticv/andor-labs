@@ -56,7 +56,7 @@ const shareBrag =
   entry.total >= 85
     ? "Top of the class. Go and gloat."
     : entry.total >= 70
-      ? "Good number. Post it before the panel changes its mind."
+      ? "Good number. Post it before we change our mind."
       : entry.total >= 40
         ? "Respectable. We have been meaner."
         : "Brutal. Posting it anyway is the power move.";
@@ -134,8 +134,7 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
         {/* ── 3. The four dimensions ─────────────────────────────────────── */}
         <h2 class="aol-rmc__h2">The scoring.</h2>
         <p class="aol-rmc__note">
-          Every dimension is judged against what is reasonable at this company's stage. A
-          four-person team is not marked down for lacking a content engine.
+          Judged against what is reasonable at this company's stage.
         </p>
 
         <ul class="aol-rmc__dims">
@@ -172,8 +171,8 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
             <DitherLine />
             <h2 class="aol-rmc__h2">The stack we could see.</h2>
             <p class="aol-rmc__note">
-              Read from the markup, so it only shows tools that run in the browser. A
-              warehouse-native setup would look empty here and still be excellent.
+              Read from the markup, so browser-side tools only. A warehouse-native setup
+              looks empty here and may still be excellent.
             </p>
             <ul class="aol-rmc__stack">
               {Object.entries(stack).map(([category, tools]) => (

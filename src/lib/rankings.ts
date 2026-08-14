@@ -218,7 +218,7 @@ export async function getBoard(): Promise<Record<Division, Entry[]>> {
 }
 
 /** Per-dimension detail for one entry, parsed from its stored JSON. */
-export function detailFor(entry: Entry): Record<string, { reasoning: string; improve: string }> {
+export function detailFor(entry: Entry): Record<string, { reasoning: string; improve: string; keyword?: string }> {
   try {
     return JSON.parse(entry.detail_json || "{}");
   } catch {
@@ -233,4 +233,17 @@ export function stackFor(entry: Entry): Record<string, string[]> {
   } catch {
     return {};
   }
+}
+
+/**
+ * The four dimension keywords, in dimension order.
+ *
+ * This is a row's real payload. A score says how a company did; four words say
+ * WHERE it is strong and weak, which is the thing you actually scan a board
+ * for. Each word is drawn from a band matching its own dimension's score, so
+ * they cannot all collapse into "sceptical" the way the panel's did.
+ */
+export function keywordsFor(entry: Entry): string[] {
+  const detail = detailFor(entry);
+  return AXES.map((a) => detail[a.key]?.keyword).filter((k): k is string => !!k);
 }

@@ -41,20 +41,19 @@ const ranked = all.length;
 
 /** Pacing lines. Deliberately name the labs — that IS the product. */
 const STEPS = [
-  "Reading the homepage…",
-  "Checking this is actually adtech…",
-  "Gemini is forming an opinion…",
-  "NVIDIA's Nemotron has seen this before…",
-  "Qwen is unconvinced…",
-  "The panel is comparing notes…",
+  "Reading the site…",
+  "Checking this is adtech…",
+  "Looking at what you run…",
+  "Scoring positioning…",
+  "Scoring content and stack…",
   "Writing the verdict…",
 ];
 
 const HOW = [
-  { icon: "newspaper", title: "We read the homepage", body: "Paste a URL. That is the whole form. We fetch the site and strip it back to text." },
-  { icon: "robot", title: "Three models judge it", body: "One each from Google, NVIDIA and Alibaba. None of them sees the others' answers." },
-  { icon: "quote-left", title: "A fourth writes the verdict", body: "It reads all three arguments and makes the call. Where they split, it says so." },
-  { icon: "trophy-solid", title: "It goes on the board", body: "Straight onto the public board, in your weight class, with a share card of your own." },
+  { icon: "newspaper", title: "We read the site", body: "Four or five pages, not just the homepage." },
+  { icon: "laptop-code", title: "We check the plumbing", body: "What analytics, CRM and marketing tools you actually run." },
+  { icon: "shapes", title: "We score four things", body: "Judged against your stage, not against Criteo." },
+  { icon: "trophy-solid", title: "It goes on the board", body: "With the one change that would raise each score." },
 ];
 
 const title = "Rank My AdTech — free adtech innovation score";
@@ -81,13 +80,13 @@ const description =
           </p>
           <h1 class="aol-rma__h1">Rank My AdTech.</h1>
           <p class="aol-rma__lede">
-            Three models from three different labs read your homepage and argue about you.
-            A fourth writes it up. Winners get a crown. Everyone else gets an opinion they
-            didn't ask for.
+            We read your site, check what you actually run, and score you out of 100 on the
+            four things that decide whether anyone buys. Winners get a crown. Everyone else
+            gets an opinion they didn't ask for.
           </p>
           <p class="aol-rma__trust">
-            <PixelIcon name="shapes" size={12} /> The axes are built so a seed company and a
-            public company can both win.
+            <PixelIcon name="shapes" size={12} /> Pre-seed to Series A. Judged against your
+            stage, so a four-person team is not marked down for being four people.
           </p>
         </div>
 
@@ -140,7 +139,7 @@ const description =
 
         <DitherLine />
 
-        <h2 class="aol-rma__h2">What the panel argues about.</h2>
+        <h2 class="aol-rma__h2">What we score.</h2>
         <ul class="aol-rma__axis-row">
           {
             AXES.map((axis) => (
@@ -177,9 +176,9 @@ const description =
         }
 
         <p class="aol-rma__disclosure">
-          <PixelIcon name="question-circle" size={12} /> Scores and quotes come from language
-          models reading a public homepage. It is an opinion and it is meant to be funny.
-          It is not research. Want a row gone? Email{" "}<a href="mailto:hello@andorlabs.ca?subject=Rank%20My%20AdTech%20removal">hello@andorlabs.ca</a>{" "}and it goes.
+          <PixelIcon name="question-circle" size={12} /> Scored by a language model reading
+          public pages. An opinion, meant to be funny, not research. Want a row gone?
+          Email{" "}<a href="mailto:hello@andorlabs.ca?subject=Rank%20My%20AdTech%20removal">hello@andorlabs.ca</a>{" "}and it goes.
         </p>
       </div>
     </section>
