@@ -34,7 +34,10 @@
  *                      project's production secrets. See d1.wrangler.jsonc.
  *   GEMINI_API_KEY   = juror 1
  *   NVIDIA_API_KEY   = gate + juror 2   (build.nvidia.com, OpenAI-compatible)
- *   OPENCODE_API_KEY = juror 3 + synthesizer (opencode.ai/zen gateway)
+ *   OPENCODE_API_KEY = juror 3, and the preferred verdict writer
+ *                      (opencode.ai/zen gateway). The verdict falls back to
+ *                      NVIDIA then Gemini, so an empty Zen balance costs
+ *                      prose quality rather than the verdict itself.
  *   LOOPS_API_KEY    = lead capture
  *   DEPLOY_HOOK_URL  = Cloudflare Pages deploy hook; without it rankings are
  *                      stored but never appear on the public board.
@@ -79,15 +82,13 @@ const OPENCODE_SYNTH_DEFAULT = "claude-sonnet-5";
  * NVIDIA's catalogue rotates faster than this file will be edited, and a stale
  * id does not fail loudly — it 404s, the juror abstains, and the panel quietly
  * shrinks to two while looking entirely healthy. Asking the provider which
- * models it actually has removes that failure mode. Preference order below;
- * first match wins, and the result is cached for the life of the isolate.
- */
-/**
- * Ordered by preference, matched as a PREFIX rather than a substring.
+ * models it actually has removes that failure mode. Resolved once and cached
+ * for the life of the isolate.
  *
- * Substring matching was wrong: "nemotron" also matches
- * `mistralai/mistral-nemotron`, a Mistral model, which would quietly seat a
- * juror from a lab this panel did not choose. Prefixes name the exact family.
+ * Ordered by preference and matched as a PREFIX, not a substring. Substring
+ * matching was wrong: "nemotron" also matches `mistralai/mistral-nemotron`, a
+ * Mistral model, which would quietly seat a juror from a lab this panel did
+ * not choose. Prefixes name the exact family.
  */
 const NIM_PREFERENCES = [
   "nvidia/nemotron-3-super",
@@ -142,20 +143,20 @@ async function resolveNimModel(key: string, override?: string): Promise<string |
 
 // ── The panel ───────────────────────────────────────────────────────────────
 
-type Lens = "vc" | "engineer" | "lifer";
+type Lens = "vc" | "engineer" | "veteran";
 
 const LENS_BRIEF: Record<Lens, string> = {
   vc: "You are a partner at a fund that has seen four hundred adtech decks and funded six. You care whether this is a company or a feature.",
   engineer:
     "You are a staff engineer who has built ad servers. You care what is actually hard here and what is a wrapper around someone else's API.",
-  lifer:
+  veteran:
     "You are twenty years into adtech. You have watched this exact idea come round three times. You care whether anything is genuinely different now.",
 };
 
 /** Fixed lens per provider so a re-run of the same company reads consistently. */
 const PANEL: { provider: "gemini" | "nvidia" | "opencode"; lens: Lens }[] = [
   { provider: "gemini", lens: "engineer" },
-  { provider: "nvidia", lens: "lifer" },
+  { provider: "nvidia", lens: "veteran" },
   { provider: "opencode", lens: "vc" },
 ];
 
@@ -851,25 +852,62 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const total = scores.paradigm + scores.nonObviousness + scores.vibeCode + scores.conviction;
 
   // ── Synthesizer ───────────────────────────────────────────────────────────
+  /**
+   * A ladder, not a single call.
+   *
+   * The panel fans out across three providers precisely so that no one outage
+   * kills a ranking; leaving the verdict — the only part a reader actually
+   * reads closely — on a single provider put that guarantee back. It is not
+   * hypothetical: Zen reports an exhausted balance as a 401, and every ranking
+   * written during one falls back to reprinting a juror's quote.
+   *
+   * Order is by writing quality, because this step is prose. Sonnet first;
+   * the others are a working verdict rather than an equal one.
+   */
+  const prompt = synthPrompt(gate, live, scores, total);
+  const synthesizers: { provider: string; run: () => Promise<string> }[] = [
+    ...(env.OPENCODE_API_KEY
+      ? [{
+          provider: "opencode",
+          run: () => callOpenAICompatible(
+            OPENCODE_BASE, env.OPENCODE_API_KEY as string,
+            env.OPENCODE_SYNTH_MODEL ?? OPENCODE_SYNTH_DEFAULT, prompt,
+          ),
+        }]
+      : []),
+    ...(env.NVIDIA_API_KEY
+      ? [{
+          provider: "nvidia",
+          run: async () => {
+            const model = await resolveNimModel(env.NVIDIA_API_KEY as string, env.NIM_MODEL);
+            if (!model) throw new Error("no nim model");
+            return callOpenAICompatible(NIM_BASE, env.NVIDIA_API_KEY as string, model, prompt);
+          },
+        }]
+      : []),
+    ...(env.GEMINI_API_KEY
+      ? [{ provider: "gemini", run: () => callGemini(env.GEMINI_API_KEY as string, prompt) }]
+      : []),
+  ];
+
   let verdict = "";
   let splitNote = "";
   let platformNote = "";
-  try {
-    if (!env.OPENCODE_API_KEY) throw new Error("no opencode key");
-    const model = env.OPENCODE_SYNTH_MODEL ?? OPENCODE_SYNTH_DEFAULT;
-    const raw = extractJson(
-      await callOpenAICompatible(
-        OPENCODE_BASE,
-        env.OPENCODE_API_KEY,
-        model,
-        synthPrompt(gate, live, scores, total),
-      ),
-    ) as Record<string, unknown>;
-    verdict = clampText(raw.verdict, 900);
-    splitNote = clampText(raw.splitNote, 300);
-    platformNote = clampText(raw.platformNote, 300);
-  } catch (err) {
-    console.error("[rank] synthesizer failed:", err);
+  for (const { provider, run } of synthesizers) {
+    try {
+      const raw = extractJson(await run()) as Record<string, unknown>;
+      verdict = clampText(raw.verdict, 900);
+      splitNote = clampText(raw.splitNote, 300);
+      platformNote = clampText(raw.platformNote, 300);
+      if (verdict) {
+        // Only worth a line when the preferred writer did not serve it — that
+        // is the signal to go and look at the billing.
+        if (provider !== "opencode") console.log(`[rank] verdict written by ${provider}`);
+        break;
+      }
+    } catch (err) {
+      console.error(`[rank] synthesizer ${provider} failed:`, err);
+    }
   }
   // A ranking with scores and quotes but no write-up is still a ranking. Falling
   // back to the sharpest juror line beats refusing to publish.
