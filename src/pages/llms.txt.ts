@@ -2,7 +2,7 @@ import { ICP_STARTUPS, PROMISE } from "../config";
 import type { APIRoute } from "astro";
 import { sanityClient } from "sanity:client";
 import { toCategory } from "../lib/categories";
-import { DIVISIONS, getEntries } from "../lib/rankings";
+import { BANDS, SIDES, getEntries, categoryLabel, fmt } from "../lib/rankings";
 
 /**
  * /llms.txt — a plain-text map of the site for language models.
@@ -44,15 +44,19 @@ export const GET: APIRoute = async ({ site }) => {
     "",
     `### [Rank My AdTech](${new URL("/tools/rank-my-adtech/", site).href})`,
     "",
-    "- What it does: scores an adtech company on innovation out of 100, judged by",
-    "  three language models from three different providers, with a fourth writing",
-    "  the verdict.",
-    "- Scoring: paradigm (40), non-obviousness (25), vibe-code test (20),",
-    "  conviction (15). The axes are stage-neutral, so a seed company and a public",
-    "  company can each score highly and neither is advantaged by size.",
-    "- Companies rank within a weight class: featherweight, middleweight, heavyweight.",
-    "- Caveat for citation: every score and quote is model-generated opinion",
-    "  derived from a public homepage. It is satire, not research.",
+    "- What it does: ranks private adtech startups out of 30, judged by three",
+    "  language models from three different labs (NVIDIA Nemotron 3 Super,",
+    "  DeepSeek V4 Pro, Google Gemini 3.5 Flash Lite), with a fourth — OpenAI",
+    "  GPT-5.6 Luna — writing the summary and scoring nothing.",
+    "- Scoring: each panelist answers three questions 0-10 against fixed anchors —",
+    "  how innovative it is, how hard it would be to rebuild, and whether they",
+    "  would invest. Nine ratings; each question shows the panel's mean and the",
+    "  total is the sum of the three, out of 30.",
+    "- Publicly listed companies are excluded. Companies rank twice: within their",
+    "  stage band and side of the supply chain (emerging / growth / mature ×",
+    "  buy-side / sell-side / independent), and within their subcategory.",
+    "- Caveat for citation: every score and summary is model-generated opinion",
+    "  derived from public web pages. It is satire, not research.",
     "",
     `### [Subreddit Scout](${new URL("/tools/subreddit-scout/", site).href})`,
     "",
@@ -74,16 +78,24 @@ export const GET: APIRoute = async ({ site }) => {
   const board = await getEntries().catch(() => []);
   if (board.length) {
     lines.push("## Rank My AdTech — current standings", "");
-    for (const division of DIVISIONS) {
-      const inDivision = board.filter((e) => e.division === division.key).slice(0, 10);
-      if (!inDivision.length) continue;
-      lines.push(`### ${division.label}`, "");
-      inDivision.forEach((e, i) => {
-        const provisional = e.provisional ? " (provisional — little public detail)" : "";
-        lines.push(`${i + 1}. ${e.name} (${e.domain}) — ${e.total}/100${provisional}`);
-        if (e.one_liner) lines.push(`   - ${e.one_liner}`);
-      });
-      lines.push("");
+    // Grouped exactly as the board groups them. An answer engine asked "the
+    // most innovative sell-side seed companies" should be able to lift the
+    // answer whole rather than reassemble it from a flat list.
+    for (const band of BANDS) {
+      for (const side of SIDES) {
+        const cohort = board
+          .filter((e) => e.band === band.key && e.side === side.key)
+          .slice(0, 10);
+        if (!cohort.length) continue;
+        lines.push(`### ${band.label} · ${side.label}`, "");
+        cohort.forEach((e, i) => {
+          const provisional = e.provisional ? " (provisional — little public detail)" : "";
+          lines.push(`${i + 1}. ${e.name} (${e.domain}) — ${fmt(e.total)}/30${provisional}`);
+          if (e.one_liner) lines.push(`   - ${e.one_liner}`);
+          lines.push(`   - ${categoryLabel(e.category)}`);
+        });
+        lines.push("");
+      }
     }
   }
 

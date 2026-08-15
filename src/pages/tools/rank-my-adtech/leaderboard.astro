@@ -6,10 +6,18 @@
  * ones, so this wins over a company whose slug happened to be "leaderboard";
  * the API also refuses that slug outright rather than relying on that.
  *
- * Heavyweight first. Descending weight is how a fight card reads — main event
- * at the top — and it puts the companies people recognise where they look
- * first. Ten rows per division, the rest behind a <details> so they stay in the
- * HTML and stay crawlable.
+ * ── Tabs are bands, sections are sides ──
+ * Which is the first of the two ranks made structural. "3rd in emerging
+ * sell-side" is literally a position in one section of one tab, so a reader who
+ * can see the shape of the board can see where the number came from without
+ * being told. The second rank — position within a subcategory — lives on the
+ * company's own page, where there is room to say which subcategory.
+ *
+ * The tabs are radio inputs, not JavaScript. Every band stays in the HTML and
+ * stays crawlable, the whole thing works with scripting off, and a named radio
+ * group is natively arrow-key navigable — which is the interaction a tablist is
+ * meant to have. The inputs sit before the panels because CSS can only select
+ * forward.
  */
 import Base from "../../../layouts/Base.astro";
 import SiteHeader from "../../../components/sections/SiteHeader.astro";
@@ -18,18 +26,29 @@ import SiteMotion from "../../../components/SiteMotion.astro";
 import PixelIcon from "../../../components/ds/PixelIcon.astro";
 import DitherLine from "../../../components/ds/DitherLine.astro";
 import RankBoard from "../../../components/ds/RankBoard.astro";
-import { getEntries, categoryLabel } from "../../../lib/rankings";
+import PanelStrip from "../../../components/ds/PanelStrip.astro";
+import { getEntries, getBoard, COHORTS } from "../../../lib/rankings";
 
 const all = await getEntries();
+const board = await getBoard();
 const champion = all[0]?.slug ?? null;
 
-const title = "The Rank My AdTech leaderboard — adtech companies ranked on innovation";
-const description = `Every adtech company we have ranked on innovation, by weight class. ${all.length} companies judged by three language models each on paradigm, non-obviousness, the vibe-code test and conviction.`;
+const countIn = (key: string) => board[key]?.length ?? 0;
+
+// The tab that opens is the fullest one, not the first.
+//
+// A board that opens on an empty tab looks broken regardless of how many
+// companies sit on the other two. Small thing, but it stops the page lying
+// about itself while the board is still filling up.
+const opening = [...COHORTS].sort((a, b) => countIn(b.key) - countIn(a.key))[0]?.key ?? COHORTS[0].key;
+
+const title = "The Rank My AdTech leaderboard — private adtech startups, ranked";
+const description = `${all.length} private adtech companies judged by three language models from three different labs, split by stage and by side of the supply chain.`;
 ---
 
 <Base title={title} description={description}
   ogImage="/og-rank-my-adtech.png" ogImageWidth={2400} ogImageHeight={1200}
-  ogImageAlt="The Rank My AdTech leaderboard — adtech companies ranked on innovation by a panel of language models.">
+  ogImageAlt="The Rank My AdTech leaderboard — private adtech startups ranked by a panel of language models.">
   <SiteHeader />
   <main>
     <section class="aol-rma__hero">
@@ -39,33 +58,60 @@ const description = `Every adtech company we have ranked on innovation, by weigh
         </p>
         <h1 class="aol-rma__h1">The leaderboard.</h1>
         <p class="aol-rma__lede">
-          Every company we have scored, best first.
+          Private adtech companies, judged by three models from three different labs.
+          Split by which side of the supply chain they sit on, because an SSP and a
+          measurement vendor are not doing the same job and should not share a table.
         </p>
         <p class="aol-rma__crosslink">
           <a href="/tools/rank-my-adtech/">Rank your own company →</a>
         </p>
+      </div>
+    </section>
 
-        {/* Only categories that actually have companies. A nav listing nineteen
-            categories where fifteen are empty advertises the emptiness. */}
-        <ul class="aol-rma__jump">
-          {[...new Set(all.map((e) => e.category))].filter(Boolean).slice(0, 8).map((c) => (
-            <li>
-              <a href={`#cat-${c}`}>
-                {categoryLabel(c)}<em>{all.filter((e) => e.category === c).length}</em>
-              </a>
-            </li>
-          ))}
-        </ul>
+    <section class="aol-rma__axes">
+      <div class="aol-rma__inner">
+        <PanelStrip />
       </div>
     </section>
 
     <section class="aol-rma__board">
       <div class="aol-rma__inner">
-        <DitherLine />
-        <RankBoard entries={all} championSlug={champion} limit={20} />
+        <div class="aol-rt">
+          {/* Inputs first: CSS selects forward only. */}
+          {COHORTS.map((cohort) => (
+            <input class="aol-rt__input" type="radio" name="cohort"
+              id={`cohort-${cohort.key}`} checked={cohort.key === opening} />
+          ))}
 
+          <div class="aol-rt__tabs" role="group" aria-label="Side of the supply chain">
+            {COHORTS.map((cohort) => (
+              <label class="aol-rt__tab" for={`cohort-${cohort.key}`}>
+                <PixelIcon name={cohort.icon as any} size={24} />
+                <span class="aol-rt__tab-name">{cohort.label}</span>
+                <em class="aol-rt__tab-count">{countIn(cohort.key)}</em>
+              </label>
+            ))}
+          </div>
+
+          <div class="aol-rt__panels">
+            {COHORTS.map((cohort) => (
+              <div class="aol-rt__panel">
+                <p class="aol-rt__blurb">{cohort.blurb}</p>
+                {countIn(cohort.key) === 0 ? (
+                  <p class="aol-rb__empty">
+                    Nobody here yet. Whoever goes first takes it by walking in.
+                  </p>
+                ) : (
+                  <RankBoard entries={board[cohort.key]} championSlug={champion} limit={15} />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <DitherLine />
         <p class="aol-rma__disclosure">
-          <PixelIcon name="question-circle" size={12} /> Scored by a language model reading
+          <PixelIcon name="question-circle" size={12} /> Judged by language models reading
           public pages. An opinion, meant to be funny, not research. Want a row gone?
           Email{" "}<a href="mailto:hello@andorlabs.ca?subject=Rank%20My%20AdTech%20removal">hello@andorlabs.ca</a>{" "}and it goes.
         </p>

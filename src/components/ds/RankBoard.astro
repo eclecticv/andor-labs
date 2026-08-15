@@ -1,11 +1,11 @@
 ---
 // RankBoard — one ranked list.
 //
-// Divisional tables are gone with the weight classes. Category is the real
-// grouping now, but there are nineteen of them and a board that splits a dozen
-// companies nineteen ways is a page of empty headings. So the board stays flat
-// and each row carries its category; grouping returns when a category can fill
-// a table on its own.
+// Flat by design. The leaderboard already splits companies by the BOARD_AXIS
+// cohort into tabs; splitting again inside a tab would mean nineteen
+// subcategory headings over a dozen companies, which is a page of empty
+// headings. Each row carries its own category chip instead, and grouping can
+// return when a single category can fill a table on its own.
 //
 // Styles live in src/styles/components.css (.aol-rb__*).
 import RankRow from "./RankRow.astro";

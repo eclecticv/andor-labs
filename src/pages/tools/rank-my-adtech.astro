@@ -33,7 +33,8 @@ import Input from "../../components/ds/Input.astro";
 import PixelIcon from "../../components/ds/PixelIcon.astro";
 import DitherLine from "../../components/ds/DitherLine.astro";
 import RankBoard from "../../components/ds/RankBoard.astro";
-import { getEntries, AXES } from "../../lib/rankings";
+import PanelStrip from "../../components/ds/PanelStrip.astro";
+import { getEntries, QUESTIONS } from "../../lib/rankings";
 
 const all = await getEntries();
 const preview = all.slice(0, 5);
@@ -42,23 +43,28 @@ const ranked = all.length;
 /** Pacing lines. Deliberately name the labs — that IS the product. */
 const STEPS = [
   "Reading the site…",
-  "Checking this is adtech…",
-  "Looking at what you run…",
-  "Scoring positioning…",
-  "Scoring content and stack…",
-  "Writing the verdict…",
+  "Working out what you are…",
+  "NVIDIA is reading…",
+  "DeepSeek is reading…",
+  "Google is reading…",
+  "Counting the votes…",
+  "Writing it up…",
 ];
 
 const HOW = [
-  { icon: "newspaper", title: "We read the site", body: "Four or five pages, not just the homepage." },
-  { icon: "laptop-code", title: "We check the plumbing", body: "What analytics, CRM and marketing tools you actually run." },
-  { icon: "shapes", title: "We score four things", body: "Judged against your stage, not against Criteo." },
-  { icon: "trophy-solid", title: "It goes on the board", body: "With the one change that would raise each score." },
+  { icon: "newspaper", title: "We read the site",
+    body: "Up to six pages. The about and press pages, not just the homepage." },
+  { icon: "vote-yeah", title: "Three labs judge it",
+    body: "NVIDIA, DeepSeek and Google, at the same moment, unable to see each other." },
+  { icon: "shapes", title: "Nine ratings",
+    body: "Three questions each, scored against a fixed scale rather than a feeling." },
+  { icon: "trophy-solid", title: "A fourth writes it up",
+    body: "Then it goes on the public board, ranked against its own corner of adtech." },
 ];
 
-const title = "Rank My AdTech — free adtech innovation score";
+const title = "Rank My AdTech — private adtech startups, judged by four labs";
 const description =
-  "Three models from three different labs read your homepage and score your adtech company on innovation. Winners get a crown. Everyone gets a verdict.";
+  "Three language models from three different labs score your adtech company on innovation, how hard it is to build, and whether they would invest. A fourth writes the verdict. Free, and it goes on a public board.";
 ---
 
 <Base
@@ -80,13 +86,14 @@ const description =
           </p>
           <h1 class="aol-rma__h1">Rank My AdTech.</h1>
           <p class="aol-rma__lede">
-            We read your site, check what you actually run, and score you out of 100 on the
-            four things that decide whether anyone buys. Winners get a crown. Everyone else
-            gets an opinion they didn't ask for.
+            Three models from three different labs read your site and answer the same
+            three questions about it. A fourth reads all nine answers and writes the
+            verdict. Everyone gets an opinion they didn't ask for.
           </p>
           <p class="aol-rma__trust">
-            <PixelIcon name="shapes" size={12} /> Pre-seed to Series A. Judged against your
-            stage, so a four-person team is not marked down for being four people.
+            <PixelIcon name="handshake" size={12} /> We sell go-to-market work and this
+            scores none of it. Nothing here is a pitch — where the panel disagrees, the
+            page says so.
           </p>
         </div>
 
@@ -97,7 +104,7 @@ const description =
               <Input type="text" name="url" id="rank-url" placeholder="company.com"
                 autocomplete="url" inputmode="url" required />
             </label>
-            <p class="aol-rma__hint">Any adtech company. Yours or somebody else's.</p>
+            <p class="aol-rma__hint">Any private adtech company. Yours or somebody else's.</p>
             <Button type="submit" variant="primary" size="lg" fullWidth id="rank-submit" arrow>
               Rank it
             </Button>
@@ -139,20 +146,24 @@ const description =
 
         <DitherLine />
 
-        <h2 class="aol-rma__h2">What we score.</h2>
+        <h2 class="aol-rma__h2">The three questions.</h2>
         <ul class="aol-rma__axis-row">
           {
-            AXES.map((axis) => (
+            QUESTIONS.map((q) => (
               <li class="aol-rma__axis-cell">
                 <span class="aol-rma__axis-label">
-                  <PixelIcon name={axis.icon as any} size={12} />
-                  {axis.label}<em>{axis.max}</em>
+                  <PixelIcon name={q.icon as any} size={12} />
+                  {q.label}<em>0–10</em>
                 </span>
-                <span class="aol-rma__axis-q">{axis.question}</span>
+                <span class="aol-rma__axis-q">{q.question}</span>
               </li>
             ))
           }
         </ul>
+
+        <DitherLine />
+
+        <PanelStrip questions={false} />
       </div>
     </section>
 
@@ -196,11 +207,12 @@ const description =
           </div>
           <div class="aol-rma__card-score">
             <span class="aol-rma__card-total" data-total></span>
-            <span class="aol-rma__card-out">/100</span>
+            <span class="aol-rma__card-out">/30</span>
           </div>
         </header>
-        <p class="aol-rma__card-meta"><span data-division></span> <span data-provisional></span></p>
-        <p class="aol-rma__card-verdict" data-verdict></p>
+        <p class="aol-rma__card-meta"><span data-cohort></span> <span data-provisional></span></p>
+        <p class="aol-rma__card-verdict" data-summary></p>
+        <p class="aol-rma__card-split" data-split></p>
         <p class="aol-rma__card-link"><a data-permalink href="#">See the full panel →</a></p>
       </article>
     </div>
@@ -332,9 +344,15 @@ const description =
       set("name", d.name);
       set("one-liner", d.oneLiner);
       set("total", String(d.total));
-      set("division", d.division);
+      // The cohort, not the raw band. "emerging sell-side" is what the rank on
+      // the company page is expressed in, so the card has to speak the same way
+      // or the two pages read as two different measurements.
+      set("cohort", [d.cohort, d.categoryLabel].filter(Boolean).join(" · "));
       set("provisional", d.provisional ? "· provisional evidence" : "");
-      set("verdict", d.verdict);
+      set("summary", d.summary);
+      // A split is the most interesting thing the panel can produce, so it
+      // survives to the card rather than waiting for the company page.
+      set("split", d.split ? `The panel disagreed by ${d.split.spread} points.` : "");
 
       const logo = node.querySelector("[data-logo]") as HTMLImageElement | null;
       if (logo && d.logo) { logo.src = d.logo; logo.hidden = false; }

@@ -1,0 +1,78 @@
+---
+/**
+ * The panel, declared before anyone sees a score.
+ *
+ * A number from an unnamed "AI" is an appeal to authority with no authority
+ * behind it. Naming the three labs, saying what each model actually is, and
+ * admitting where a lab publishes nothing is the difference between a score a
+ * reader can weigh and a score they have to take on faith.
+ *
+ * The specs are the honest part and the constraint that shaped the panel. Two
+ * of these models publish their architecture, so their entries carry real
+ * numbers; the others disclose nothing, and those entries say "undisclosed"
+ * rather than carrying a parameter count invented to match the others. A single
+ * fabricated figure on a page whose whole premise is transparency would
+ * discredit everything around it.
+ *
+ * Styles: .aol-panel__* in src/styles/components.css
+ */
+import PixelIcon from "./PixelIcon.astro";
+import { PANELISTS, WRITER, QUESTIONS } from "../../lib/rankings";
+
+interface Props {
+  /** Show the three questions alongside the panel. */
+  questions?: boolean;
+}
+const { questions = true } = Astro.props;
+---
+
+<div class="aol-panel">
+  <h2 class="aol-rma__h2">The panelists.</h2>
+  <p class="aol-rma__note">
+    Three models from three different labs, each handed the same pages and asked
+    the same three questions. They cannot see each other's answers — the calls
+    run at the same moment, which is what makes agreement between them worth
+    something.
+  </p>
+
+  <ul class="aol-panel__list">
+    {PANELISTS.map((p) => (
+      <li class="aol-panel__member">
+        <span class="aol-panel__lab">{p.lab}</span>
+        <span class="aol-panel__name">{p.name}</span>
+        <p class="aol-panel__spec">{p.spec}</p>
+      </li>
+    ))}
+  </ul>
+
+  <p class="aol-panel__writer">
+    <PixelIcon name="quote-left" size={12} />
+    <span>
+      <strong>{WRITER.name}</strong> ({WRITER.lab}) writes the summary and scores nothing.
+      {WRITER.spec}
+    </span>
+  </p>
+
+  {questions ? (
+    <>
+      <h2 class="aol-rma__h2">The three questions.</h2>
+      <ul class="aol-rma__axis-list">
+        {QUESTIONS.map((q) => (
+          <li class="aol-rma__axis">
+            <span class="aol-rma__axis-icon"><PixelIcon name={q.icon as any} size={24} /></span>
+            <span class="aol-rma__axis-body">
+              <span class="aol-rma__axis-name">{q.question}<em>0–10</em></span>
+              <span class="aol-rma__axis-q">{q.persona}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p class="aol-rma__note">
+        Every panelist answers all three, so a company carries nine ratings.
+        Each question shows the panel's average; the total is out of thirty.
+        The engineer scores how <em>hard</em> something is to rebuild, not how
+        easy — otherwise a company could climb this board by being trivial.
+      </p>
+    </>
+  ) : null}
+</div>

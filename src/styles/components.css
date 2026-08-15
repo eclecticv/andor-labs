@@ -781,7 +781,8 @@
 
 .aol-rb__link{
   display:grid;
-  grid-template-columns:28px 24px 28px minmax(0,1fr) 24px auto;
+  /* rank · mark · logo · body · split · band · score */
+  grid-template-columns:28px 24px 28px minmax(0,1fr) auto 24px auto;
   align-items:center; gap:0 12px;
   padding:12px 8px; margin:0 -8px;
   text-decoration:none; color:inherit;
@@ -1418,3 +1419,239 @@
 /* The category leads the row's keyword strip: it is the fact, the four words
    after it are the reading. */
 .aol-rb__keyword--cat{ color:var(--signal); background:var(--signal-tint); }
+
+/* ---- Band tabs (.aol-rt) ----
+   Radio-driven, so every band stays in the HTML and the whole thing works with
+   scripting off. The inputs are visually hidden but NOT display:none — a
+   display:none radio is unfocusable, which would take the arrow-key navigation
+   with it, and that navigation is the reason radios were the right control. */
+.aol-rt__input{
+  position:absolute; width:1px; height:1px;
+  opacity:0; pointer-events:none;
+}
+
+.aol-rt__tabs{
+  display:grid; grid-template-columns:repeat(3, minmax(0,1fr));
+  gap:var(--space-2); margin-bottom:var(--space-6);
+}
+.aol-rt__tab{
+  display:grid; grid-template-columns:24px minmax(0,1fr) auto;
+  align-items:center; gap:0 10px;
+  padding:14px 16px; min-height:56px;
+  border:1px solid var(--ink-900); border-radius:var(--radius-sm);
+  background:var(--paper); color:var(--text-muted); cursor:pointer;
+  /* Printed materiality: a hard offset block, never a soft glow. Named
+     properties only — `all` would animate the border colour and the shadow
+     through intermediate states nobody designed. */
+  box-shadow:var(--shadow-hard-sm);
+  transition:box-shadow var(--dur-fast) var(--ease-out),
+             transform var(--dur-fast) var(--ease-out),
+             background-color var(--dur-fast) var(--ease-out),
+             color var(--dur-fast) var(--ease-out);
+}
+@media (hover:hover) and (pointer:fine){
+  /* Lifts off the page toward the reader — the shadow grows as the tab rises. */
+  .aol-rt__tab:hover{
+    color:var(--text-strong);
+    box-shadow:var(--shadow-hard); transform:translate(-1px,-1px);
+  }
+}
+/* Presses INTO its own shadow, the way a physical key does. This is the
+   system's signature interaction and the reason the shadow exists at all. */
+.aol-rt__tab:active{ box-shadow:none; transform:translate(2px,2px); }
+.aol-rt__tab-name{
+  font-size:var(--text-md); font-weight:var(--weight-semibold);
+  line-height:var(--leading-snug);
+}
+.aol-rt__tab-count{
+  font-family:var(--font-mono); font-size:var(--text-xs);
+  font-variant-numeric:tabular-nums; font-style:normal; color:var(--text-faint);
+}
+
+/* The selected tab. `~` reaches forward from the input to the tab strip, which
+   is why the inputs have to sit first in the markup. */
+.aol-rt__input:nth-of-type(1):checked ~ .aol-rt__tabs .aol-rt__tab:nth-child(1),
+.aol-rt__input:nth-of-type(2):checked ~ .aol-rt__tabs .aol-rt__tab:nth-child(2),
+.aol-rt__input:nth-of-type(3):checked ~ .aol-rt__tabs .aol-rt__tab:nth-child(3){
+  background:var(--signal-tint); color:var(--text-strong);
+  box-shadow:var(--shadow-hard-blue);
+}
+.aol-rt__input:nth-of-type(1):checked ~ .aol-rt__tabs .aol-rt__tab:nth-child(1) .aol-rt__tab-count,
+.aol-rt__input:nth-of-type(2):checked ~ .aol-rt__tabs .aol-rt__tab:nth-child(2) .aol-rt__tab-count,
+.aol-rt__input:nth-of-type(3):checked ~ .aol-rt__tabs .aol-rt__tab:nth-child(3) .aol-rt__tab-count{
+  color:var(--signal);
+}
+/* Focus has to land on the LABEL, since the input itself is invisible. Without
+   this the keyboard user moves through the group with no idea where they are. */
+.aol-rt__input:nth-of-type(1):focus-visible ~ .aol-rt__tabs .aol-rt__tab:nth-child(1),
+.aol-rt__input:nth-of-type(2):focus-visible ~ .aol-rt__tabs .aol-rt__tab:nth-child(2),
+.aol-rt__input:nth-of-type(3):focus-visible ~ .aol-rt__tabs .aol-rt__tab:nth-child(3){
+  outline:2px solid var(--signal); outline-offset:2px;
+}
+
+.aol-rt__panel{ display:none; }
+.aol-rt__input:nth-of-type(1):checked ~ .aol-rt__panels .aol-rt__panel:nth-child(1),
+.aol-rt__input:nth-of-type(2):checked ~ .aol-rt__panels .aol-rt__panel:nth-child(2),
+.aol-rt__input:nth-of-type(3):checked ~ .aol-rt__panels .aol-rt__panel:nth-child(3){
+  display:block;
+}
+.aol-rt__blurb{
+  margin:0 0 var(--space-6); font-size:var(--text-sm); color:var(--text-muted);
+  max-width:60ch;
+}
+.aol-rt__panel .aol-rb__division + .aol-rb__division{ margin-top:var(--space-10); }
+
+@media (max-width:640px){
+  /* Three tabs across a phone leaves no room for the label, so the count goes
+     under the name rather than beside it and the icon is dropped. */
+  .aol-rt__tabs{ gap:6px; }
+  .aol-rt__tab{ grid-template-columns:minmax(0,1fr); gap:2px; padding:10px 12px; text-align:center; }
+  .aol-rt__tab > svg{ display:none; }
+  .aol-rt__tab-name{ font-size:var(--text-sm); }
+}
+
+/* ---- The panel, declared (.aol-panel) ---- */
+.aol-panel__list{
+  list-style:none; margin:0 0 var(--space-6); padding:0;
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr));
+  gap:var(--space-6);
+}
+.aol-panel__member{ display:grid; gap:3px; align-content:start; }
+.aol-panel__lab{
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  text-transform:uppercase; letter-spacing:.06em; color:var(--signal);
+}
+.aol-panel__name{
+  font-size:var(--text-md); font-weight:var(--weight-semibold);
+  color:var(--text-strong); line-height:var(--leading-snug);
+  display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;
+}
+.aol-panel__word{
+  font-family:var(--font-mono); font-size:var(--text-xs); font-style:normal;
+  color:var(--text-muted);
+}
+.aol-panel__spec{
+  margin:0; font-size:var(--text-sm); color:var(--text-muted);
+  line-height:var(--leading-normal);
+}
+.aol-panel__fallback{
+  margin:2px 0 0; font-family:var(--font-mono); font-size:var(--text-2xs);
+  color:var(--text-warm);
+}
+.aol-panel__writer{
+  display:grid; grid-template-columns:12px minmax(0,1fr); gap:0 8px;
+  align-items:start; margin:0 0 var(--space-8);
+  font-size:var(--text-sm); color:var(--text-muted); max-width:75ch;
+}
+.aol-panel__writer > svg{ margin-top:5px; color:var(--text-faint); }
+.aol-panel__writer strong{ color:var(--text-strong); font-weight:var(--weight-semibold); }
+
+/* ---- The two ranks (.aol-rmc__ranks) ----
+   The actual claim the page makes, so it leads. A score out of thirty is not a
+   statement; "2nd of 9 in emerging sell-side" is. */
+/* The two ranks, set as datasheet rows rather than cards.
+   The design context calls for figures over "generic card/shadow chrome", and
+   these ARE datasheet facts — a value, a leader, a label — so they get the same
+   dotted-leader treatment as .aol-specsheet rather than two bordered boxes. */
+.aol-rmc__ranks{
+  list-style:none; margin:0 0 var(--space-4); padding:0;
+  display:grid; gap:var(--space-3);
+}
+.aol-rmc__rank{
+  display:grid; grid-template-columns:auto 1fr auto;
+  align-items:baseline; gap:0 12px;
+}
+.aol-rmc__rank-n{
+  font-family:var(--font-mono); font-size:var(--text-2xl);
+  font-variant-numeric:tabular-nums; color:var(--signal);
+  line-height:1;
+}
+/* The leader. A repeating radial dot rather than a dashed border, so the dots
+   stay round and evenly spaced at any width instead of turning into dashes. */
+.aol-rmc__rank::after{
+  content:""; grid-column:2; align-self:center; height:2px; min-width:24px;
+  background-image:radial-gradient(circle, var(--ink-300) 1px, transparent 1px);
+  background-size:6px 2px; background-repeat:repeat-x;
+  transform:translateY(-2px);
+}
+.aol-rmc__rank-of{
+  grid-column:3; font-size:var(--text-sm); color:var(--text-muted);
+  text-align:right;
+}
+
+.aol-rmc__band-note,
+.aol-rmc__split{
+  display:grid; grid-template-columns:12px minmax(0,1fr); gap:0 8px;
+  align-items:start; margin:0 0 var(--space-6);
+  font-size:var(--text-sm); color:var(--text-muted); max-width:70ch;
+}
+.aol-rmc__band-note > svg{ margin-top:5px; color:var(--text-faint); }
+.aol-rmc__split{ color:var(--text-warm); }
+.aol-rmc__split > svg{ margin-top:5px; }
+.aol-rmc__split strong{ color:var(--text-strong); font-weight:var(--weight-semibold); }
+
+/* ---- One question, three panelists ---- */
+.aol-rmc__questions{ display:grid; gap:var(--space-12); margin-bottom:var(--space-4); }
+.aol-rmc__question-ask{
+  margin:6px 0 var(--space-6); font-size:var(--text-sm); color:var(--text-muted);
+}
+.aol-rmc__question-ask span{
+  display:block; font-family:var(--font-mono); font-size:var(--text-2xs);
+  text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint);
+  margin-top:3px;
+}
+.aol-rmc__takes{
+  list-style:none; margin:0; padding:0;
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr));
+  gap:var(--space-6);
+}
+.aol-rmc__take{ display:grid; gap:6px; align-content:start; }
+.aol-rmc__take-head{
+  display:grid; grid-template-columns:minmax(0,1fr) auto; gap:0 10px;
+  align-items:baseline;
+}
+.aol-rmc__take-who{
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted);
+  grid-column:1;
+}
+.aol-rmc__take-word{
+  grid-column:1; font-size:var(--text-sm); color:var(--text-strong);
+  font-weight:var(--weight-semibold);
+}
+.aol-rmc__take-score{
+  grid-column:2; grid-row:1 / span 2;
+  font-family:var(--font-mono); font-size:var(--text-lg);
+  font-variant-numeric:tabular-nums; color:var(--text-strong);
+  align-self:center;
+}
+.aol-rmc__take-score em{ font-style:normal; font-size:var(--text-xs); color:var(--text-faint); }
+.aol-rmc__take-why{
+  margin:2px 0 0; font-size:var(--text-sm); color:var(--text-muted);
+  line-height:var(--leading-normal);
+}
+
+.aol-rb__split{
+  display:inline-flex; align-items:center; gap:4px;
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  text-transform:uppercase; letter-spacing:.04em;
+  color:var(--text-warm); min-width:44px;
+}
+.aol-rb__out{
+  font-style:normal; font-size:var(--text-xs); color:var(--text-faint);
+}
+
+@media (max-width:640px){
+  /* The split marker and the /30 suffix are the first things to go — the row
+     has to keep rank, name and score legible above everything else. */
+  .aol-rb__split{ display:none; }
+  .aol-rb__out{ display:none; }
+  .aol-rmc__ranks{ grid-template-columns:minmax(0,1fr); }
+}
+
+/* Two panelists reaching for the same word is agreement, not repetition — the
+   multiplier is what makes a reader see it that way rather than as a bug. */
+.aol-rb__agree{
+  font-style:normal; margin-left:4px; color:var(--signal);
+  font-variant-numeric:tabular-nums;
+}

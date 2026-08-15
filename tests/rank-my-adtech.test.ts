@@ -40,7 +40,15 @@ describe("the designed failure", () => {
   // product rather than a red box. It has to name which part fell over.
   it("names the stage and speaks in the tool's voice", () => {
     expect(failure("read").headline).toMatch(/could not get a look/i);
-    expect(failure("score").headline).toMatch(/declined/i);
+    expect(failure("panel").headline).toMatch(/did not sit/i);
+    expect(failure("write").headline).toMatch(/nobody would write it up/i);
     expect(failure("read").status).toBe("failed");
+  });
+
+  it("explains a short panel as a refusal, not an error", () => {
+    // The reason a two-juror panel is refused is comparability, and the copy
+    // has to carry that or it reads as an ordinary outage the user should
+    // shrug at. This is the one failure with an actual argument in it.
+    expect(failure("panel").detail).toMatch(/comparable/i);
   });
 });

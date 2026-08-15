@@ -1,50 +1,59 @@
 /**
  * Rank My AdTech — the ranking pipeline.
  *
- * Someone submits a company URL. We read four or five of its pages, look at
- * what GTM tooling the markup gives away, check it is not past a Series B, and
- * ask one model to score it on the four dimensions And/or Labs sells against.
+ * Someone submits a company URL. We read four or five of its pages, work out
+ * what the company is and where it sits, then put it in front of three models
+ * from three different labs and have a fourth write up what they said.
  *
  * The shape, in order, and why each step sits where it does:
  *
- *   crawl   Four or five pages, not one. A homepage is written to impress, so
- *           scoring from it alone measures copywriting. The about, pricing,
- *           careers and blog pages are where a company accidentally tells you
- *           the truth.
- *   stack   Read from markup. Free, precise, and the evidence behind the GTM
- *           maturity dimension.
- *   stage   A one-sided "too big" test over structural signals — announced
- *           rounds, job boards, offices — and never over tone. Marketing copy
- *           exists to make a company sound established, so inferring stage from
- *           it is biased upward by construction. That bug put a seed company in
- *           the same division as The Trade Desk once already.
- *   score   ONE model call. The three-model panel it replaces existed so that
- *           disagreement was itself the product; this tool sells something
- *           else, so the budget moves from breadth of opinion to depth of
- *           evidence.
+ *   crawl     Four or five pages, not one. A homepage is written to impress, so
+ *             judging from it alone measures copywriting. The about, pricing,
+ *             careers and blog pages are where a company accidentally tells you
+ *             the truth.
+ *   identify  One cheap call: is this adtech, what is it called, which
+ *             subcategory. Deliberately separate from judging — a model that
+ *             has just decided a company is unimpressive should not also be
+ *             choosing which cohort it competes in.
+ *   place     Public companies refused outright. Band read from structural
+ *             evidence (an announced round, an accelerator batch) and never
+ *             from tone; side derived from subcategory by lookup, so the two
+ *             can never contradict each other.
+ *   panel     THREE model calls, in parallel, to three labs. Each answers all
+ *             three questions against anchored 0-10 scales. The parallelism is
+ *             the isolation: they cannot see each other by construction.
+ *   write     A fourth model, from a fourth family, reads all nine answers and
+ *             writes the paragraph. It scores nothing, which is what lets it
+ *             report a split honestly rather than defend a number.
  *
- * Two rules carried over, both learned the hard way: the total is arithmetic in
- * code and the model is never asked for one, and a provider is a LADDER whose
- * rung fails on an unusable answer rather than merely on an HTTP error.
+ * Three rules carried over, all learned the hard way: totals are arithmetic in
+ * code and never asked of a model; a provider is a LADDER whose rung fails on an
+ * unusable answer rather than merely on an HTTP error; and a ranking publishes
+ * complete or not at all.
  *
  * Required environment:
  *   RANKINGS         D1 binding, configured on the Pages project itself rather
  *                    than in a wrangler config file — Pages does not support
  *                    partial configuration, so a root wrangler.toml would take
  *                    over the namespace holding this project's secrets.
- *   GEMINI_API_KEY / NVIDIA_API_KEY / OPENCODE_API_KEY   the scorer's ladder
+ *   GEMINI_API_KEY / NVIDIA_API_KEY / OPENCODE_API_KEY   one per panel seat,
+ *                    and all three are required: the panel refuses to sit short.
  *   LOOPS_API_KEY    optional; only used when a submission carries an email
  *   DEPLOY_HOOK_URL  the board is static, so a ranking is invisible until a
  *                    build runs
  */
 
 import { readSite } from "../_lib/crawl";
-import { detectStack, byCategory, coreCoverage } from "../_lib/stack";
-import { assessStage, countOpenRoles, tooBigMessage } from "../_lib/stage";
+import { detectStack, byCategory } from "../_lib/stack";
 import { resolveLogo } from "../_lib/logo";
+
 import {
-  buildPrompt, normalizeScore, assertScoreUsable, DIMENSIONS, categoryLabel,
-} from "../_lib/score";
+  buildIdentifyPrompt, normalizeIdentity, assertIdentityUsable,
+  place, placeFromMarkup, sideFor, cohortLabel, categoryLabel, categoryFor,
+  CATEGORIES, BAND_LABELS, SIDE_LABELS,
+} from "../_lib/classify";
+import { runPanel, resolveRecall, QUESTIONS, WRITER, PANELISTS } from "../_lib/panel";
+import { buildWriterPrompt, normalizeSummary, assertSummaryUsable } from "../_lib/writer";
 import { askLadder, extractJson, keyFor, type Provider } from "../_lib/providers";
 
 interface Env {
@@ -143,21 +152,32 @@ async function hashIp(ip: string): Promise<string> {
 /**
  * A ranking publishes complete or it does not publish.
  *
- * That is a deliberate trade — a half-scored page under a promise of four
- * dimensions is worse than an outage — so the failure has to read as part of
- * the bit rather than as a red box. Each stage names which part fell over.
+ * That is a deliberate trade — a page with two of three panelists on it is
+ * worse than an outage, because its numbers would not be comparable to any
+ * other row on the board — so the failure has to read as part of the bit rather
+ * than as a red box. Each stage names which part fell over.
  */
-export function failure(stage: "read" | "score") {
+export function failure(stage: "read" | "identify" | "panel" | "write") {
   const copy = {
     read: {
       headline: "We could not get a look at them.",
       detail:
         "We fetched that site and came back with almost nothing. Either it is very well defended, it renders entirely in the browser, or we are having a bad afternoon. The authorities have been notified.",
     },
-    score: {
-      headline: "Every judge we own declined.",
+    identify: {
+      headline: "We could not work out what they are.",
       detail:
-        "The pages were read and the evidence gathered, and then not one model would produce something printable in front of an audience. Try again shortly.",
+        "The pages came back and then nothing would tell us what business this is. That is usually the site's fault and occasionally ours. Try again shortly.",
+    },
+    panel: {
+      headline: "The panel did not sit.",
+      detail:
+        "Three judges are required and fewer than three turned up, so there is no ranking rather than a smaller one. A panel of two would not be comparable to anything else on this board. Try again shortly.",
+    },
+    write: {
+      headline: "The panel voted. Nobody would write it up.",
+      detail:
+        "All nine ratings came back and then the writer declined to put its name to a paragraph. Genuinely the funniest way this can fail. Try again shortly.",
     },
   }[stage];
   return { status: "failed" as const, stage, ...copy };
@@ -289,62 +309,123 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (!site.html) return json(failure("read"), 502);
 
   const detected = detectStack(site.html);
-  const openRoles = countOpenRoles(site.html);
 
-  // ── Stage: structural evidence, never tone ────────────────────────────────
-  const stageVerdict = assessStage({
-    text: site.pages,
-    html: site.html,
-    detected,
-    sitemapUrlCount: site.sitemapUrlCount ?? undefined,
-  });
-  if (stageVerdict.tooBig) {
-    return json({
-      status: "too-big",
-      domain,
-      verdict: tooBigMessage(stageVerdict, site.titles[0] ?? domain),
-    }, 200);
-  }
-
-  // ── Score ─────────────────────────────────────────────────────────────────
-  const prompt = buildPrompt({
-    domain,
-    pages: site.pages,
-    detected,
-    coreCoverage: coreCoverage(detected),
-    openRoles,
-    sitemapUrlCount: site.sitemapUrlCount,
-    stageNotes: stageVerdict.soft,
-    thin: site.thin,
-  });
-
-  let scored: ReturnType<typeof normalizeScore> | undefined;
-  for (const provider of ["opencode", "nvidia", "gemini"] as Provider[]) {
+  // ── Identify ──────────────────────────────────────────────────────────────
+  // Any provider will do here; this is a factual question, not a judgement, so
+  // it takes the first ladder that answers rather than a named seat.
+  const identifyPrompt = buildIdentifyPrompt(domain, site.pages, site.thin);
+  let identity: ReturnType<typeof normalizeIdentity> | undefined;
+  for (const provider of ["gemini", "opencode", "nvidia"] as Provider[]) {
     if (!keyFor(provider, env)) continue;
     try {
-      const { value, model } = await askLadder(provider, env, prompt, (text) =>
-        assertScoreUsable(normalizeScore(extractJson(text))),
+      const { value } = await askLadder(provider, env, identifyPrompt, (text) =>
+        assertIdentityUsable(normalizeIdentity(extractJson(text))),
       );
-      console.log(`[rank] ${domain} scored by ${model}`);
-      scored = value;
+      identity = value;
       break;
     } catch (err) {
-      console.error(`[rank] ${provider} exhausted:`, err);
+      console.error(`[rank] identify: ${provider} exhausted:`, err);
     }
   }
-  if (!scored) return json(failure("score"), 502);
+  if (!identity) return json(failure("identify"), 502);
 
-  if (!scored.eligible) {
+  if (!identity.eligible) {
     return json({
       status: "not-eligible",
       domain,
-      name: scored.name,
-      verdict: scored.ineligibleReason || "We could not find an AI-native adtech company here.",
+      name: identity.name,
+      verdict: identity.ineligibleReason || "We could not find an adtech company here.",
     }, 200);
   }
 
+  /**
+   * Refuse public companies BEFORE the panel, not after.
+   *
+   * Placement proper needs the panel's recall and so has to run later, but the
+   * public check is pure markup and costs nothing. Running it here means a
+   * listed company is turned away after one small call instead of after three
+   * panel calls and a writer.
+   */
+  const markup = placeFromMarkup(site.html, site.pages);
+  if (markup.isPublic) {
+    return json({
+      status: "not-eligible",
+      domain,
+      name: identity.name,
+      verdict: `This is a public company — it ${markup.isPublic}. The board is for startups, and a startup with a ticker symbol is just a company.`,
+    }, 200);
+  }
+
+  // ── The panel ─────────────────────────────────────────────────────────────
+  let panel: Awaited<ReturnType<typeof runPanel>>;
+  try {
+    panel = await runPanel(env, {
+      domain, pages: site.pages, thin: site.thin, categories: CATEGORIES,
+    });
+  } catch (err) {
+    console.error(`[rank] ${domain}: ${err instanceof Error ? err.message : err}`);
+    return json(failure("panel"), 502);
+  }
+
+  /**
+   * ── Place, on the panel's evidence ──────────────────────────────────────
+   *
+   * Both facts the board's structure depends on are resolved by majority
+   * across three labs rather than by any single call. Category decides which
+   * two tables a company appears in, so one model's bad afternoon used to
+   * shift every rank around it; requiring two independent models to agree is
+   * what stopped that.
+   */
+  const recall = resolveRecall(panel.takes);
+  // A human correction beats the panel — see CATEGORY_OVERRIDES.
+  const category = categoryFor(domain, recall.category, identity.category);
+
+  const placement = place(site.html, site.pages, identity.stage, recall);
+  if (!placement.eligible) {
+    return json({ status: "not-eligible", domain, name: identity.name, verdict: placement.reason }, 200);
+  }
+  const side = sideFor(category);
+  const cohort = cohortLabel(placement.band, side);
+
+  console.log(
+    `[rank] ${domain} — ${panel.total}/30 · ${cohort} · ${category}` +
+    ` (cat ${recall.categoryVotes}/3, round ${recall.round || "none"} ${recall.roundVotes}/3)` +
+    ` by ${panel.takes.map((t) => t.modelUsed).join(", ")}`,
+  );
+
+  // ── The write-up ──────────────────────────────────────────────────────────
+  // The writer is pinned to its own model rather than taking whatever the
+  // OpenCode ladder prefers, because the panel section names it on the page.
+  let summary: string;
+  try {
+    const { value } = await askLadder(
+      WRITER.provider,
+      env,
+      buildWriterPrompt({
+        name: identity.name,
+        oneLiner: identity.oneLiner,
+        categoryLabel: categoryLabel(category),
+        cohort,
+        panel,
+      }),
+      (text) => assertSummaryUsable(normalizeSummary(extractJson(text))),
+      {
+        preferred: WRITER.model,
+        // The one call in the pipeline that is NOT at temperature 0. Scores have
+        // to be repeatable; prose does not, and a joke sampled greedily is the
+        // most obvious joke available. The numbers this paragraph describes are
+        // already fixed, so nothing rankable moves when this varies.
+        temperature: 0.8,
+      },
+    );
+    summary = value;
+  } catch (err) {
+    console.error(`[rank] writer failed:`, err);
+    return json(failure("write"), 502);
+  }
+
   // ── Persist ───────────────────────────────────────────────────────────────
-  let slug = slugify(scored.name) || slugify(domain);
+  let slug = slugify(identity.name) || slugify(domain);
   if (RESERVED_SLUGS.has(slug)) slug = `${slug}-${slugify(domain).slice(0, 12)}`;
   const clash = await env.RANKINGS.prepare("SELECT 1 FROM company WHERE slug = ?").bind(slug).first();
   if (clash) slug = `${slug}-${slugify(domain).slice(0, 12)}`;
@@ -359,52 +440,80 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   ).bind(domain).run();
 
   const companyRow = await env.RANKINGS.prepare(
-    `INSERT INTO company (domain, name, slug, logo_url, one_liner, division, category, stage, provisional)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+    `INSERT INTO company (domain, name, slug, logo_url, one_liner, division, category, stage,
+                          band, side, band_evidence, band_inferred, provisional)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
   ).bind(
-    domain, scored.name, slug, logo, scored.oneLiner,
-    // `division` is legacy and still NOT NULL. Stage supersedes it; the column
-    // goes once the pages stop reading it.
+    domain, identity.name, slug, logo, identity.oneLiner,
+    // `division` is legacy and still NOT NULL. Band supersedes it; the column
+    // goes once nothing reads it.
     "middleweight",
-    scored.category, scored.stage,
-    site.thin || stageVerdict.noEvidence ? 1 : 0,
+    category, identity.stage,
+    placement.band, side, placement.bandEvidence, placement.bandInferred ? 1 : 0,
+    site.thin ? 1 : 0,
   ).first<{ id: number }>();
 
   if (!companyRow?.id) return json({ error: "Could not save that ranking." }, 500);
 
-  const detail = Object.fromEntries(
-    DIMENSIONS.map((d) => [d.key, {
-      reasoning: scored!.dimensions[d.key].reasoning,
-      improve: scored!.dimensions[d.key].improve,
-      keyword: scored!.dimensions[d.key].keyword,
-    }]),
-  );
-
-  await env.RANKINGS.prepare(
-    `INSERT INTO ranking (company_id, total, positioning, content, gtm_stack, innovation,
-                          detail_json, verdict, stack_json)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  const rankingRow = await env.RANKINGS.prepare(
+    `INSERT INTO ranking (company_id, total, innovation, difficulty, investability,
+                          split_question, split_spread, summary, stack_json)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
   ).bind(
-    companyRow.id, scored.total,
-    scored.dimensions.positioning.score, scored.dimensions.content.score,
-    scored.dimensions.gtm_stack.score, scored.dimensions.innovation.score,
-    JSON.stringify(detail), scored.verdict, JSON.stringify(byCategory(detected)),
-  ).run();
+    companyRow.id, panel.total,
+    panel.means.innovation, panel.means.difficulty, panel.means.investability,
+    panel.split?.question ?? null, panel.split?.spread ?? 0,
+    summary, JSON.stringify(byCategory(detected)),
+  ).first<{ id: number }>();
+
+  if (!rankingRow?.id) return json({ error: "Could not save that ranking." }, 500);
+
+  // One row per panelist. Batched so three takes land together or not at all —
+  // a ranking with two of its three takes written would render as a short panel
+  // and be indistinguishable on the page from one that legitimately sat two.
+  await env.RANKINGS.batch(
+    panel.takes.map((take) =>
+      env.RANKINGS.prepare(
+        `INSERT INTO panel_take (ranking_id, panelist_id, model_used,
+                                 innovation, difficulty, investability, ratings_json, adjective)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(
+        rankingRow.id, take.panelistId, take.modelUsed,
+        take.ratings.innovation.score, take.ratings.difficulty.score,
+        take.ratings.investability.score,
+        JSON.stringify(take.ratings), take.adjective,
+      ),
+    ),
+  );
 
   await triggerRebuild(env);
 
   return json({
     status: "ranked",
     slug, domain,
-    name: scored.name,
-    oneLiner: scored.oneLiner,
+    name: identity.name,
+    oneLiner: identity.oneLiner,
     logo,
-    category: scored.category,
-    categoryLabel: categoryLabel(scored.category),
-    stage: scored.stage,
-    total: scored.total,
-    dimensions: scored.dimensions,
-    verdict: scored.verdict,
+    category,
+    categoryLabel: categoryLabel(category),
+    band: placement.band,
+    bandLabel: BAND_LABELS[placement.band],
+    bandEvidence: placement.bandEvidence,
+    bandInferred: placement.bandInferred,
+    side,
+    sideLabel: SIDE_LABELS[side],
+    cohort,
+    recall,
+    total: panel.total,
+    means: panel.means,
+    split: panel.split,
+    questions: QUESTIONS.map((q) => ({ key: q.key, label: q.label })),
+    panel: panel.takes.map((t) => ({
+      ...t,
+      name: PANELISTS.find((p) => p.id === t.panelistId)?.name ?? t.panelistId,
+      lab: PANELISTS.find((p) => p.id === t.panelistId)?.lab ?? "",
+    })),
+    summary,
     stack: byCategory(detected),
   }, 200);
 };

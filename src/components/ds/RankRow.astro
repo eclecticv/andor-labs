@@ -1,22 +1,26 @@
 ---
-// One leaderboard row. Extracted so the flat preview on the landing page, the
-// divisional tables on the leaderboard, and the rows hidden behind "show the
+// One leaderboard row. Extracted so the preview on the landing page, the
+// sectioned tables on the leaderboard, and the rows hidden behind "show the
 // rest" are all literally the same markup — three near-copies of a row is how
 // a board starts drifting between the places it appears.
 import PixelIcon from "./PixelIcon.astro";
-import { scoreBand, categoryLabel, keywordsFor, type Entry } from "../../lib/rankings";
+import { scoreBand, categoryLabel, adjectivesFor, fmt, type Entry } from "../../lib/rankings";
 
 interface Props {
   entry: Entry;
   rank: number;
-  /** Division leader — takes the crown. */
+  /** Section leader — takes the crown. */
   leader?: boolean;
   /** Best score on the whole board — takes the trophy instead. */
   champion?: boolean;
 }
 const { entry, rank, leader = false, champion = false } = Astro.props;
 const band = scoreBand(entry.total);
-const keywords = keywordsFor(entry);
+
+// One word from each panelist, in panel order. Three labs disagreeing in
+// public is the row's actual payload — a score says how a company did, three
+// words say how much the room agreed about it.
+const adjectives = adjectivesFor(entry);
 ---
 
 <li class="aol-rb__row">
@@ -48,19 +52,34 @@ const keywords = keywordsFor(entry);
         ) : null}
       </span>
 
-      {/* Category and stage, not the one-liner. The one-liner is the company's
-          own description of itself and every row of it reads the same; where a
-          company sits in the supply chain is the thing you actually scan for. */}
+      {/* Category and the panel's three words, not the one-liner. The one-liner
+          is the company's own description of itself and every row of it reads
+          the same. */}
       <span class="aol-rb__keywords">
         <span class="aol-rb__keyword aol-rb__keyword--cat">{categoryLabel(entry.category)}</span>
-        {keywords.map((k) => <span class="aol-rb__keyword">{k}</span>)}
+        {adjectives.map(({ word, count }) => (
+          <span class="aol-rb__keyword"
+            title={count > 1 ? `${count} of the three panelists chose this word` : undefined}>
+            {word}{count > 1 ? <em class="aol-rb__agree">×{count}</em> : null}
+          </span>
+        ))}
       </span>
     </span>
+
+    {/* A wide split is the most interesting thing a row can carry, so it gets a
+        mark of its own rather than being averaged into silence. */}
+    {entry.split_spread >= 3 ? (
+      <span class="aol-rb__split" title={`The panel disagreed by ${entry.split_spread} points`}>
+        <PixelIcon name="vote-yeah" size={12} /> split
+      </span>
+    ) : (
+      <span class="aol-rb__split" aria-hidden="true"></span>
+    )}
 
     <span class:list={["aol-rb__band", band.solid && "aol-rb__band--solid"]} title={band.label}>
       <PixelIcon name={band.icon as any} size={24} />
     </span>
 
-    <span class="aol-rb__score">{entry.total}</span>
+    <span class="aol-rb__score">{fmt(entry.total)}<em class="aol-rb__out">/30</em></span>
   </a>
 </li>

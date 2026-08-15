@@ -19,6 +19,7 @@
  * scoreboard better than the display serif would have anyway.
  */
 import { ImageResponse } from "workers-og";
+import { categoryLabel, SIDE_LABELS, type Side } from "../../_lib/classify";
 
 interface Env {
   RANKINGS: D1Database;
@@ -28,13 +29,15 @@ interface Row {
   name: string;
   domain: string;
   one_liner: string | null;
-  division: string;
+  side: Side;
+  category: string | null;
   provisional: number;
   total: number;
-  paradigm: number;
-  non_obviousness: number;
-  vibe_code: number;
-  conviction: number;
+  innovation: number;
+  difficulty: number;
+  investability: number;
+  /** The three panelists' words, comma-joined by the query. */
+  adjectives: string | null;
 }
 
 /** Cached per isolate — the font is ~40KB and never changes between requests. */
@@ -52,8 +55,12 @@ async function loadFont(origin: string): Promise<ArrayBuffer | null> {
   }
 }
 
+/** Thresholds are out of 30 — see scoreBand in src/lib/rankings.ts. */
 const BAND = (total: number) =>
-  total >= 85 ? "ON FIRE" : total >= 70 ? "GENUINELY INTERESTING" : total >= 40 ? "THE PANEL IS THINKING" : "BRUTAL";
+  total >= 24 ? "ON FIRE" : total >= 19 ? "GENUINELY INTERESTING" : total >= 12 ? "THE PANEL IS THINKING" : "BRUTAL";
+
+/** 20.1 renders as "20.1", 20 as "20". Never "20.0". */
+const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
 /** Escape for embedding untrusted strings into the card's HTML. */
 const esc = (s: string) =>
@@ -94,8 +101,10 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env, request })
   if (!slug) return new Response("Not found", { status: 404 });
 
   const row = await env.RANKINGS.prepare(
-    `SELECT c.name, c.domain, c.one_liner, c.division, c.provisional,
-            r.total, r.paradigm, r.non_obviousness, r.vibe_code, r.conviction
+    `SELECT c.name, c.domain, c.one_liner, c.side, c.category, c.provisional,
+            r.total, r.innovation, r.difficulty, r.investability,
+            (SELECT group_concat(p.adjective, ', ') FROM panel_take p
+              WHERE p.ranking_id = r.id) AS adjectives
      FROM company c JOIN ranking r ON r.company_id = c.id
      WHERE c.slug = ? AND c.status = 'published'`,
   )
@@ -104,13 +113,13 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env, request })
 
   if (!row) return new Response("Not found", { status: 404 });
 
-  // Is this company top of its own division? That earns the crown line.
+  // Is this company top of its own side? That earns the crown line.
   const leader = await env.RANKINGS.prepare(
     `SELECT c.slug FROM company c JOIN ranking r ON r.company_id = c.id
-     WHERE c.division = ? AND c.status = 'published'
+     WHERE c.side = ? AND c.status = 'published'
      ORDER BY r.total DESC, c.name ASC LIMIT 1`,
   )
-    .bind(row.division)
+    .bind(row.side)
     .first<{ slug: string }>();
 
   const origin = new URL(request.url).origin;
@@ -122,7 +131,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env, request })
       <div style="display:flex;width:420px;height:10px;background:#E9EBEF;border-radius:999px">
         <div style="display:flex;width:${Math.round((value / max) * 420)}px;height:10px;background:#1B4DFF;border-radius:999px"></div>
       </div>
-      <div style="display:flex;margin-left:20px;font-size:22px;color:#14151A">${value}/${max}</div>
+      <div style="display:flex;margin-left:20px;font-size:22px;color:#14151A">${fmt(value)}/${max}</div>
     </div>`;
 
   const html = `
@@ -131,7 +140,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env, request })
 
       <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
         <div style="display:flex;font-size:22px;color:#1B4DFF">And/or Labs · RANK MY ADTECH</div>
-        <div style="display:flex;font-size:18px;color:#7E4A24;letter-spacing:2px">${esc(plain(row.division).toUpperCase())}${row.provisional ? " · PROVISIONAL" : ""}</div>
+        <div style="display:flex;font-size:18px;color:#7E4A24;letter-spacing:2px">${esc(plain(`${SIDE_LABELS[row.side] ?? ""} · ${categoryLabel(row.category ?? "")}`).toUpperCase())}${row.provisional ? " · PROVISIONAL" : ""}</div>
       </div>
 
       <div style="display:flex;align-items:center;width:100%;margin-top:34px">
@@ -141,8 +150,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env, request })
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;width:356px">
           <div style="display:flex;align-items:flex-end">
-            <div style="display:flex;font-size:132px;color:#14151A;line-height:1">${row.total}</div>
-            <div style="display:flex;font-size:28px;color:#6D717B;margin-bottom:14px">/100</div>
+            <div style="display:flex;font-size:132px;color:#14151A;line-height:1">${fmt(row.total)}</div>
+            <div style="display:flex;font-size:28px;color:#6D717B;margin-bottom:14px">/30</div>
           </div>
           <div style="display:flex;font-size:18px;color:#1B4DFF;letter-spacing:2px">${BAND(row.total)}</div>
         </div>
@@ -151,14 +160,17 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env, request })
       <div style="display:flex;width:100%;height:1px;background:#EAD9D9;margin:30px 0 26px"></div>
 
       <div style="display:flex;flex-direction:column;width:100%">
-        ${axis("PARADIGM", row.paradigm, 40)}
-        ${axis("NON-OBVIOUSNESS", row.non_obviousness, 25)}
-        ${axis("VIBE-CODE TEST", row.vibe_code, 20)}
-        ${axis("CONVICTION", row.conviction, 15)}
+        ${axis("INNOVATION", row.innovation, 10)}
+        ${axis("HARD TO BUILD", row.difficulty, 10)}
+        ${axis("WOULD YOU INVEST", row.investability, 10)}
       </div>
 
       <div style="display:flex;justify-content:space-between;width:100%;margin-top:auto;font-size:18px;color:#6D717B">
-        <div style="display:flex">${leader?.slug === slug ? "CHAMPION OF ITS DIVISION" : "JUDGED BY THREE MODELS"}</div>
+        <div style="display:flex">${
+          row.adjectives
+            ? esc(plain(row.adjectives).toUpperCase())
+            : leader?.slug === slug ? "TOP OF ITS SIDE" : "JUDGED BY THREE LABS"
+        }</div>
         <div style="display:flex">andorlabs.ca/tools/rank-my-adtech</div>
       </div>
     </div>

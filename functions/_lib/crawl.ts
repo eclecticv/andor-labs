@@ -17,17 +17,31 @@
 
 const UA = "Mozilla/5.0 (compatible; AndorLabsResearchBot/1.0; +https://andorlabs.ca)";
 
-/** Pages worth having, in the order we would give them up. */
+/**
+ * Pages worth having, in the order we would give them up.
+ *
+ * News and Press sit near the top because of a measurement, not a hunch: a
+ * crawl of 28 real adtech sites found structural funding evidence on 7% of
+ * them, and the reason is that companies do not put "we raised a Series B" on
+ * the homepage — they put it in a press release and link it from a news index.
+ * Those pages are where stage is actually stated in the company's own words.
+ */
 const WANTED: { label: string; test: RegExp }[] = [
   { label: "About", test: /\/(about|company|team|who-we-are)\/?$/i },
+  { label: "News", test: /\/(news|press|newsroom|press-releases?|media)\/?$/i },
+  { label: "Investors", test: /\/(investors?|funding|backers)\/?$/i },
   { label: "Pricing", test: /\/(pricing|plans)\/?$/i },
   { label: "Product", test: /\/(product|platform|features|solutions?)\/?$/i },
   { label: "Customers", test: /\/(customers?|case-stud(y|ies)|clients)\/?$/i },
   { label: "Careers", test: /\/(careers?|jobs|hiring|join-us)\/?$/i },
-  { label: "Blog", test: /\/(blog|resources|insights|news)\/?$/i },
+  { label: "Blog", test: /\/(blog|resources|insights)\/?$/i },
 ];
 
-const MAX_EXTRA_PAGES = 4;
+// Raised from 4 to 6 to fit News and Investors without evicting About or
+// Pricing. Each extra page is one more parallel GET against a host we are
+// already talking to, which is cheap; the real ceiling is the prompt budget,
+// and these pages are short.
+const MAX_EXTRA_PAGES = 6;
 
 export interface SiteRead {
   /** Page text, each section headed, ready to drop into the prompt. */

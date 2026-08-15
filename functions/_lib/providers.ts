@@ -32,16 +32,24 @@ export interface ProviderEnv {
  * is worth less than a slightly smaller juror that answers.
  */
 /**
- * 3.6 leads, not 3.7. The newer model is in the catalogue and advertises
- * generateContent, but returns 503 on every call we have made — so putting it
- * first bought nothing and cost a wasted round trip on every ranking. It stays
- * on the ladder because a 503 is the kind of thing that comes back.
+ * 3.5 leads, and the newer models sit below it.
+ *
+ * Which is backwards from how a ladder normally reads, and is measured rather
+ * than assumed: 3.7 has 503'd on every call since it appeared, and as of
+ * 2026-08-15 so does 3.6. Leading with them bought nothing and cost TWO wasted
+ * round trips on every Gemini call — and this pipeline makes two of those per
+ * ranking, so it was four dead calls per company.
+ *
+ * They stay on the ladder rather than being deleted, because a 503 is a
+ * capacity signal and capacity comes back. When it does, this order should be
+ * reverted — the comment is here so the next person knows it was deliberate and
+ * what would justify undoing it.
  */
 const GEMINI_MODELS = [
-  "gemini-3.6-flash",
-  "gemini-3.7-flash",
   "gemini-3.5-flash",
   "gemini-3.5-flash-lite",
+  "gemini-3.6-flash",
+  "gemini-3.7-flash",
 ];
 const geminiEndpoint = (model: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
@@ -138,15 +146,78 @@ export async function nimCandidates(key: string, override?: string): Promise<str
 }
 
 
-export async function callGemini(key: string, model: string, prompt: string): Promise<string> {
-  const res = await fetch(`${geminiEndpoint(model)}?key=${key}`, {
+/**
+ * Temperature 0 everywhere by default.
+ *
+ * The board asks a company to accept a public number, so re-running a ranking
+ * has to land in roughly the same place or the number means nothing. Sampling
+ * at 0.7 was right when the output was a one-off verdict for entertainment; it
+ * is wrong now that the output is a rank other companies are sorted against.
+ *
+ * Worth being clear about what this does and does not buy: temperature 0 makes
+ * the SAMPLING deterministic, not the scoring. Two runs can still differ if the
+ * provider silently updates a model, or if the ladder seats a different rung.
+ * The heavier lever is in the prompt — anchored scales, so the model classifies
+ * against fixed definitions instead of inventing a scale each time.
+ */
+const DEFAULT_TEMPERATURE = 0;
+
+/**
+ * No model call may hang forever.
+ *
+ * The ladder's entire premise is that it moves on when a rung fails — but a
+ * provider that accepts the connection and then goes quiet never fails, so the
+ * ladder never advances and the ranking stops dead. Observed locally: one call
+ * held a run for over ten minutes without erroring, and it would have held it
+ * indefinitely.
+ *
+ * In production the shape is worse than slow. The Function would keep its
+ * request open until Cloudflare kills it, so the visitor gets a dropped
+ * connection rather than the designed failure card — the one outcome this
+ * pipeline is built to avoid.
+ *
+ * 75 seconds is generous for a reasoning model writing three summaries (the
+ * slowest legitimate call measured was ~50s) and short enough that all three
+ * rungs of a ladder can still be tried inside a request.
+ */
+const CALL_TIMEOUT_MS = 75_000;
+
+/**
+ * Fetch with a deadline, reporting a timeout as a timeout.
+ *
+ * The distinction matters in the ladder's failure log: "timed out" tells you a
+ * provider is degraded, where a bare "network error" reads as a blip and gets
+ * ignored.
+ */
+async function fetchWithDeadline(url: string, init: RequestInit, label: string): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), CALL_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error(`${label} timed out after ${CALL_TIMEOUT_MS / 1000}s`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function callGemini(
+  key: string,
+  model: string,
+  prompt: string,
+  temperature = DEFAULT_TEMPERATURE,
+): Promise<string> {
+  const res = await fetchWithDeadline(`${geminiEndpoint(model)}?key=${key}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.7, responseMimeType: "application/json" },
+      generationConfig: { temperature, responseMimeType: "application/json" },
     }),
-  });
+  }, model);
   if (!res.ok) throw new Error(`gemini ${res.status}`);
   const body = (await res.json()) as {
     candidates?: { content?: { parts?: { text?: string }[] } }[];
@@ -162,13 +233,14 @@ export async function callOpenAICompatible(
   key: string,
   model: string,
   prompt: string,
+  temperature = DEFAULT_TEMPERATURE,
 ): Promise<string> {
-  const res = await fetch(`${base}/chat/completions`, {
+  const res = await fetchWithDeadline(`${base}/chat/completions`, {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
     body: JSON.stringify({
       model,
-      temperature: 0.7,
+      temperature,
       /**
        * Sized for a REASONING model, not for the answer.
        *
@@ -181,14 +253,20 @@ export async function callOpenAICompatible(
        * Raised again to 4000 once jurors began returning several sentences of
        * reasoning rather than one line: deepseek-v4-pro reasons too, and at
        * 2500 it spent the whole budget thinking and returned nothing, costing a
-       * full round trip before the ladder moved on. Headroom here is far
-       * cheaper than a wasted call.
+       * full round trip before the ladder moved on.
+       *
+       * And again to 8000 when the panel prompt grew a category vote and a
+       * funding question. deepseek-v4-pro began failing "truncated before
+       * answering" on EVERY call, so its seat was silently standing down and
+       * Qwen was answering in its place — the declared panel was not the panel
+       * that turned up. Each of those cost two dead calls before the ladder
+       * found someone, so the headroom buys throughput as well as correctness.
        */
-      max_tokens: 4000,
+      max_tokens: 8000,
       response_format: { type: "json_object" },
       messages: [{ role: "user", content: prompt }],
     }),
-  });
+  }, model);
   if (!res.ok) {
     // Zen reports an exhausted balance as a 401, which is indistinguishable
     // from a bad key at the status line. Carry the body so the log says which.
@@ -231,9 +309,35 @@ export function keyFor(provider: Provider, env: ProviderEnv): string | undefined
       : env.OPENCODE_API_KEY;
 }
 
-export async function askOnce(provider: Provider, key: string, model: string, prompt: string) {
-  if (provider === "gemini") return callGemini(key, model, prompt);
-  return callOpenAICompatible(provider === "nvidia" ? NIM_BASE : OPENCODE_BASE, key, model, prompt);
+export async function askOnce(
+  provider: Provider,
+  key: string,
+  model: string,
+  prompt: string,
+  temperature = DEFAULT_TEMPERATURE,
+) {
+  if (provider === "gemini") return callGemini(key, model, prompt, temperature);
+  return callOpenAICompatible(
+    provider === "nvidia" ? NIM_BASE : OPENCODE_BASE,
+    key,
+    model,
+    prompt,
+    temperature,
+  );
+}
+
+export interface LadderOptions {
+  /**
+   * Put this model at the top of the ladder if the provider has it.
+   *
+   * The panel names its members on the page, with their published architecture
+   * next to them. If the ladder seated whichever model it happened to prefer,
+   * those bios would describe a model that did not answer — so a panelist's
+   * declared model leads its own ladder, and the seat records what actually
+   * answered so a fallback is visible rather than silent.
+   */
+  preferred?: string;
+  temperature?: number;
 }
 
 /**
@@ -250,17 +354,29 @@ export async function askLadder<T>(
   env: ProviderEnv,
   prompt: string,
   accept: (text: string, model: string) => T,
+  options: LadderOptions = {},
 ): Promise<{ model: string; value: T }> {
   const key = keyFor(provider, env);
   if (!key) throw new Error(`${provider}: no key configured`);
 
-  const models = await modelsFor(provider, env);
-  if (!models.length) throw new Error(`${provider}: no candidate models`);
+  const available = await modelsFor(provider, env);
+  if (!available.length) throw new Error(`${provider}: no candidate models`);
+
+  // The preferred model leads, and the rest of the ladder stays intact beneath
+  // it as fallback. It is inserted even when the catalogue call did not report
+  // it: a /models listing that omits a model we know answers is a worse guide
+  // than simply trying it and letting the rung fail.
+  const models = options.preferred
+    ? [options.preferred, ...available.filter((m) => m !== options.preferred)]
+    : available;
 
   const failures: string[] = [];
   for (const model of models) {
     try {
-      const value = accept(await askOnce(provider, key, model, prompt), model);
+      const value = accept(
+        await askOnce(provider, key, model, prompt, options.temperature),
+        model,
+      );
       // Log WHY the higher rungs failed, not just how many. A ladder that
       // silently drops a rung every call is a ladder whose top entry should be
       // reordered, and the count alone never tells you that.

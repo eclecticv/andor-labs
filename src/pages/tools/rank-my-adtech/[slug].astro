@@ -3,14 +3,21 @@
  * One company's ranking — the page a board row links to, and the page that does
  * the organic-search work for this tool.
  *
- * ORDER IS DELIBERATE: verdict, share, dimensions, stack.
- *   - The verdict is what the reader came for.
+ * ORDER IS DELIBERATE: ranks, summary, share, the three questions, the panel.
+ *   - The two ranks come first because they are the thing that is actually
+ *     being claimed. A score out of thirty means nothing on its own; "2nd of 9
+ *     in emerging sell-side" is a statement someone can agree or disagree with.
+ *   - The summary is what the reader came for.
  *   - Share sits directly under it, at peak reaction. A share row at the bottom
  *     of a long page is a share row nobody reaches.
- *   - Each dimension carries its score, the reasoning behind it, and the one
- *     change that would raise it. That last line is the commercial payload: it
- *     is the tool naming a problem And/or Labs sells the fix for.
- *   - The detected stack goes last as evidence, not decoration.
+ *   - Then each question with the panel's three scores side by side, so a
+ *     disagreement is visible as a shape before it is read as a sentence.
+ *   - The panel's identities go last, as provenance. Who judged matters, but it
+ *     is the footnote to the judgement, not the headline.
+ *
+ * The commercial "here is what would raise your score" layer is deliberately
+ * absent. This board's whole claim is neutrality, and a scoring page that also
+ * sells the fix is not neutral no matter how the advice is worded.
  *
  * Generated at build time from D1. Every string here came off a third-party
  * homepage by way of a language model, so it is untrusted — Astro escapes
@@ -23,45 +30,51 @@ import SiteMotion from "../../../components/SiteMotion.astro";
 import PixelIcon from "../../../components/ds/PixelIcon.astro";
 import DitherLine from "../../../components/ds/DitherLine.astro";
 import {
-  getEntries, scoreBand, detailFor, stackFor, categoryLabel, STAGE_LABELS, AXES,
+  getEntries, ranksFor, ordinal, scoreBand, stackFor, categoryLabel,
+  fmt, bandBadgeFor, identityFor, QUESTIONS, PANELISTS, WRITER, SIDE_LABELS,
 } from "../../../lib/rankings";
 
 export async function getStaticPaths() {
   const entries = await getEntries();
-  return entries.map((entry, index) => ({
+  return entries.map((entry) => ({
     params: { slug: entry.slug },
-    props: { entry, overallRank: index + 1, total: entries.length },
+    props: { entry, all: entries },
   }));
 }
 
-const { entry, overallRank, total: boardSize } = Astro.props;
+const { entry, all } = Astro.props;
 const band = scoreBand(entry.total);
-const detail = detailFor(entry);
+const ranks = ranksFor(entry, all);
 const stack = stackFor(entry);
 const stackCount = Object.values(stack).reduce((n, tools) => n + tools.length, 0);
 
-const score = (key: string) =>
-  ({
-    positioning: entry.positioning,
-    content: entry.content,
-    gtm_stack: entry.gtm_stack,
-    innovation: entry.innovation,
-  })[key] ?? 0;
+const bandBadge = bandBadgeFor(entry);
+
+/* Who actually answered, per seat. A seat is a ladder and OpenCode's spans
+   several labs, so the model that replied is not always the one declared. */
+const seated = entry.takes.map((take) => ({
+  take, who: identityFor(take.model_used, take.panelist_id),
+  declared: PANELISTS.find((p) => p.id === take.panelist_id),
+}));
+
+const splitQuestion = entry.split_question
+  ? QUESTIONS.find((q) => q.key === entry.split_question)
+  : null;
 
 const title = `${entry.name} — Rank My AdTech — And/or Labs`;
-const description = `${entry.name} scores ${entry.total}/100 on Rank My AdTech: positioning ${entry.positioning}, content ${entry.content}, GTM stack ${entry.gtm_stack}, innovation ${entry.innovation}.`;
+const description = `${entry.name} scores ${fmt(entry.total)}/30 on Rank My AdTech: ${ordinal(ranks.cohortRank)} of ${ranks.cohortSize} in ${ranks.cohortLabel}, judged by three language models from three different labs.`;
 
 const pageUrl = new URL(`/tools/rank-my-adtech/${entry.slug}/`, Astro.site).href;
 const shareBrag =
-  entry.total >= 85
+  entry.total >= 24
     ? "Top of the class. Go and gloat."
-    : entry.total >= 70
+    : entry.total >= 19
       ? "Good number. Post it before we change our mind."
-      : entry.total >= 40
+      : entry.total >= 12
         ? "Respectable. We have been meaner."
         : "Brutal. Posting it anyway is the power move.";
 
-const shareText = `${entry.name} scored ${entry.total}/100 on Rank My AdTech.`;
+const shareText = `${entry.name} scored ${fmt(entry.total)}/30 on Rank My AdTech — ${ordinal(ranks.cohortRank)} in ${ranks.cohortLabel}.`;
 const xHref = `https://x.com/intent/post?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(pageUrl)}`;
 const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(pageUrl)}`;
 ---
@@ -72,7 +85,7 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
   ogImage={`/og/rank/${entry.slug}.png`}
   ogImageWidth={1200}
   ogImageHeight={600}
-  ogImageAlt={`${entry.name} scores ${entry.total} out of 100 on Rank My AdTech.`}
+  ogImageAlt={`${entry.name} scores ${fmt(entry.total)} out of 30 on Rank My AdTech.`}
 >
   <SiteHeader />
   <main>
@@ -88,12 +101,15 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
             <h1 class="aol-rmc__name">{entry.name}</h1>
             {entry.one_liner ? <p class="aol-rmc__one-liner">{entry.one_liner}</p> : null}
             <p class="aol-rmc__meta">
-              <span>{categoryLabel(entry.category)}</span>
-              {entry.stage && entry.stage !== "unknown" ? (
-                <><span>·</span><span>{STAGE_LABELS[entry.stage]}</span></>
-              ) : null}
+              <span>{SIDE_LABELS[entry.side]}</span>
               <span>·</span>
-              <span>#{overallRank} of {boardSize}</span>
+              <span>{categoryLabel(entry.category)}</span>
+              {/* Stage appears only when something established it. Most adtech
+                  sites never state a round, so an always-present band would be
+                  the middle-band default wearing a label. */}
+              {bandBadge ? (
+                <><span>·</span><span title={bandBadge.evidence}>{bandBadge.label}</span></>
+              ) : null}
               {entry.provisional ? (
                 <span class="aol-rb__provisional">
                   <PixelIcon name="question-circle" size={12} /> provisional
@@ -105,18 +121,56 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
             <span class:list={["aol-rmc__band", band.solid && "aol-rb__band--solid"]}>
               <PixelIcon name={band.icon as any} size={36} />
             </span>
-            <span class="aol-rmc__total">{entry.total}</span>
-            <span class="aol-rmc__out">/100</span>
+            <span class="aol-rmc__total">{fmt(entry.total)}</span>
+            <span class="aol-rmc__out">/30</span>
           </div>
         </header>
 
         <DitherLine />
 
-        {/* ── 1. The verdict ─────────────────────────────────────────────── */}
-        <h2 class="aol-rmc__h2">The verdict.</h2>
-        <p class="aol-rmc__verdict">{entry.verdict}</p>
+        {/* ── 1. The two ranks ───────────────────────────────────────────── */}
+        <ul class="aol-rmc__ranks">
+          <li class="aol-rmc__rank">
+            <span class="aol-rmc__rank-n">{ordinal(ranks.cohortRank)}</span>
+            <span class="aol-rmc__rank-of">
+              of {ranks.cohortSize} in {ranks.cohortLabel}
+            </span>
+          </li>
+          <li class="aol-rmc__rank">
+            <span class="aol-rmc__rank-n">{ordinal(ranks.categoryRank)}</span>
+            <span class="aol-rmc__rank-of">
+              of {ranks.categorySize} in {ranks.categoryLabel}
+            </span>
+          </li>
+        </ul>
 
-        {/* ── 2. Share, at peak reaction ─────────────────────────────────── */}
+        {/* Shown only when evidenced — see bandBadgeFor. An inferred band
+            printed the same way as a real one would be the page overstating
+            what it knows, and stage is stated on well under a fifth of adtech
+            sites, so that would be the common case rather than the edge. */}
+        {bandBadge ? (
+          <p class="aol-rmc__band-note">
+            <PixelIcon name="flag" size={12} />
+            <span>{bandBadge.label} stage. {bandBadge.evidence}</span>
+          </p>
+        ) : null}
+
+        <DitherLine />
+
+        {/* ── 2. What the panel came to ──────────────────────────────────── */}
+        <h2 class="aol-rmc__h2">The verdict.</h2>
+        {splitQuestion ? (
+          <p class="aol-rmc__split">
+            <PixelIcon name="vote-yeah" size={12} />
+            <span>
+              The panel split on <strong>{splitQuestion.label}</strong> — {entry.split_spread} points
+              between the highest and lowest score.
+            </span>
+          </p>
+        ) : null}
+        <p class="aol-rmc__verdict">{entry.summary}</p>
+
+        {/* ── 3. Share, at peak reaction ─────────────────────────────────── */}
         <div class="aol-rmc__share">
           <p class="aol-rmc__share-label">
             <PixelIcon name="trophy-solid" size={24} />
@@ -131,48 +185,99 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
 
         <DitherLine />
 
-        {/* ── 3. The four dimensions ─────────────────────────────────────── */}
+        {/* ── 4. The nine ratings ────────────────────────────────────────── */}
         <h2 class="aol-rmc__h2">The scoring.</h2>
         <p class="aol-rmc__note">
-          Judged against what is reasonable at this company's stage.
+          Three panelists, three questions, nine ratings. Each scored against a
+          fixed scale rather than a feeling, so two runs land in roughly the
+          same place.
         </p>
 
-        <ul class="aol-rmc__dims">
-          {AXES.map((axis) => {
-            const value = score(axis.key);
-            const d = detail[axis.key];
+        <div class="aol-rmc__questions">
+          {QUESTIONS.map((q) => {
+            const mean = entry[q.key];
             return (
-              <li class="aol-rmc__dim">
+              <section class="aol-rmc__question">
                 <div class="aol-rmc__dim-head">
-                  <span class="aol-rmc__dim-icon"><PixelIcon name={axis.icon as any} size={24} /></span>
-                  <span class="aol-rmc__dim-name">{axis.label}</span>
-                  <span class="aol-rmc__dim-score">{value}<em>/{axis.max}</em></span>
+                  <span class="aol-rmc__dim-icon"><PixelIcon name={q.icon as any} size={24} /></span>
+                  <span class="aol-rmc__dim-name">{q.label}</span>
+                  <span class="aol-rmc__dim-score">{fmt(mean)}<em>/10</em></span>
                 </div>
-                <span class="aol-rmc__meter" role="img" aria-label={`${value} out of ${axis.max}`}>
-                  <span class="aol-rmc__meter-fill"
-                    style={`width:${((value / axis.max) * 100).toFixed(1)}%`} />
+                <p class="aol-rmc__question-ask">{q.question}<span>{q.persona}</span></p>
+
+                <ul class="aol-rmc__takes">
+                  {entry.takes.map((take) => {
+                    const rating = take.ratings[q.key];
+                    if (!rating) return null;
+                    return (
+                      <li class="aol-rmc__take">
+                        <div class="aol-rmc__take-head">
+                          <span class="aol-rmc__take-who">
+                            {identityFor(take.model_used, take.panelist_id).name}
+                          </span>
+                          <span class="aol-rmc__take-word">{rating.adjective}</span>
+                          <span class="aol-rmc__take-score">{take[q.key]}<em>/10</em></span>
+                        </div>
+                        <span class="aol-rmc__meter"
+                          role="img" aria-label={`${take[q.key]} out of 10`}>
+                          <span class="aol-rmc__meter-fill"
+                            style={`width:${(take[q.key] / 10) * 100}%`} />
+                        </span>
+                        <p class="aol-rmc__take-why">{rating.summary}</p>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            );
+          })}
+        </div>
+
+        <DitherLine />
+
+        {/* ── 5. Who judged, and what they are ───────────────────────────── */}
+        <h2 class="aol-rmc__h2">Who judged this.</h2>
+        <ul class="aol-panel__list">
+          {seated.map(({ take, who, declared }) => {
+            return (
+              <li class="aol-panel__member">
+                <span class="aol-panel__lab">{who.lab}</span>
+                <span class="aol-panel__name">
+                  {who.name}
+                  <em class="aol-panel__word">“{take.adjective}”</em>
                 </span>
-                {d?.reasoning ? <p class="aol-rmc__dim-reasoning">{d.reasoning}</p> : null}
-                {/* The commercial payload: a named problem with a named fix. */}
-                {d?.improve ? (
-                  <p class="aol-rmc__improve">
-                    <PixelIcon name="bolt" size={12} />
-                    <span>{d.improve}</span>
+                <p class="aol-panel__spec">{who.spec}</p>
+                {/* The bio above belongs to whoever ANSWERED, so it is never
+                    wrong. This line records that the seat changed hands — which
+                    matters when the substitute comes from a different lab, since
+                    "three different labs" is the claim the whole board rests on
+                    and a silent swap would make it uncheckable. */}
+                {declared && take.model_used !== declared.model ? (
+                  <p class="aol-panel__fallback">
+                    Standing in for {declared.name}, which did not answer on this run.
                   </p>
                 ) : null}
               </li>
             );
           })}
         </ul>
+        <p class="aol-panel__writer">
+          <PixelIcon name="quote-left" size={12} />
+          <span>
+            <strong>{WRITER.name}</strong> ({WRITER.lab}) wrote the verdict above and scored
+            nothing. {WRITER.spec}
+          </span>
+        </p>
 
-        {/* ── 4. What we actually found ──────────────────────────────────── */}
+        {/* ── 6. What we could see ───────────────────────────────────────── */}
         {stackCount ? (
           <>
             <DitherLine />
             <h2 class="aol-rmc__h2">The stack we could see.</h2>
             <p class="aol-rmc__note">
               Read from the markup, so browser-side tools only. A warehouse-native setup
-              looks empty here and may still be excellent.
+              looks empty here and may still be excellent. The panel was not shown this —
+              it is here as context, not as evidence.
             </p>
             <ul class="aol-rmc__stack">
               {Object.entries(stack).map(([category, tools]) => (
@@ -189,7 +294,7 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
 
         <DitherLine />
         <p class="aol-rma__disclosure">
-          <PixelIcon name="question-circle" size={12} /> Written by a language model reading
+          <PixelIcon name="question-circle" size={12} /> Written by language models reading
           public pages. An opinion, and meant to be funny. Not research. Want this page gone?
           Email{" "}<a href={`mailto:hello@andorlabs.ca?subject=Rank%20My%20AdTech%20removal%3A%20${entry.name}`}>hello@andorlabs.ca</a>{" "}and it goes.
         </p>
