@@ -50,6 +50,11 @@ async function rank(domain: string) {
   const t0 = Date.now();
   const site = await readSite(domain, CONTEXT_DEV_API_KEY);
   if (!site.pages) throw new Error("read failed");
+  // Same floor as the live Function: under 1,500 chars of real corpus, refuse
+  // before the identify call rather than feed a model a page shell (or, once,
+  // an unstripped CSS blob) and let it guess.
+  const corpus = site.pages.replace(/^## .*$/gm, "").replace(/\s+/g, " ").trim();
+  if (corpus.length < 1_500) throw new Error(`read failed — only ${corpus.length} chars of real corpus`);
   console.error(`  read ${site.pages.length} chars`);
 
   const detected = detectStack(site.html);

@@ -74,12 +74,20 @@ async function readViaContextDev(url: string, apiKey: string): Promise<string | 
     if (!res.ok) return null;
     const body = (await res.json()) as { success?: boolean; markdown?: string };
     if (!body.success || !body.markdown) return null;
-    // Some sites come back as clean markdown prose; others as a fenced raw-HTML
-    // blob when the readability pass finds nothing to simplify. Strip the
-    // fence and run it through the same toText() as everything else so both
-    // shapes land as plain text.
-    const fenced = /^```html\n([\s\S]*)\n```$/.exec(body.markdown.trim());
-    return fenced ? toText(fenced[1], 10_000) : body.markdown.trim().slice(0, 10_000);
+    const raw = body.markdown.trim();
+    /**
+     * Bug found live on assertiveyield.com: the response is not consistently a
+     * single ```html fence wrapping the whole page. One call came back with a
+     * Gatsby build's inlined <style> block NOT fully fenced, which the old
+     * "fenced or use as-is" branch handed straight to the model as raw CSS —
+     * it correctly refused, but on garbage input, not a real read.
+     *
+     * Any response that still contains HTML tags — fenced or not — gets the
+     * same script/style/tag strip a direct fetch gets. Only content with no
+     * tags at all is trusted as already-clean prose.
+     */
+    const text = /<\/?[a-z][\s\S]*>/i.test(raw) ? toText(raw, 10_000) : raw.slice(0, 10_000);
+    return text.trim() || null;
   } catch {
     return null;
   } finally {
