@@ -145,28 +145,28 @@ export type QuestionKey = (typeof QUESTIONS)[number]["key"];
 export const PANELISTS = [
   { id: "nemotron", name: "Nemotron 3 Ultra", lab: "NVIDIA",
     model: "nvidia/nemotron-3-ultra-550b-a55b",
-    character: "Nemo Vasquez", title: "Staff Engineer, Seat 1",
+    character: "Nemo", title: "Staff Engineer, Seat 1",
     lens: "I judge by what breaks at 3am and who gets paged.",
-    bio: "Nine years on the exchange side, most of it in the part of the stack nobody demos. Believes a product is whatever survives Black Friday, and that everything else is a landing page. Reads the careers page before the homepage.",
+    bio: "Nine years on the exchange side, most of it in the part of the stack nobody demos. Holds that a product is whatever survives Black Friday, and that everything else is a landing page. Reads the careers page before the homepage.",
     spec: "Mixture-of-experts, 550B total parameters with roughly 55B active per token — both numbers are published in the model's own name. Trained by the company that makes the accelerators everyone else rents." },
   { id: "glm", name: "GLM 5.3", lab: "Zhipu AI",
     model: "glm-5.3",
-    character: "Rook Callaghan", title: "Partner, Seat 2",
+    character: "Atlas", title: "Partner, Seat 2",
     lens: "I judge by what this looks like at 10x revenue and whether anyone is left to buy it.",
     bio: "Partner at a fund you have heard of and cannot quite name. Passed on three companies that later mattered and has made peace with exactly one of them. Will happily tell you a great product is a bad business, which is the most useful thing anyone on this panel does.",
     spec: "Open weights with a published architecture, though the exact size of this tier is undisclosed. Built by a lab that spun out of Tsinghua and ships more than it announces." },
   { id: "gemini", name: "Gemini 3.5 Flash Lite", lab: "Google DeepMind",
     model: "gemini-3.5-flash-lite",
-    character: "Gemma Larkspur", title: "Operator-in-Residence, Seat 3",
+    character: "Juno", title: "Operator-in-Residence, Seat 3",
     lens: "I judge by whether this survives the renewal conversation eighteen months in.",
-    bio: "Three exits, two of which she would rather not discuss. Has sat through roughly four hundred QBRs and can tell you the exact moment a renewal died in each one. Her standing view is that most category-defining products are one procurement cycle from being a line item someone forgets to cancel.",
+    bio: "Three exits, two of which are not up for discussion. Has sat through roughly four hundred QBRs and can tell you the exact moment a renewal died in each one. Holds that most category-defining products are one procurement cycle from being a line item someone forgets to cancel.",
     spec: "The smaller of Google's fast tiers. Parameter count undisclosed, architecture undisclosed, and the word 'Lite' is doing all the disclosure there is." },
 ] as const;
 
 export const WRITER = {
   name: "GPT-5.6 Luna", lab: "OpenAI", model: "gpt-5.6-luna",
-  character: "Luna Marchetti", title: "Clerk of the Panel",
-  bio: "Does not score. Records. Her one job is to report what the three judges actually said, including — especially — when they disagreed.",
+  character: "Vega", title: "Clerk of the Panel",
+  bio: "Does not score. Records. Has one job: report what the three judges actually said, including — especially — where they disagreed.",
   mandate: "Never averages. When the panel splits, the split is the finding.",
   spec: "Parameter count undisclosed. Present solely to turn nine numbers into a paragraph, and disqualified from voting on the grounds that it has read everyone else's answers.",
 };
@@ -238,10 +238,10 @@ export const MODEL_IDENTITY: Record<string, { name: string; lab: string; spec: s
  * That asymmetry is deliberate. Attributing Qwen's words to Nemo Vasquez would
  * be a fabricated byline, which is a worse failure than an unglamorous row.
  */
-export function identityFor(modelUsed: string, panelistId: string) {
+export function identityFor(modelUsed: string, panelistId: string, rankingStale = false) {
   const seat = PANELISTS.find((p) => p.id === panelistId);
   const known = MODEL_IDENTITY[modelUsed];
-  const pinned = !!seat && seat.model === modelUsed;
+  const pinned = !!seat && seat.model === modelUsed && !rankingStale;
 
   if (pinned && seat) {
     return {
@@ -270,6 +270,22 @@ export function identityFor(modelUsed: string, panelistId: string) {
 export const isStaleTake = (modelUsed: string, panelistId: string): boolean =>
   !PANELISTS.some((p) => p.id === panelistId && p.model === modelUsed);
 
+/**
+ * Staleness belongs to the RANKING, not to the seat.
+ *
+ * A seat-by-seat check gets this wrong whenever a panel change leaves one seat
+ * untouched. It did: the Gemini seat kept `gemini-3.5-flash-lite` across the
+ * change, so on a row scored by the OLD jury two takes correctly rendered as
+ * bare models and the third rendered as "Gemma Larkspur" — one page, three
+ * jurors, two naming systems, and a character's byline over words written
+ * while she did not exist.
+ *
+ * A ranking is a single event. Either the panel that produced it is the panel
+ * the board now runs, or it is not, and every take on it inherits that answer.
+ */
+export const rankingIsStale = (takes: Take[]): boolean =>
+  takes.some((t) => isStaleTake(t.model_used, t.panelist_id));
+
 export const panelistName = (id: string) =>
   PANELISTS.find((p) => p.id === id)?.name ?? id;
 
@@ -288,7 +304,7 @@ export function panelLabs(): string {
     : (labs[0] ?? "");
 }
 
-/** "Nemo Vasquez is reading…" — one per seat, in panel order. */
+/** "Nemo is reading…" — one per seat, in panel order. */
 export const panelLoadingMessages = (): string[] =>
   PANELISTS.map((p) => `${p.character} is reading…`);
 

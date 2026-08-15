@@ -16,6 +16,7 @@ import { join } from "node:path";
 import { PANELISTS, WRITER, panelLabs, panelLoadingMessages } from "../src/lib/rankings";
 import { buildIdentifyPrompt, CATEGORIES, CATEGORY_NOT } from "../functions/_lib/classify";
 import { buildPanelPrompt } from "../functions/_lib/panel";
+import { buildWriterPrompt } from "../functions/_lib/writer";
 
 /**
  * Labs that have ever held a seat, plus the ones on the provider ladders.
@@ -100,6 +101,45 @@ describe("panel copy does not drift from the panel", () => {
       for (const [key, note] of Object.entries(CATEGORY_NOT)) {
         expect(prompt, `missing guard for "${key}"`).toContain(note!);
       }
+    }
+  });
+
+  it("has the writer name the characters, not the models", () => {
+    // The verdict paragraph sits directly above the panel cards. When the
+    // writer was handed model names it produced "Nemotron 3 Ultra sees an
+    // insightful AI-native layer" under a card headed "Nemo Vasquez" — two
+    // names for one juror on one page, with nothing telling a reader they are
+    // the same. The model still appears on the card, so naming the person in
+    // the prose costs no checkability.
+    const takes = PANELISTS.map((p) => ({
+      panelistId: p.id,
+      modelUsed: p.model,
+      adjective: "brisk",
+      caseAgainst: [],
+      ratings: Object.fromEntries(
+        ["innovation", "difficulty", "investability"].map((k) => [
+          k, { score: 6, summary: "x".repeat(80), adjective: "brisk" },
+        ]),
+      ),
+      recall: { category: "dsp", round: "", year: 0, investor: "" },
+    })) as any[];
+
+    const prompt = buildWriterPrompt({
+      name: "Acme",
+      oneLiner: "An ad thing.",
+      categoryLabel: "DSP & Media Buying",
+      cohort: "buy-side",
+      panel: {
+        takes,
+        total: 18,
+        means: { innovation: 6, difficulty: 6, investability: 6 },
+        split: null,
+      },
+    } as any);
+
+    for (const p of PANELISTS) {
+      expect(prompt, `writer never names ${p.character}`).toContain(p.character);
+      expect(prompt, `writer still names the model ${p.name}`).not.toContain(p.name);
     }
   });
 

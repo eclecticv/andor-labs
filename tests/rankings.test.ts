@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import {
   MODEL_IDENTITY, identityFor, PANELISTS, WRITER, BOARD_AXIS, COHORTS,
   cohortKeyOf, ranksFor, bandBadgeFor, ordinal, fmt, adjectivesFor, scoreBand,
-  CATEGORY_LABELS, type Entry,
+  CATEGORY_LABELS, rankingIsStale, type Take, type Entry,
 } from "../src/lib/rankings";
 import { CATEGORIES, CATEGORY_NOT, sideFor } from "../functions/_lib/classify";
 
@@ -57,6 +57,31 @@ describe("model identity", () => {
     for (const m of Object.values(MODEL_IDENTITY)) {
       if (!/\b\d+B\b/.test(m.spec)) expect(m.spec).toMatch(/undisclosed/i);
     }
+  });
+
+  it("withholds every character when any seat on the ranking is stale", () => {
+    // The bug this exists to stop, seen live on the board: the Gemini seat kept
+    // the same model across a panel change, so on a row scored by the OLD jury
+    // two takes rendered as bare models and the third rendered as "Gemma
+    // Larkspur" — one page, three jurors, two naming systems, and a byline over
+    // words written before that character existed.
+    const unchanged = PANELISTS.find((p) => p.id === "gemini")!;
+    const takes = [
+      { panelist_id: "nemotron", model_used: "nvidia/nemotron-3-super-120b-a12b" },
+      { panelist_id: "deepseek", model_used: "deepseek-v4-pro" },
+      { panelist_id: unchanged.id, model_used: unchanged.model },
+    ] as Take[];
+
+    expect(rankingIsStale(takes)).toBe(true);
+    // The seat whose model did NOT change still loses its character, because
+    // the ranking it belongs to is not one this panel produced.
+    expect(identityFor(unchanged.model, unchanged.id, true).character).toBeNull();
+    // And on a ranking that IS current, it keeps it.
+    const current = PANELISTS.map((p) => ({
+      panelist_id: p.id, model_used: p.model,
+    })) as Take[];
+    expect(rankingIsStale(current)).toBe(false);
+    expect(identityFor(unchanged.model, unchanged.id, false).character).toBe(unchanged.character);
   });
 
   it("falls back to the seat rather than rendering blank", () => {

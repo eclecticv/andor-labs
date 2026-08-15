@@ -31,7 +31,7 @@ import PixelIcon from "../../../components/ds/PixelIcon.astro";
 import DitherLine from "../../../components/ds/DitherLine.astro";
 import {
   getEntries, ranksFor, ordinal, scoreBand, stackFor, categoryLabel,
-  fmt, bandBadgeFor, identityFor, QUESTIONS, WRITER, SIDE_LABELS,
+  fmt, bandBadgeFor, identityFor, rankingIsStale, QUESTIONS, WRITER, SIDE_LABELS,
 } from "../../../lib/rankings";
 
 export async function getStaticPaths() {
@@ -53,8 +53,12 @@ const bandBadge = bandBadgeFor(entry);
 /* Who actually answered, per seat. Seats are pinned now, so for anything
    ranked since the pin this is always the declared juror; `who.stale` marks
    the older rows where it is not. */
+/* One verdict for the whole ranking, then applied to every seat. Deciding
+   per-seat let an unchanged seat wear its character on a row the rest of the
+   panel predates — see rankingIsStale. */
+const panelStale = rankingIsStale(entry.takes);
 const seated = entry.takes.map((take) => ({
-  take, who: identityFor(take.model_used, take.panelist_id),
+  take, who: identityFor(take.model_used, take.panelist_id, panelStale),
 }));
 
 const splitQuestion = entry.split_question
@@ -191,9 +195,18 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
 
         {/* ── 4. The nine ratings ────────────────────────────────────────── */}
         <h2 class="aol-rmc__h2">Nine ratings.</h2>
+        {/* The old version of this line promised "two runs land in roughly the
+            same place". Measured on a re-run of the same company with the same
+            panel at temperature 0, one total moved 13.3 to 10.3 — so the claim
+            was not true, and a page whose whole argument is that you can check
+            it cannot afford a reassurance the data contradicts. Anchors do make
+            scoring a classification rather than a vibe; they do not make it
+            repeatable to a decimal, and saying so costs nothing. */}
         <p class="aol-rmc__note">
           Three panelists, three questions. Each scored against a fixed scale
-          rather than a feeling, so two runs land in roughly the same place.
+          rather than a feeling — anchors, not vibes. Run the same company twice
+          and the totals still move a point or two; treat these as a reading,
+          not a measurement.
         </p>
 
         <div class="aol-rmc__questions">
@@ -222,8 +235,9 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
                               bare model id when it did not. A stale row must
                               not carry a byline it did not earn. */}
                           <span class="aol-rmc__take-who">
-                            {identityFor(take.model_used, take.panelist_id).character
-                              ?? identityFor(take.model_used, take.panelist_id).name}
+                            {seated.find((s) => s.take.panelist_id === take.panelist_id)?.who
+                              .character
+                              ?? identityFor(take.model_used, take.panelist_id, panelStale).name}
                           </span>
                           <span class="aol-rmc__take-word">{rating.adjective}</span>
                           <span class="aol-rmc__take-score">{take[q.key]}<em>/10</em></span>
@@ -248,6 +262,15 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
 
         {/* ── 5. Who judged, and what they are ───────────────────────────── */}
         <h2 class="aol-rmc__h2">Who judged this.</h2>
+        {/* Said once, about the ranking, because that is what it is about. It
+            used to hang off each seat, which on a stale row printed the same
+            sentence three times under three different names. */}
+        {panelStale ? (
+          <p class="aol-panel__fallback">
+            Scored by an earlier panel, before the seats were pinned. Due a re-rank —
+            until then these are the models that actually answered, named as themselves.
+          </p>
+        ) : null}
         <ul class="aol-panel__list">
           {seated.map(({ take, who }) => {
             return (
@@ -270,16 +293,6 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
                 ) : (
                   <p class="aol-panel__spec">{who.spec}</p>
                 )}
-                {/* A seat can no longer be filled by anything but its own
-                    pinned model, so there is no such thing as a substitute any
-                    more. What remains is rows scored BEFORE the pin, by a jury
-                    the board no longer uses. Those get no character and say so
-                    plainly — the fix for them is a re-rank, not a footnote. */}
-                {who.stale ? (
-                  <p class="aol-panel__fallback">
-                    Scored by an earlier panel, before the seats were pinned. Due a re-rank.
-                  </p>
-                ) : null}
               </li>
             );
           })}

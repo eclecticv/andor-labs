@@ -64,9 +64,14 @@ const { questions = true } = Astro.props;
   <p class="aol-panel__writer">
     <PixelIcon name="quote-left" size={12} />
     <span>
-      <strong>{WRITER.character}</strong>, {WRITER.title}, writes the summary and
-      scores nothing. {WRITER.mandate} Played by {WRITER.name} ({WRITER.lab}).
-      {WRITER.spec}
+      {/* The explicit {" "} before the spec is load-bearing: Astro trims the
+          whitespace around an expression that sits alone on its own line, so
+          leaving it to the template produced "(OpenAI).Parameter count". The
+          {", "} after the name is belt-and-braces rather than a fix — that one
+          was fine, and only looked broken through a tag-stripping text dump. */}
+      <strong>{WRITER.character}</strong>{", "}{WRITER.title}, writes the summary
+      and scores nothing. {WRITER.mandate} Played by {WRITER.name} ({WRITER.lab}).
+      {" "}{WRITER.spec}
     </span>
   </p>
 

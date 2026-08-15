@@ -49,10 +49,20 @@ export interface WriterInput {
 function panelistName(take: PanelistTake): string {
   const declared = PANELISTS.find((p) => p.id === take.panelistId);
   if (!declared) return take.panelistId;
-  // The ladder seats a model id ("gemini-3.5-flash-lite"), the panel declares a
-  // display name ("Gemini 3.6 Flash"). They will never match as strings, so the
-  // comparison is against the declared MODEL, which is what the ladder preferred.
-  return take.modelUsed === declared.model ? declared.name : `${declared.lab} ${take.modelUsed}`;
+  // The CHARACTER, because that is what the page calls them everywhere else.
+  //
+  // This returned the model name, which put "Nemotron 3 Ultra sees an insightful
+  // AI-native layer" in the verdict directly above a panel card headed "Nemo
+  // Vasquez" — two names for one juror, on one page, with nothing to tell a
+  // reader they are the same. The model still appears on the card underneath, so
+  // nothing becomes less checkable by naming the person in the prose.
+  //
+  // The fallback stays for a take whose model is not the seat's pinned one:
+  // those rows carry no character anywhere on the page (see identityFor), so the
+  // prose must not invent one either.
+  return take.modelUsed === declared.model
+    ? declared.character
+    : `${declared.lab} ${take.modelUsed}`;
 }
 
 const renderTake = (take: PanelistTake) =>
