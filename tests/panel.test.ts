@@ -9,7 +9,7 @@
 import { describe, expect, it } from "vitest";
 import {
   PANELISTS, WRITER, QUESTIONS, aggregate, normalizeTake, assertTakeUsable,
-  buildPanelPrompt, resolveRecall, type PanelistTake,
+  buildPanelPrompt, buildPanelSystem, resolveRecall, type PanelistTake,
 } from "../functions/_lib/panel";
 import { CATEGORIES } from "../functions/_lib/classify";
 
@@ -126,7 +126,7 @@ describe("the recall vote", () => {
   it("takes a category two panelists agree on", () => {
     const r = resolveRecall([
       withRecall("nemotron", { category: "ssp" }),
-      withRecall("deepseek", { category: "ssp" }),
+      withRecall("qwen", { category: "ssp" }),
       withRecall("gemini", { category: "dsp" }),
     ]);
     expect(r.category).toBe("ssp");
@@ -138,7 +138,7 @@ describe("the recall vote", () => {
     // taking the first would be exactly the single-model wobble this replaces.
     const r = resolveRecall([
       withRecall("nemotron", { category: "ssp" }),
-      withRecall("deepseek", { category: "dsp" }),
+      withRecall("qwen", { category: "dsp" }),
       withRecall("gemini", { category: "curation" }),
     ]);
     expect(r.category).toBe("");
@@ -150,7 +150,7 @@ describe("the recall vote", () => {
     // on it by chance. The year is what makes agreement mean recall.
     const r = resolveRecall([
       withRecall("nemotron", { round: "series-b", year: 2021, investor: "a16z" }),
-      withRecall("deepseek", { round: "series-b", year: 2019, investor: "Index" }),
+      withRecall("qwen", { round: "series-b", year: 2019, investor: "Index" }),
       withRecall("gemini", { round: "", year: 0 }),
     ]);
     expect(r.round).toBe("");
@@ -159,14 +159,14 @@ describe("the recall vote", () => {
   it("accepts a round two panelists place in the same year", () => {
     const r = resolveRecall([
       withRecall("nemotron", { round: "series-b", year: 2021, investor: "a16z" }),
-      withRecall("deepseek", { round: "series-b", year: 2021, investor: "Accel" }),
+      withRecall("qwen", { round: "series-b", year: 2021, investor: "Accel" }),
       withRecall("gemini", { round: "", year: 0 }),
     ]);
     expect(r.round).toBe("series-b");
     expect(r.roundYear).toBe(2021);
     expect(r.roundVotes).toBe(2);
     // The page prints who recalled it, so a reader can weigh the claim.
-    expect(r.evidence).toMatch(/NVIDIA and DeepSeek/);
+    expect(r.evidence).toMatch(/NVIDIA and Alibaba/);
     expect(r.evidence).toMatch(/2021/);
   });
 
@@ -175,7 +175,7 @@ describe("the recall vote", () => {
     // answer would reintroduce the guesswork that instruction exists to stop.
     const r = resolveRecall([
       withRecall("nemotron", { round: "seed", year: 0 }),
-      withRecall("deepseek", { round: "seed", year: 0 }),
+      withRecall("qwen", { round: "seed", year: 0 }),
       withRecall("gemini", { round: "seed", year: 0 }),
     ]);
     expect(r.round).toBe("");
@@ -204,7 +204,56 @@ describe("the prompt", () => {
   });
 
   it("says the panelists cannot see each other", () => {
-    expect(prompt).toMatch(/cannot see their answers/i);
+    // Moved to the system message with the rest of who-you-are. The rubric is
+    // now byte-identical across seats, so anything about the juror belongs on
+    // the other side of the split.
+    for (const p of PANELISTS) {
+      expect(buildPanelSystem(p)).toMatch(/cannot see their answers/i);
+    }
+  });
+
+  it("keeps the rubric free of persona", () => {
+    // The regression this whole change exists to prevent. Personas used to sit
+    // on the QUESTIONS, so every juror wore all three hats and the panel was
+    // one committee sampled three times. If a character name or a lens ever
+    // reappears in the shared prompt, that is back.
+    for (const p of PANELISTS) {
+      expect(prompt).not.toContain(p.character);
+      expect(prompt).not.toContain(p.lens);
+      expect(prompt).not.toContain(p.disqualifier);
+    }
+    expect(prompt).not.toMatch(/wear the stated hat/i);
+  });
+
+  it("gives each seat a lens that does not move between questions", () => {
+    for (const p of PANELISTS) {
+      const system = buildPanelSystem(p);
+      expect(system).toContain(p.character);
+      expect(system).toContain(p.lens);
+      expect(system).toContain(p.disqualifier);
+      for (const f of p.forbidden) expect(system).toContain(f);
+      // The instruction that actually holds character across dimensions.
+      expect(system).toMatch(/EVERY question/);
+    }
+  });
+
+  it("turns Nemotron's reasoning on, literally", () => {
+    // NVIDIA's Nemotron line ships reasoning OFF and enables it only on this
+    // exact string in the system prompt. Without it you pay reasoning latency
+    // for a non-reasoning answer.
+    const nemo = PANELISTS.find((p) => p.provider === "nvidia")!;
+    expect(buildPanelSystem(nemo).startsWith("detailed thinking on")).toBe(true);
+  });
+
+  it("makes the juror write the case against before scoring", () => {
+    expect(prompt).toMatch(/case_against/);
+    expect(prompt.indexOf("case_against")).toBeLessThan(prompt.indexOf("── INNOVATION ──"));
+  });
+
+  it("caps an uncited score at the midpoint", () => {
+    expect(prompt).toMatch(/cannot go above 5/i);
+    expect(prompt).toMatch(/two DIFFERENT\s+concrete things/);
+    expect(prompt).toMatch(/Start each question at 4/);
   });
 
   it("warns when the site barely rendered", () => {

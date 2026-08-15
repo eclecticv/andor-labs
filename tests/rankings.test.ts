@@ -9,8 +9,9 @@ import { describe, expect, it } from "vitest";
 import {
   MODEL_IDENTITY, identityFor, PANELISTS, WRITER, BOARD_AXIS, COHORTS,
   cohortKeyOf, ranksFor, bandBadgeFor, ordinal, fmt, adjectivesFor, scoreBand,
-  type Entry,
+  CATEGORY_LABELS, type Entry,
 } from "../src/lib/rankings";
+import { CATEGORIES, CATEGORY_NOT, sideFor } from "../functions/_lib/classify";
 
 const entry = (over: Partial<Entry> = {}): Entry => ({
   slug: "acme", name: "Acme", domain: "acme.com", logo_url: null, one_liner: null,
@@ -23,13 +24,26 @@ const entry = (over: Partial<Entry> = {}): Entry => ({
 
 describe("model identity", () => {
   it("names the model that answered, not the seat it sat in", () => {
-    // A seat is a ladder, and OpenCode's spans several labs: when
-    // deepseek-v4-pro fails it falls to qwen3.8-max, which is Alibaba. Printing
-    // DeepSeek's bio next to Qwen's answer would break the one claim the board
-    // rests on — three models, three labs, and you can check.
-    const who = identityFor("qwen3.8-max", "deepseek");
-    expect(who.name).toBe("Qwen 3.8 Max");
-    expect(who.lab).toBe("Alibaba");
+    // Rows ranked before the pin exist: the old open ladder let GLM answer in
+    // DeepSeek's seat. Attribution follows the model that produced the words.
+    const who = identityFor("glm-5.3", "deepseek");
+    expect(who.name).toBe("GLM 5.3");
+    expect(who.lab).toBe("Zhipu AI");
+  });
+
+  it("withholds the character from any model that is not the pinned seat", () => {
+    // The character is a byline. Printing "Nemo Vasquez" above words produced
+    // by a model from another lab is a fabricated attribution, and it is worse
+    // than an unglamorous row — so a stale take gets the model and nothing else.
+    const stale = identityFor("glm-5.3", "nemotron");
+    expect(stale.character).toBeNull();
+    expect(stale.bio).toBe("");
+    expect(stale.stale).toBe(true);
+
+    const seat = PANELISTS[0];
+    const pinned = identityFor(seat.model, seat.id);
+    expect(pinned.character).toBe(seat.character);
+    expect(pinned.stale).toBe(false);
   });
 
   it("covers every model the panel and writer can seat", () => {
@@ -48,11 +62,59 @@ describe("model identity", () => {
   it("falls back to the seat rather than rendering blank", () => {
     const who = identityFor("some-new-rung", "gemini");
     expect(who.name).toBeTruthy();
-    expect(who.substitute).toBe(true);
+    expect(who.stale).toBe(true);
   });
 
   it("keeps the writer out of the panel's labs", () => {
     expect(PANELISTS.map((p) => p.lab)).not.toContain(WRITER.lab);
+  });
+
+  it("gives every seat a distinct lab", () => {
+    // "Three models, three different labs, and you can check" is the board's
+    // whole claim. Two seats from one lab quietly makes it false.
+    const labs = PANELISTS.map((p) => p.lab);
+    expect(new Set(labs).size).toBe(labs.length);
+  });
+
+  it("gives every seat a character and a lens", () => {
+    for (const p of PANELISTS) {
+      expect(p.character).toBeTruthy();
+      expect(p.lens).toBeTruthy();
+      expect(p.bio).toBeTruthy();
+    }
+    const names = PANELISTS.map((p) => p.character);
+    expect(new Set(names).size).toBe(names.length);
+  });
+});
+
+describe("category taxonomy", () => {
+  it("labels every category the classifier can assign", () => {
+    // CATEGORY_LABELS here and CATEGORIES in functions/_lib/classify.ts are
+    // deliberate duplicates — Pages Functions bundle separately from the Astro
+    // build, so a cross-boundary import is a thing you find out about at deploy
+    // time. The cost of that choice is drift, and drift here is silent: an
+    // unlabelled key renders as "Other" rather than throwing.
+    for (const c of CATEGORIES) {
+      expect(CATEGORY_LABELS[c.key], `no label for "${c.key}"`).toBeTruthy();
+    }
+  });
+
+  it("gives the buy side somewhere to land", () => {
+    // The bug this taxonomy change exists to fix: buy-side had three keys
+    // against sell-side's seven, so buy-side vendors piled into "DSP & Media
+    // Buying" or fell through to "Other" — which is independent. The tab
+    // looked empty because the taxonomy had no room in it, not because the
+    // companies were missing.
+    const buy = CATEGORIES.filter((c) => sideFor(c.key) === "buy");
+    const sell = CATEGORIES.filter((c) => sideFor(c.key) === "sell");
+    expect(buy.length).toBeGreaterThanOrEqual(sell.length);
+  });
+
+  it("keeps agentic buying from swallowing every copilot", () => {
+    // Newest category on the board and the easiest to inflate: without the
+    // guard, anything with a chat box lands in it.
+    expect(CATEGORY_NOT["agentic-buying"]).toMatch(/chatbot|copilot|bolted/i);
+    expect(CATEGORY_NOT["retail-media-buying"]).toMatch(/sell-side/i);
   });
 });
 

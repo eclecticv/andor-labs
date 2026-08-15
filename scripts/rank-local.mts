@@ -27,7 +27,7 @@ import { resolveLogo } from "../functions/_lib/logo";
 import {
   buildIdentifyPrompt, normalizeIdentity, assertIdentityUsable,
   place, placeFromMarkup, sideFor, cohortLabel, categoryLabel, categoryFor,
-  CATEGORIES,
+  CATEGORIES, CATEGORY_NOT,
 } from "../functions/_lib/classify";
 import { runPanel, resolveRecall, WRITER } from "../functions/_lib/panel";
 import { buildWriterPrompt, normalizeSummary, assertSummaryUsable } from "../functions/_lib/writer";
@@ -79,7 +79,7 @@ async function rank(domain: string) {
   if (markup.isPublic) return { refused: `Public company — ${markup.isPublic}.`, domain };
 
   const panel = await runPanel(env, {
-    domain, pages: site.pages, thin: site.thin, categories: CATEGORIES,
+    domain, pages: site.pages, thin: site.thin, categories: CATEGORIES, categoryNotes: CATEGORY_NOT,
   });
 
   const recall = resolveRecall(panel.takes);

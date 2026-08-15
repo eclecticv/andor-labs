@@ -120,13 +120,10 @@ export const SIDE_LABELS: Record<string, string> =
  */
 export const QUESTIONS = [
   { key: "innovation", label: "Innovation", icon: "lightbulb",
-    persona: "A commercial veteran, twenty years in adtech",
     question: "How innovative is this, really?" },
   { key: "difficulty", label: "Hard to build", icon: "laptop-code",
-    persona: "A distinguished engineer who has built ad servers",
-    question: "Could someone vibe-code this in a weekend?" },
+    question: "What is the single hardest thing here to replicate?" },
   { key: "investability", label: "Would you invest", icon: "handshake",
-    persona: "An adtech VC, six investments from four hundred decks",
     question: "Would you put money in?" },
 ] as const;
 
@@ -139,38 +136,61 @@ export type QuestionKey = (typeof QUESTIONS)[number]["key"];
  * score from an unnamed "AI" is an appeal to authority with no authority behind
  * it. Specs are published facts only; where a lab discloses nothing, this says
  * so rather than inventing a parameter count.
+ *
+ * Each seat is a CHARACTER holding one fixed lens across all three questions.
+ * The character is not decoration: it is what stops a juror answering the
+ * investment question as a generic investor and the engineering question as a
+ * generic engineer, which is what the old per-question personas produced.
  */
 export const PANELISTS = [
-  { id: "nemotron", name: "Nemotron 3 Super", lab: "NVIDIA",
-    model: "nvidia/nemotron-3-super-120b-a12b",
-    spec: "Mixture-of-experts, 120B total parameters with roughly 12B active per token — the sparsity is published in the model's own name. Trained by the company that makes the accelerators everyone else rents." },
-  { id: "deepseek", name: "DeepSeek V4 Pro", lab: "DeepSeek",
-    model: "deepseek-v4-pro",
-    spec: "Mixture-of-experts with open weights and a published architecture, though the exact parameter count for this tier is undisclosed. Reasons at length before committing, which is either rigour or stalling depending on how the answer turns out." },
+  { id: "nemotron", name: "Nemotron 3 Ultra", lab: "NVIDIA",
+    model: "nvidia/nemotron-3-ultra-550b-a55b",
+    character: "Nemo Vasquez", title: "Staff Engineer, Seat 1",
+    lens: "I judge by what breaks at 3am and who gets paged.",
+    bio: "Nine years on the exchange side, most of it in the part of the stack nobody demos. Believes a product is whatever survives Black Friday, and that everything else is a landing page. Reads the careers page before the homepage.",
+    spec: "Mixture-of-experts, 550B total parameters with roughly 55B active per token — both numbers are published in the model's own name. Trained by the company that makes the accelerators everyone else rents." },
+  { id: "qwen", name: "Qwen 3.8 Max", lab: "Alibaba",
+    model: "qwen3.8-max",
+    character: "Rook Callaghan", title: "Partner, Seat 2",
+    lens: "I judge by what this looks like at 10x revenue and whether anyone is left to buy it.",
+    bio: "Partner at a fund you have heard of and cannot quite name. Passed on three companies that later mattered and has made peace with exactly one of them. Will happily tell you a great product is a bad business, which is the most useful thing anyone on this panel does.",
+    spec: "The closed top tier of the Qwen line; parameter count undisclosed. Alibaba open-weights most of this family and then declines to say anything at all about the largest one." },
   { id: "gemini", name: "Gemini 3.5 Flash Lite", lab: "Google DeepMind",
     model: "gemini-3.5-flash-lite",
+    character: "Gemma Larkspur", title: "Operator-in-Residence, Seat 3",
+    lens: "I judge by whether this survives the renewal conversation eighteen months in.",
+    bio: "Three exits, two of which she would rather not discuss. Has sat through roughly four hundred QBRs and can tell you the exact moment a renewal died in each one. Her standing view is that most category-defining products are one procurement cycle from being a line item someone forgets to cancel.",
     spec: "The smaller of Google's fast tiers. Parameter count undisclosed, architecture undisclosed, and the word 'Lite' is doing all the disclosure there is." },
 ] as const;
 
 export const WRITER = {
-  name: "GPT-5.6 Luna", lab: "OpenAI",
+  name: "GPT-5.6 Luna", lab: "OpenAI", model: "gpt-5.6-luna",
+  character: "Luna Marchetti", title: "Clerk of the Panel",
+  bio: "Does not score. Records. Her one job is to report what the three judges actually said, including — especially — when they disagreed.",
+  mandate: "Never averages. When the panel splits, the split is the finding.",
   spec: "Parameter count undisclosed. Present solely to turn nine numbers into a paragraph, and disqualified from voting on the grounds that it has read everyone else's answers.",
 };
 
 /**
- * Who actually answered, keyed by the model id the ladder seated.
+ * Who actually answered, keyed by the model id recorded on the take.
  *
- * The panel declares three seats, but each seat is a LADDER, and OpenCode's
- * ladder spans several labs — when `deepseek-v4-pro` fails it falls through to
- * `qwen3.8-max`, which is Alibaba, not DeepSeek. Printing the seat's bio next to
- * Qwen's answer would put DeepSeek's published architecture beside words
- * DeepSeek never wrote, and quietly break the one claim this whole board rests
- * on: three models, three different labs, and you can check.
+ * Seats are now PINNED — one model each, no fallback, and a seat that cannot
+ * answer fails the whole ranking rather than letting another lab sit in it.
+ * So for anything ranked since the pin, `model_used` always equals the seat's
+ * declared model and this table is a formality.
  *
- * So identity is resolved from the model that ANSWERED. The seat is an
- * intention; the model id is the fact.
+ * It is kept, and kept complete, for rows ranked BEFORE the pin. The old open
+ * ladder let GLM and Qwen answer in DeepSeek's seat on five of the first
+ * twenty-three companies. Those rows are still in the database, and rendering
+ * a character's bio above words that character's model never wrote is exactly
+ * the lie the pin exists to prevent. Identity is resolved from the model that
+ * ANSWERED: the seat is an intention, the model id is the fact.
  */
 export const MODEL_IDENTITY: Record<string, { name: string; lab: string; spec: string }> = {
+  "nvidia/nemotron-3-ultra-550b-a55b": {
+    name: "Nemotron 3 Ultra", lab: "NVIDIA",
+    spec: "Mixture-of-experts, 550B total parameters with roughly 55B active per token — both numbers are published in the model's own name. Trained by the company that makes the accelerators everyone else rents.",
+  },
   "nvidia/nemotron-3-super-120b-a12b": {
     name: "Nemotron 3 Super", lab: "NVIDIA",
     spec: "Mixture-of-experts, 120B total parameters with roughly 12B active per token — the sparsity is published in the model's own name. Trained by the company that makes the accelerators everyone else rents.",
@@ -206,27 +226,49 @@ export const MODEL_IDENTITY: Record<string, { name: string; lab: string; spec: s
 };
 
 /**
- * Identity of whoever filled a seat, falling back to the seat's own declaration
- * when a model id is not in the table above — a new rung should render as
- * something rather than as a blank.
+ * Identity of whoever filled a seat — and whether the character may be shown.
+ *
+ * The character is the load-bearing part. A juror is a person now, and a person
+ * cannot be swapped for a model from another lab and still be that person. So
+ * `character` is returned ONLY when the recorded model is the seat's pinned
+ * model. Where it is not — a row ranked before the pin — the answer is
+ * attributed to the model that actually produced it, with no character and no
+ * bio, and `stale` set so the page can say why.
+ *
+ * That asymmetry is deliberate. Attributing Qwen's words to Nemo Vasquez would
+ * be a fabricated byline, which is a worse failure than an unglamorous row.
  */
 export function identityFor(modelUsed: string, panelistId: string) {
-  const known = MODEL_IDENTITY[modelUsed];
-  if (known) return { ...known, substitute: false };
   const seat = PANELISTS.find((p) => p.id === panelistId);
+  const known = MODEL_IDENTITY[modelUsed];
+  const pinned = !!seat && seat.model === modelUsed;
+
+  if (pinned && seat) {
+    return {
+      name: seat.name, lab: seat.lab, spec: seat.spec,
+      character: seat.character, title: seat.title, bio: seat.bio, lens: seat.lens,
+      stale: false,
+    };
+  }
+
   return {
-    name: seat?.name ?? modelUsed,
-    lab: seat?.lab ?? "",
-    spec: seat?.spec ?? "",
-    substitute: true,
+    name: known?.name ?? seat?.name ?? modelUsed,
+    lab: known?.lab ?? "",
+    spec: known?.spec ?? "",
+    character: null, title: "", bio: "", lens: "",
+    stale: true,
   };
 }
 
-/** True when the seat was filled by a model from a different lab than declared. */
-export const isSubstitute = (modelUsed: string, panelistId: string): boolean => {
-  const seat = PANELISTS.find((p) => p.id === panelistId);
-  return !!seat && MODEL_IDENTITY[modelUsed] ? MODEL_IDENTITY[modelUsed].lab !== seat!.lab : false;
-};
+/**
+ * True when a take predates the current pinned panel.
+ *
+ * Not "a substitute was seated" — that can no longer happen. This flags a row
+ * whose scores came from a jury the board no longer uses, which is a staleness
+ * problem rather than a disclosure one. Re-rank it; do not annotate it.
+ */
+export const isStaleTake = (modelUsed: string, panelistId: string): boolean =>
+  !PANELISTS.some((p) => p.id === panelistId && p.model === modelUsed);
 
 export const panelistName = (id: string) =>
   PANELISTS.find((p) => p.id === id)?.name ?? id;
@@ -238,9 +280,17 @@ export const CATEGORY_LABELS: Record<string, string> = {
   "ad-server": "Ad Serving",
   paywall: "Paywall & Subscriptions",
   "adblock-recovery": "Adblock Revenue Recovery",
+  // Buy-side. Mirrored from functions/_lib/classify.ts — change one, change
+  // the other, same as QUESTIONS and PANELISTS above. A key missing here does
+  // not throw; it renders as "Other", which is the quiet kind of wrong.
   dsp: "DSP & Media Buying",
   curation: "Curation & Marketplaces",
   creative: "Creative & DCO",
+  mmp: "Mobile Measurement (MMP)",
+  "retail-media-buying": "Retail Media Buying Tools",
+  "search-social": "Search & Social Management",
+  "planning-workflow": "Media Planning & Workflow",
+  "agentic-buying": "Agentic Buying & Ad Protocols",
   identity: "Identity & Alt ID",
   "clean-rooms": "Data & Clean Rooms",
   contextual: "Contextual & Semantic",

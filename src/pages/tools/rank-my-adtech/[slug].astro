@@ -31,7 +31,7 @@ import PixelIcon from "../../../components/ds/PixelIcon.astro";
 import DitherLine from "../../../components/ds/DitherLine.astro";
 import {
   getEntries, ranksFor, ordinal, scoreBand, stackFor, categoryLabel,
-  fmt, bandBadgeFor, identityFor, QUESTIONS, PANELISTS, WRITER, SIDE_LABELS,
+  fmt, bandBadgeFor, identityFor, QUESTIONS, WRITER, SIDE_LABELS,
 } from "../../../lib/rankings";
 
 export async function getStaticPaths() {
@@ -50,11 +50,11 @@ const stackCount = Object.values(stack).reduce((n, tools) => n + tools.length, 0
 
 const bandBadge = bandBadgeFor(entry);
 
-/* Who actually answered, per seat. A seat is a ladder and OpenCode's spans
-   several labs, so the model that replied is not always the one declared. */
+/* Who actually answered, per seat. Seats are pinned now, so for anything
+   ranked since the pin this is always the declared juror; `who.stale` marks
+   the older rows where it is not. */
 const seated = entry.takes.map((take) => ({
   take, who: identityFor(take.model_used, take.panelist_id),
-  declared: PANELISTS.find((p) => p.id === take.panelist_id),
 }));
 
 const splitQuestion = entry.split_question
@@ -206,7 +206,10 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
                   <span class="aol-rmc__dim-name">{q.label}</span>
                   <span class="aol-rmc__dim-score">{fmt(mean)}<em>/10</em></span>
                 </div>
-                <p class="aol-rmc__question-ask">{q.question}<span>{q.persona}</span></p>
+                {/* No persona line here any more. The lens belongs to the
+                    juror, not the question — it is printed once, beside the
+                    juror, in "Who judged this" below. */}
+                <p class="aol-rmc__question-ask">{q.question}</p>
 
                 <ul class="aol-rmc__takes">
                   {entry.takes.map((take) => {
@@ -215,8 +218,12 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
                     return (
                       <li class="aol-rmc__take">
                         <div class="aol-rmc__take-head">
+                          {/* The character when the pinned seat answered, the
+                              bare model id when it did not. A stale row must
+                              not carry a byline it did not earn. */}
                           <span class="aol-rmc__take-who">
-                            {identityFor(take.model_used, take.panelist_id).name}
+                            {identityFor(take.model_used, take.panelist_id).character
+                              ?? identityFor(take.model_used, take.panelist_id).name}
                           </span>
                           <span class="aol-rmc__take-word">{rating.adjective}</span>
                           <span class="aol-rmc__take-score">{take[q.key]}<em>/10</em></span>
@@ -242,23 +249,35 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
         {/* ── 5. Who judged, and what they are ───────────────────────────── */}
         <h2 class="aol-rmc__h2">Who judged this.</h2>
         <ul class="aol-panel__list">
-          {seated.map(({ take, who, declared }) => {
+          {seated.map(({ take, who }) => {
             return (
               <li class="aol-panel__member">
                 <span class="aol-panel__lab">{who.lab}</span>
                 <span class="aol-panel__name">
-                  {who.name}
+                  {who.character ?? who.name}
                   <em class="aol-panel__word">“{take.adjective}”</em>
                 </span>
-                <p class="aol-panel__spec">{who.spec}</p>
-                {/* The bio above belongs to whoever ANSWERED, so it is never
-                    wrong. This line records that the seat changed hands — which
-                    matters when the substitute comes from a different lab, since
-                    "three different labs" is the claim the whole board rests on
-                    and a silent swap would make it uncheckable. */}
-                {declared && take.model_used !== declared.model ? (
+                {/* Character first, then the model underneath it. Both, always,
+                    and in that order: the character is who wrote the words and
+                    the model is what makes the claim checkable. Dropping either
+                    one turns a disclosed panel back into an anonymous "AI". */}
+                {who.character ? (
+                  <>
+                    <p class="aol-panel__role">{who.title} · {who.lens}</p>
+                    <p class="aol-panel__bio">{who.bio}</p>
+                    <p class="aol-panel__spec">{who.name} — {who.spec}</p>
+                  </>
+                ) : (
+                  <p class="aol-panel__spec">{who.spec}</p>
+                )}
+                {/* A seat can no longer be filled by anything but its own
+                    pinned model, so there is no such thing as a substitute any
+                    more. What remains is rows scored BEFORE the pin, by a jury
+                    the board no longer uses. Those get no character and say so
+                    plainly — the fix for them is a re-rank, not a footnote. */}
+                {who.stale ? (
                   <p class="aol-panel__fallback">
-                    Standing in for {declared.name}, which did not answer on this run.
+                    Scored by an earlier panel, before the seats were pinned. Due a re-rank.
                   </p>
                 ) : null}
               </li>

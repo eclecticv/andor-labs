@@ -84,9 +84,16 @@ const OPENCODE_BASE = "https://opencode.ai/zen/go/v1";
  *   grok-4.5     — "Endpoint is unavailable" from the provider
  *   kimi-k3      — empty content
  *   minimax-m3   — leaks raw <think> reasoning into the content field
+ *
+ * grok-4.5 is worth a specific note because it LISTS in Go's /models and reads
+ * as available. Re-verified 2026-08-15: the listing is still there and the call
+ * still fails, upstream of Go — `Upstream request failed: Endpoint is
+ * unavailable.` It is the only xAI model on Go, so an xAI seat is not reachable
+ * through this key at all. Reaching one means xAI's own API and its own key.
  */
 const OPENCODE_JUROR_MODELS = ["qwen3.8-max", "glm-5.3", "deepseek-v4-pro", "gpt-5.6-luna"];
 const OPENCODE_SYNTH_MODELS = ["gpt-5.6-luna", "qwen3.8-max", "deepseek-v4-pro", "glm-5.3"];
+
 
 /**
  * NIM ladder, best practical first. `nemotron-3-super-120b-a12b` leads rather
@@ -176,11 +183,19 @@ const DEFAULT_TEMPERATURE = 0;
  * connection rather than the designed failure card — the one outcome this
  * pipeline is built to avoid.
  *
- * 75 seconds is generous for a reasoning model writing three summaries (the
- * slowest legitimate call measured was ~50s) and short enough that all three
- * rungs of a ladder can still be tried inside a request.
+ * 75 seconds was generous when the slowest legitimate call measured ~50s. It
+ * stopped being generous when the panel moved to Nemotron 3 Ultra and grew a
+ * case-against section: measured against the real prompt on 2026-08-15, Ultra
+ * returned complete, valid JSON in 76.4s — four seconds over the line, so the
+ * seat would have been killed mid-answer and read as a provider outage.
+ *
+ * 120s restores the headroom. It costs nothing when calls are fast, because
+ * this is a deadline and not a delay; and it is affordable in the Function
+ * because the three seats run concurrently, so the panel's wall clock is the
+ * slowest seat rather than the sum. Waiting on fetch is not CPU time, which is
+ * what Cloudflare actually meters.
  */
-const CALL_TIMEOUT_MS = 75_000;
+const CALL_TIMEOUT_MS = 120_000;
 
 /**
  * Fetch with a deadline, reporting a timeout as a timeout.
@@ -209,12 +224,17 @@ export async function callGemini(
   model: string,
   prompt: string,
   temperature = DEFAULT_TEMPERATURE,
+  system?: string,
 ): Promise<string> {
   const res = await fetchWithDeadline(`${geminiEndpoint(model)}?key=${key}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
+      // The persona goes here rather than being pasted on top of the rubric.
+      // A juror who is told who they are in the same breath as what to score
+      // drifts toward the rubric's voice; a standing instruction does not.
+      ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
       generationConfig: { temperature, responseMimeType: "application/json" },
     }),
   }, model);
@@ -234,6 +254,7 @@ export async function callOpenAICompatible(
   model: string,
   prompt: string,
   temperature = DEFAULT_TEMPERATURE,
+  system?: string,
 ): Promise<string> {
   const res = await fetchWithDeadline(`${base}/chat/completions`, {
     method: "POST",
@@ -264,7 +285,11 @@ export async function callOpenAICompatible(
        */
       max_tokens: 8000,
       response_format: { type: "json_object" },
-      messages: [{ role: "user", content: prompt }],
+      messages: [
+        // Persona as a standing instruction, rubric as the turn. See callGemini.
+        ...(system ? [{ role: "system", content: system }] : []),
+        { role: "user", content: prompt },
+      ],
     }),
   }, model);
   if (!res.ok) {
@@ -309,20 +334,27 @@ export function keyFor(provider: Provider, env: ProviderEnv): string | undefined
       : env.OPENCODE_API_KEY;
 }
 
+const OPENAI_COMPATIBLE_BASE: Record<Exclude<Provider, "gemini">, string> = {
+  nvidia: NIM_BASE,
+  opencode: OPENCODE_BASE,
+};
+
 export async function askOnce(
   provider: Provider,
   key: string,
   model: string,
   prompt: string,
   temperature = DEFAULT_TEMPERATURE,
+  system?: string,
 ) {
-  if (provider === "gemini") return callGemini(key, model, prompt, temperature);
+  if (provider === "gemini") return callGemini(key, model, prompt, temperature, system);
   return callOpenAICompatible(
-    provider === "nvidia" ? NIM_BASE : OPENCODE_BASE,
+    OPENAI_COMPATIBLE_BASE[provider],
     key,
     model,
     prompt,
     temperature,
+    system,
   );
 }
 
@@ -355,6 +387,14 @@ export interface LadderOptions {
   /** Tries per rung before moving on (default 1). Pinned seats get a second
       swing, since their whole ladder is one rung. */
   attempts?: number;
+  /**
+   * Standing instruction sent as the system message — who the juror IS.
+   *
+   * Kept out of `prompt` deliberately. The prompt is the rubric and is
+   * identical for every seat, which is what makes three scores comparable;
+   * the system message is what makes them three different opinions.
+   */
+  system?: string;
 }
 
 /**
@@ -398,7 +438,7 @@ export async function askLadder<T>(
     for (let attempt = 1; attempt <= attempts; attempt++) {
       try {
         const value = accept(
-          await askOnce(provider, key, model, prompt, options.temperature),
+          await askOnce(provider, key, model, prompt, options.temperature, options.system),
           model,
         );
         // Log WHY the higher rungs failed, not just how many. A ladder that

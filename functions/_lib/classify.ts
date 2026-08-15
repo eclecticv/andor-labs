@@ -36,9 +36,24 @@ export const CATEGORIES = [
   { key: "ad-server",              label: "Ad Serving" },
   { key: "paywall",                label: "Paywall & Subscriptions" },
   { key: "adblock-recovery",       label: "Adblock Revenue Recovery" },
+  // ── Buy-side ──
+  // Was three keys against sell-side's seven, which is why the buy-side tab
+  // looked empty: not because buy-side vendors were missing from the board,
+  // but because there was nowhere for most of them to land. An MMP, a retail
+  // media buying tool and a planning system all had to call themselves "DSP &
+  // Media Buying" or fall through to "Other", and "Other" is independent.
+  //
+  // These five are additive on purpose. No existing key changes meaning and no
+  // existing key changes side, so every score already on the board stays
+  // exactly as comparable as it was — the fix costs no rerank.
   { key: "dsp",                    label: "DSP & Media Buying" },
   { key: "curation",               label: "Curation & Marketplaces" },
   { key: "creative",               label: "Creative & DCO" },
+  { key: "mmp",                    label: "Mobile Measurement (MMP)" },
+  { key: "retail-media-buying",    label: "Retail Media Buying Tools" },
+  { key: "search-social",          label: "Search & Social Management" },
+  { key: "planning-workflow",      label: "Media Planning & Workflow" },
+  { key: "agentic-buying",         label: "Agentic Buying & Ad Protocols" },
   { key: "identity",               label: "Identity & Alt ID" },
   { key: "clean-rooms",            label: "Data & Clean Rooms" },
   { key: "contextual",             label: "Contextual & Semantic" },
@@ -50,6 +65,27 @@ export const CATEGORIES = [
   { key: "adops-agentic",          label: "Ad Ops & Agentic Tooling" },
   { key: "other",                  label: "Other" },
 ] as const;
+
+/**
+ * Where a category gets confused with its neighbour, said out loud.
+ *
+ * Categories that sound alike are the ones a model gets wrong, and it gets them
+ * wrong from marketing copy — which is written to sound like the more
+ * impressive neighbour. `agentic-buying` is the sharp case: without the guard
+ * every vendor who bolted a chat box onto an existing UI lands in it, and the
+ * newest category on the board becomes its least meaningful.
+ *
+ * Only categories with a real confusable neighbour appear here.
+ */
+export const CATEGORY_NOT: Partial<Record<string, string>> = {
+  dsp: "NOT curation or a trading desk — a DSP runs its own bidder rather than buying through someone else's seat.",
+  curation: "NOT a DSP — curators package and resell deals bought through a DSP seat; they do not run the auction.",
+  mmp: "NOT measurement — MMP is app install attribution and SKAdNetwork/AdAttributionKit postbacks specifically.",
+  "retail-media-buying": "NOT retail-media — that is the retailer's own network selling its own inventory, which is sell-side. This is the advertiser-side tooling for buying across those networks.",
+  "agentic-buying": "NOT adops-agentic, and NOT a chatbot bolted onto an existing UI. Requires a protocol implementation or an agent that takes actions rather than drafting them.",
+  "adops-agentic": "Neutral ad ops tooling sold to the ecosystem. If the product is advertisers buying media through an agent, that is agentic-buying.",
+  measurement: "NOT fraud-quality — measurement asks whether the ad worked; verification asks whether it was viewable and safe.",
+};
 
 export type Category = (typeof CATEGORIES)[number]["key"];
 export const CATEGORY_KEYS = CATEGORIES.map((c) => c.key);
@@ -96,7 +132,23 @@ const SIDE_BY_CATEGORY: Record<Category, Side> = {
   dsp: "buy",
   curation: "buy",
   creative: "buy",
+  mmp: "buy",
+  "retail-media-buying": "buy",
+  "search-social": "buy",
+  "planning-workflow": "buy",
+  "agentic-buying": "buy",
 
+  // Held on the independent side deliberately, and it is worth writing down
+  // why, because the obvious argument runs the other way: measurement and
+  // verification vendors mostly invoice advertisers, so "they take a buyer's
+  // money" would move both to buy.
+  //
+  // The board's split is not who pays. It is whose interest the product serves.
+  // A measurement vendor that reported only what its buyer wanted to hear would
+  // be worthless to that buyer — the neutrality IS the product, same as fraud
+  // detection, consent and identity. Moving them would also silently re-cohort
+  // every company already scored under them, which is a rerank dressed as a
+  // taxonomy edit.
   identity: "independent",
   "clean-rooms": "independent",
   contextual: "independent",

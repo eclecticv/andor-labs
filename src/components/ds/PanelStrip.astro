@@ -61,8 +61,13 @@ const { questions = true } = Astro.props;
           <li class="aol-rma__axis">
             <span class="aol-rma__axis-icon"><PixelIcon name={q.icon as any} size={24} /></span>
             <span class="aol-rma__axis-body">
-              <span class="aol-rma__axis-name">{q.question}<em>0–10</em></span>
-              <span class="aol-rma__axis-q">{q.persona}</span>
+              <span class="aol-rma__axis-name">{q.label}<em>0–10</em></span>
+              {/* The question itself, not a persona. Personas used to hang off
+                  the questions — one hat per question, worn by all three
+                  jurors. They now belong to the jurors, who hold one lens
+                  across all three questions, so there is nothing per-question
+                  left to print here. */}
+              <span class="aol-rma__axis-q">{q.question}</span>
             </span>
           </li>
         ))}

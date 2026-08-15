@@ -117,7 +117,10 @@ describe("bands", () => {
 describe("cohort labels", () => {
   it("reads the way the rank is spoken", () => {
     expect(cohortLabel("emerging", "sell")).toBe("emerging sell-side");
-    expect(cohortLabel("mature", "independent")).toBe("mature independent");
+    // The KEY is still `independent` — it is in every published URL — but the
+    // label it reads as is "Infrastructure", because on a board of private
+    // startups "independent" parses as a maturity band rather than a side.
+    expect(cohortLabel("mature", "independent")).toBe("mature infrastructure");
   });
 });
 

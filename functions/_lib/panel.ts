@@ -51,24 +51,112 @@ export interface Panelist {
    * is not public, this says so.
    */
   spec: string;
+
+  /**
+   * The character in the seat.
+   *
+   * A seat is a person, not a hat that gets swapped per question. The three
+   * fields below are what hold that: `lens` is how they read anything, and it
+   * does not change between innovation and investability; `disqualifier` is the
+   * specific thing that makes them say no; `forbidden` is what they will not do
+   * even when the question invites it.
+   *
+   * The disqualifier is load-bearing. Without a concrete "here is what makes me
+   * say no", a persona flattens into generic-analyst voice by the third
+   * question — which is exactly what the previous per-question personas did.
+   */
+  character: string;
+  title: string;
+  bio: string;
+  lens: string;
+  disqualifier: string;
+  forbidden: string[];
+  /**
+   * Prepended verbatim to this seat's system message, before anything else.
+   *
+   * Exists for NVIDIA's Nemotron line, which ships with reasoning OFF and turns
+   * it on only if the literal string `detailed thinking on` appears in the
+   * system prompt. Without it you pay reasoning-model latency for a
+   * non-reasoning answer.
+   */
+  systemPrefix?: string;
 }
 
+/**
+ * Three seats, three labs, four families once the writer is counted.
+ *
+ * Every seat is PINNED to one model — see `only` in providers.ts. A seat that
+ * cannot answer abstains; nothing else is ever seated in its place, because a
+ * board whose rows were judged by different juries is a board whose numbers are
+ * not comparable to each other.
+ */
 export const PANELISTS: Panelist[] = [
   {
     id: "nemotron",
-    name: "Nemotron 3 Super",
+    name: "Nemotron 3 Ultra",
     lab: "NVIDIA",
     provider: "nvidia",
-    model: "nvidia/nemotron-3-super-120b-a12b",
-    spec: "Mixture-of-experts, 120B total parameters with roughly 12B active per token — the sparsity is published in the model's own name. Trained by the company that makes the accelerators everyone else rents.",
+    /**
+     * Ultra, and on NIM, which is NVIDIA's own inference for its own models.
+     *
+     * Not `llama-3.1-nemotron-ultra-253b-v1` — that one lists in the NIM
+     * catalogue and returns 404 "Not found for account" when called, so it is
+     * visible but not provisioned here.
+     *
+     * Ultra was previously demoted below Super for exhausting its budget. It
+     * no longer does: measured against the real panel prompt on 2026-08-15 it
+     * returned complete, valid JSON in 76.4s. That is comfortably inside the
+     * raised 120s deadline and would have been four seconds outside the old
+     * 75s one — which is the whole reason the deadline moved.
+     */
+    model: "nvidia/nemotron-3-ultra-550b-a55b",
+    spec: "Mixture-of-experts, 550B total parameters with roughly 55B active per token — both numbers are published in the model's own name. Trained by the company that makes the accelerators everyone else rents.",
+    character: "Nemo Vasquez",
+    title: "Staff Engineer, Seat 1",
+    bio: "Nine years on the exchange side, most of it in the part of the stack nobody demos. Once got paged forty times in a single night because someone shipped a bid adapter that logged to stdout. Believes a product is whatever survives Black Friday, and that everything else is a landing page. Reads the careers page before the homepage.",
+    lens: "I judge by what breaks at 3am and who gets paged.",
+    disqualifier:
+      "I say no when the integration count IS the product. Sixty partners means sixty things that go down and one team that maintains none of them well.",
+    forbidden: [
+      "Never cite market size or TAM.",
+      "Never call something 'innovative' — describe the mechanism or say nothing.",
+      "Never accept a latency number that has no percentile attached.",
+    ],
+    systemPrefix: "detailed thinking on",
   },
   {
-    id: "deepseek",
-    name: "DeepSeek V4 Pro",
-    lab: "DeepSeek",
+    id: "qwen",
+    name: "Qwen 3.8 Max",
+    lab: "Alibaba",
+    /**
+     * This seat was specified as Grok, and Grok is not reachable.
+     *
+     * grok-4.5 lists in OpenCode Go's catalogue and fails upstream of it on
+     * every call — re-verified 2026-08-15. It is the only xAI model Go carries,
+     * so no xAI seat exists on this key; reaching one would mean xAI's own API,
+     * its own key, and a paid or credit-granted account.
+     *
+     * Qwen's closed top tier takes the seat instead. It is the right
+     * replacement on the merits rather than a consolation: it is a frontier
+     * closed model from a fourth lab, and it answered the real panel prompt in
+     * 52.9s with clean JSON. It is also, quietly, the model that was already
+     * doing this job — it is what the old open ladder seated whenever DeepSeek
+     * failed.
+     */
     provider: "opencode",
-    model: "deepseek-v4-pro",
-    spec: "Mixture-of-experts with open weights and a published architecture, though the exact parameter count for this tier is undisclosed. Reasons at length before committing, which is either rigour or stalling depending on how the answer turns out.",
+    model: "qwen3.8-max",
+    spec: "The closed top tier of the Qwen line; parameter count undisclosed. Alibaba open-weights most of this family and then declines to say anything at all about the largest one.",
+    character: "Rook Callaghan",
+    title: "Partner, Seat 2",
+    bio: "Partner at a fund you have heard of and cannot quite name. Passed on three companies that later mattered and has made peace with exactly one of them. Posts constantly. Thinks in ownership percentages and terminal value, and will happily tell you a great product is a bad business, which is the most useful thing anyone on this panel does.",
+    lens: "I judge by what this looks like at 10x revenue and whether anyone is left to buy it.",
+    disqualifier:
+      "I say no when the moat is the roadmap. Also when the exit list is three strategics who are all cutting costs.",
+    forbidden: [
+      "Never invoke 'the AI wave' or any macro tailwind as a reason to score up.",
+      "Never treat a funding round as validation — treat it as a clock.",
+      "Never name an acquirer you cannot name specifically.",
+    ],
   },
   {
     id: "gemini",
@@ -78,10 +166,21 @@ export const PANELISTS: Panelist[] = [
     // return 503 on every call; 3.5-flash returns 429 on this key often enough
     // that flash-LITE answered 22 of the first 23 rankings. Declaring anything
     // above it names a model that does not turn up and burns a round trip
-    // finding that out. The ladder still climbs back up if capacity returns.
+    // finding that out.
     provider: "gemini",
     model: "gemini-3.5-flash-lite",
     spec: "The smaller of Google's fast tiers. Parameter count undisclosed, architecture undisclosed, and the word 'Lite' is doing all the disclosure there is.",
+    character: "Gemma Larkspur",
+    title: "Operator-in-Residence, Seat 3",
+    bio: "Three exits, two of which she would rather not discuss. Has sat through roughly four hundred QBRs and can tell you the exact moment a renewal died in each one. Carries a spreadsheet she does not share. Her standing view is that most category-defining products are one procurement cycle away from being a line item someone forgets to cancel.",
+    lens: "I judge by whether this survives the renewal conversation eighteen months in.",
+    disqualifier:
+      "I say no when the buyer and the user are different people and nobody has solved for the gap. That deal churns.",
+    forbidden: [
+      "Never praise a roadmap. Score what shipped.",
+      "Never use 'seamless', 'end-to-end', or 'holistic' — if the copy says it, quote it as a red flag instead.",
+      "Never convert a feature into anything but a headcount question.",
+    ],
   },
 ];
 
@@ -92,6 +191,19 @@ export const WRITER = {
   provider: "opencode" as Provider,
   model: "gpt-5.6-luna",
   spec: "Parameter count undisclosed. Present solely to turn nine numbers into a paragraph, and disqualified from voting on the grounds that it has read everyone else's answers.",
+  character: "Luna Marchetti",
+  title: "Clerk of the Panel",
+  bio: "Does not score. Records. Has read every transcript this panel has produced and has opinions about all of them that she will not be sharing. Her one job is to report what the three judges actually said, including — especially — when they disagreed.",
+  /**
+   * The clerk never averages.
+   *
+   * Three jurors landing on 8/8/8 and three landing on 9/8/2 produce the same
+   * mean and mean opposite things, and the second is the more interesting row
+   * on the board. Collapsing it to "mixed reviews" throws away the only thing
+   * three independent opinions bought.
+   */
+  mandate:
+    "Summarize. Never average. Never adjudicate. When the panel splits, the split IS the finding: name the dissenter, state their reason, and leave it unresolved.",
 };
 
 // ── The questions ───────────────────────────────────────────────────────────
@@ -99,8 +211,6 @@ export const WRITER = {
 export interface Question {
   key: QuestionKey;
   label: string;
-  /** The hat the panelist wears for this question. */
-  persona: string;
   ask: string;
   /** What each band of the 0-10 scale means. THE determinism lever. */
   anchors: string;
@@ -108,12 +218,18 @@ export interface Question {
 
 export type QuestionKey = "innovation" | "difficulty" | "investability";
 
+/**
+ * The rubric. Identical for every seat, and carrying no persona.
+ *
+ * Personas used to live here, one per question, which meant all three jurors
+ * wore all three hats and the panel was three copies of the same committee. The
+ * lens now belongs to the juror (see PANELISTS) and never moves; what varies
+ * per question is only what is being asked and how the scale is anchored.
+ */
 export const QUESTIONS: Question[] = [
   {
     key: "innovation",
     label: "Innovation",
-    persona:
-      "a commercial veteran with twenty years in adtech who has watched every idea come round three times",
     ask: "How innovative is this, really?",
     anchors: `10 — a genuinely new mechanism; changes what is possible in the category
  8 — a real insight, executed conventionally
@@ -125,9 +241,15 @@ export const QUESTIONS: Question[] = [
   {
     key: "difficulty",
     label: "Hard to build",
-    persona:
-      "a distinguished engineer who has built ad servers and knows exactly which parts are hard",
-    ask: "Could a competent developer vibe-code this in a weekend?",
+    /**
+     * "Could this be vibe-coded" was producing rave scores, because a juror
+     * pattern-matches a feature list to a weekend build and a feature list is
+     * mostly what a homepage is. The question underneath it is where the moat
+     * is, and in adtech the moat is almost never the UI — so the ask now
+     * demands a NAMED bottleneck from a closed list. A juror who cannot name
+     * one has found something, and says so.
+     */
+    ask: `Name the single hardest thing to replicate here. Choose from: sustained QPS at a latency SLA; count and depth of OpenRTB integrations; data rights or contracts; compliance and accreditation posture; supply or demand relationships; proprietary data accumulation. Say which, and what on the pages supports it. If nothing supports any of them, say so — that is a valid and common finding, and it scores low.`,
     anchors: `Score the DIFFICULTY, not the ease. High means hard to reproduce.
 10 — years of systems work; distributed, latency-critical, or resting on data nobody else has
  8 — hard engineering; a strong team would need many months
@@ -139,7 +261,6 @@ export const QUESTIONS: Question[] = [
   {
     key: "investability",
     label: "Would you invest",
-    persona: "an adtech VC who has funded six companies out of four hundred decks",
     ask: "Would you invest in this?",
     anchors: `10 — would fight to get into the round
  8 — would take the meeting and probably write a cheque
@@ -162,6 +283,17 @@ export interface PanelistTake {
   panelistId: string;
   modelUsed: string;
   ratings: Record<QuestionKey, Rating>;
+
+  /**
+   * Three reasons the company is weaker than it looks, written BEFORE scoring.
+   *
+   * Its job is done at generation time: a juror who has just written down what
+   * is wrong scores the next three questions differently than one who has not.
+   * Not persisted yet — that lands with the evidence packet, which needs a
+   * migration anyway. Read it in the local runner when tuning the rubric.
+   */
+  caseAgainst: string[];
+
   /** One word for the company overall. This is what a board row carries. */
   adjective: string;
 
@@ -193,14 +325,57 @@ export interface PanelInput {
   thin: boolean;
   /** The closed subcategory set, passed in so _lib/panel owns no taxonomy. */
   categories: readonly { key: string; label: string }[];
+  /**
+   * Optional per-key "not to be confused with" notes, keyed by category.
+   *
+   * Categories that sound alike are the ones a model gets wrong, because
+   * marketing copy is written to sound like the more impressive neighbour.
+   */
+  categoryNotes?: Partial<Record<string, string>>;
+}
+
+/**
+ * Who the juror is. Sent as the system message, never as part of the rubric.
+ *
+ * The split is the point. Every seat receives a byte-identical rubric, which is
+ * what makes three scores comparable; the system message is the only thing that
+ * differs, which is what makes them three opinions rather than one opinion
+ * sampled three times.
+ */
+export function buildPanelSystem(p: Panelist): string {
+  return `${p.systemPrefix ? `${p.systemPrefix}\n\n` : ""}You are ${p.character}, ${p.title} on a public adtech leaderboard.
+
+${p.bio}
+
+How you read anything: ${p.lens}
+
+What makes you say no: ${p.disqualifier}
+
+You will not:
+${p.forbidden.map((f) => `  - ${f}`).join("\n")}
+
+You hold this lens for EVERY question you are asked, including the ones that
+seem addressed to somebody else. When you are asked whether you would invest,
+you answer as ${p.character} — not as an investor. When you are asked how hard
+something is to build, you answer as ${p.character} — not as an engineer. The
+other two judges have their own lenses and will disagree with you. That is the
+design. Do not move toward them.
+
+Two other models, from two other labs, are answering the same questions about
+the same company right now. You cannot see their answers and they cannot see
+yours.`;
 }
 
 export function buildPanelPrompt(input: PanelInput): string {
-  const categories = input.categories.map((c) => `    ${c.key} — ${c.label}`).join("\n");
+  const categories = input.categories
+    .map((c) => {
+      const note = input.categoryNotes?.[c.key];
+      return `    ${c.key} — ${c.label}${note ? `\n        ${note}` : ""}`;
+    })
+    .join("\n");
 
   const questions = QUESTIONS.map(
     (q) => `── ${q.key.toUpperCase()} ──
-You are ${q.persona}.
 ${q.ask}
 
 Score 0-10 against these anchors. Pick the band that fits and use its number;
@@ -208,14 +383,34 @@ do not invent a scale of your own:
 ${q.anchors}`,
   ).join("\n\n");
 
-  return `You are one of three judges on a public adtech leaderboard. Two other
-models, from two other labs, are answering these same three questions about the
-same company right now. You cannot see their answers and they cannot see yours.
+  return `Answer all three questions below, in character, from the pages provided.
 
-Answer all three questions. Wear the stated hat for each one — they are
-genuinely different lenses and a company can score well on one and badly on
-another. Do not average yourself toward the middle to seem reasonable.
+═══ BEFORE YOU SCORE ANYTHING ═══
+Write "case_against": three specific reasons this company is weaker than it
+looks, each one pointing at something you actually read on the pages. Do this
+FIRST, before any score exists.
 
+This is not a formality and it is not pessimism. Marketing language survives the
+question "why is this good" — it is built to. It does not survive "what is the
+hard part here" asked before you have committed to a position. A juror who
+scores first and justifies after has written a press release.
+
+═══ HOW TO SCORE ═══
+Ground every claim in the pages. You have the company's own site and nothing
+else, and that asymmetry runs one way: a site says what a company wants said,
+so a claim you cannot point at is not a neutral unknown — it is an absence.
+
+  - Start each question at 4. Argue UPWARD from there with evidence, or leave
+    it. Optimism costs something; vagueness does not earn anything.
+  - To score ABOVE 5 on a question, your summary must point at two DIFFERENT
+    concrete things on the pages — a named integration, a documented mechanism,
+    a pricing model, a specific customer, an actual API. Two restatements of the
+    same homepage sentence is one thing, not two.
+  - A company whose entire case is its homepage cannot go above 5. That is not
+    a penalty. That is the score.
+  - Buzzwords are evidence of nothing. "AI-powered", "real-time", "end-to-end",
+    "unified" and "next-generation" are the words on every site in this
+    industry. Treat them as the absence of a mechanism, not the presence of one.
 ${questions}
 
 For EACH question return:
@@ -253,8 +448,10 @@ sound established and reading stage off it is wrong more often than right.
   other models are being asked this same question and the three of you are
   being checked against each other.
 
-Return JSON only, with the keys in this order:
-{"innovation":{"score":int,"summary":str,"adjective":str},
+Return JSON only, with the keys in this order. "case_against" comes first
+because you must write it first:
+{"case_against":[str,str,str],
+ "innovation":{"score":int,"summary":str,"adjective":str},
  "difficulty":{"score":int,"summary":str,"adjective":str},
  "investability":{"score":int,"summary":str,"adjective":str},
  "adjective":str,
@@ -310,6 +507,10 @@ export function normalizeTake(raw: unknown, panelistId: string, modelUsed: strin
     panelistId,
     modelUsed,
     ratings,
+    caseAgainst: (Array.isArray(o.case_against) ? o.case_against : [])
+      .slice(0, 3)
+      .map((s: unknown) => trim(s, 300))
+      .filter(Boolean),
     adjective: oneWord(o.adjective),
     recall: {
       category: String(o.category ?? "").toLowerCase().replace(/[^a-z-]/g, ""),
@@ -471,7 +672,10 @@ export async function runPanel(env: ProviderEnv, input: PanelInput): Promise<Pan
         // a different jury than the other eighteen — disclosed on the page,
         // but disclosure does not make the scores comparable. Two attempts,
         // because this seat's whole ladder is now one rung.
-        { preferred: p.model, only: [p.model], attempts: 2 },
+        //
+        // `system` carries the character; `prompt` is byte-identical across
+        // seats. Same rubric, three different people reading it.
+        { preferred: p.model, only: [p.model], attempts: 2, system: buildPanelSystem(p) },
       ).then((r) => r.value),
     ),
   );

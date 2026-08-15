@@ -50,7 +50,7 @@ import { resolveLogo } from "../_lib/logo";
 import {
   buildIdentifyPrompt, normalizeIdentity, assertIdentityUsable,
   place, placeFromMarkup, sideFor, cohortLabel, categoryLabel, categoryFor,
-  CATEGORIES, BAND_LABELS, SIDE_LABELS,
+  CATEGORIES, CATEGORY_NOT, BAND_LABELS, SIDE_LABELS,
 } from "../_lib/classify";
 import { runPanel, resolveRecall, QUESTIONS, WRITER, PANELISTS } from "../_lib/panel";
 import { buildWriterPrompt, normalizeSummary, assertSummaryUsable } from "../_lib/writer";
@@ -390,7 +390,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
   let panel: Awaited<ReturnType<typeof runPanel>>;
   try {
     panel = await runPanel(env, {
-      domain, pages: site.pages, thin: site.thin, categories: CATEGORIES,
+      domain, pages: site.pages, thin: site.thin, categories: CATEGORIES, categoryNotes: CATEGORY_NOT,
     });
   } catch (err) {
     console.error(`[rank] ${domain}: ${err instanceof Error ? err.message : err}`);
