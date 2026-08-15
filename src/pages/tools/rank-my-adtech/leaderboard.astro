@@ -43,7 +43,7 @@ const countIn = (key: string) => board[key]?.length ?? 0;
 const opening = [...COHORTS].sort((a, b) => countIn(b.key) - countIn(a.key))[0]?.key ?? COHORTS[0].key;
 
 const title = "The Rank My AdTech leaderboard — private adtech startups, ranked";
-const description = `${all.length} private adtech companies judged by three language models from three different labs, split by stage and by side of the supply chain.`;
+const description = `${all.length} private adtech companies judged by three language models from three different labs, split by which side of the supply chain they sit on.`;
 ---
 
 <Base title={title} description={description}
@@ -68,27 +68,25 @@ const description = `${all.length} private adtech companies judged by three lang
       </div>
     </section>
 
-    <section class="aol-rma__axes">
-      <div class="aol-rma__inner">
-        <PanelStrip />
-      </div>
-    </section>
-
+    {/* The board leads — on the page named "leaderboard", the leaderboard is
+        the content, and the panel's credentials are the footnote to it. */}
     <section class="aol-rma__board">
       <div class="aol-rma__inner">
+        <h2 class="aol-rma__h2" id="board">The board.</h2>
         <div class="aol-rt">
           {/* Inputs first: CSS selects forward only. */}
           {COHORTS.map((cohort) => (
             <input class="aol-rt__input" type="radio" name="cohort"
-              id={`cohort-${cohort.key}`} checked={cohort.key === opening} />
+              id={`cohort-${cohort.key}`} checked={cohort.key === opening}
+              aria-label={`${cohort.label} — ${countIn(cohort.key)} companies`} />
           ))}
 
-          <div class="aol-rt__tabs" role="group" aria-label="Side of the supply chain">
+          <div class="aol-rt__tabs" role="group" aria-labelledby="board">
             {COHORTS.map((cohort) => (
               <label class="aol-rt__tab" for={`cohort-${cohort.key}`}>
                 <PixelIcon name={cohort.icon as any} size={24} />
                 <span class="aol-rt__tab-name">{cohort.label}</span>
-                <em class="aol-rt__tab-count">{countIn(cohort.key)}</em>
+                <span class="aol-rt__tab-count">{countIn(cohort.key)}</span>
               </label>
             ))}
           </div>
@@ -97,17 +95,18 @@ const description = `${all.length} private adtech companies judged by three lang
             {COHORTS.map((cohort) => (
               <div class="aol-rt__panel">
                 <p class="aol-rt__blurb">{cohort.blurb}</p>
-                {countIn(cohort.key) === 0 ? (
-                  <p class="aol-rb__empty">
-                    Nobody here yet. Whoever goes first takes it by walking in.
-                  </p>
-                ) : (
-                  <RankBoard entries={board[cohort.key]} championSlug={champion} limit={15} />
-                )}
+                <RankBoard entries={board[cohort.key] ?? []} championSlug={champion} limit={15} />
               </div>
             ))}
           </div>
         </div>
+
+        {/* The figure's key — the row's marks, decoded once instead of hidden
+            in title= attributes nobody on a phone can reach. */}
+        <p class="aol-rt__legend">
+          On fire 24+ · Interesting 19+ · Thinking 12+ · Brutal &lt;12 ·
+          Ticks — each panelist's own total; scattered ticks are a split panel
+        </p>
 
         <DitherLine />
         <p class="aol-rma__disclosure">
@@ -115,6 +114,12 @@ const description = `${all.length} private adtech companies judged by three lang
           public pages. An opinion, meant to be funny, not research. Want a row gone?
           Email{" "}<a href="mailto:hello@andorlabs.ca?subject=Rank%20My%20AdTech%20removal">hello@andorlabs.ca</a>{" "}and it goes.
         </p>
+      </div>
+    </section>
+
+    <section class="aol-rma__axes">
+      <div class="aol-rma__inner">
+        <PanelStrip />
       </div>
     </section>
   </main>

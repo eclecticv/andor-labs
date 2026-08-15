@@ -125,22 +125,36 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env, request })
   const origin = new URL(request.url).origin;
   const font = await loadFont(origin);
 
+  // Two panelists reaching for the same word is agreement — "CREDIBLE ×2,
+  // RESKINNED" reads as consensus, while the raw group_concat's "CREDIBLE,
+  // CREDIBLE, RESKINNED" reads as a bug.
+  const dedupedAdjectives = (() => {
+    if (!row.adjectives) return null;
+    const counts = new Map<string, number>();
+    for (const a of row.adjectives.split(",").map((s) => s.trim()).filter(Boolean)) {
+      counts.set(a, (counts.get(a) ?? 0) + 1);
+    }
+    return [...counts]
+      .map(([word, n]) => (n > 1 ? `${word} x${n}` : word))
+      .join(", ");
+  })();
+
   const axis = (label: string, value: number, max: number) => `
     <div style="display:flex;align-items:center;width:100%;margin-bottom:14px">
       <div style="display:flex;width:250px;font-size:22px;color:#52555F">${label}</div>
-      <div style="display:flex;width:420px;height:10px;background:#E9EBEF;border-radius:999px">
-        <div style="display:flex;width:${Math.round((value / max) * 420)}px;height:10px;background:#1B4DFF;border-radius:999px"></div>
+      <div style="display:flex;width:420px;height:10px;background:#E9EBEF">
+        <div style="display:flex;width:${Math.round((value / max) * 420)}px;height:10px;background:#1B4DFF"></div>
       </div>
       <div style="display:flex;margin-left:20px;font-size:22px;color:#14151A">${fmt(value)}/${max}</div>
     </div>`;
 
   const html = `
   <div style="display:flex;width:1200px;height:600px;padding:40px;background:#FFFFFF;font-family:Departure Mono">
-    <div style="display:flex;flex-direction:column;width:1120px;height:520px;padding:44px 52px;background:#FCF4F4;border:2px solid #14151A;border-radius:20px">
+    <div style="display:flex;flex-direction:column;width:1120px;height:520px;padding:44px 52px;background:#F7F9FB;border:2px solid #14151A;border-radius:5px">
 
       <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
         <div style="display:flex;font-size:22px;color:#1B4DFF">And/or Labs · RANK MY ADTECH</div>
-        <div style="display:flex;font-size:18px;color:#7E4A24;letter-spacing:2px">${esc(plain(`${SIDE_LABELS[row.side] ?? ""} · ${categoryLabel(row.category ?? "")}`).toUpperCase())}${row.provisional ? " · PROVISIONAL" : ""}</div>
+        <div style="display:flex;font-size:18px;color:#6D717B;letter-spacing:2px">${esc(plain(`${SIDE_LABELS[row.side] ?? ""} · ${categoryLabel(row.category ?? "")}`).toUpperCase())}${row.provisional ? " · PROVISIONAL" : ""}</div>
       </div>
 
       <div style="display:flex;align-items:center;width:100%;margin-top:34px">
@@ -157,7 +171,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env, request })
         </div>
       </div>
 
-      <div style="display:flex;width:100%;height:1px;background:#EAD9D9;margin:30px 0 26px"></div>
+      <div style="display:flex;width:100%;height:1px;background:#D8DAE0;margin:30px 0 26px"></div>
 
       <div style="display:flex;flex-direction:column;width:100%">
         ${axis("INNOVATION", row.innovation, 10)}
@@ -167,8 +181,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env, request })
 
       <div style="display:flex;justify-content:space-between;width:100%;margin-top:auto;font-size:18px;color:#6D717B">
         <div style="display:flex">${
-          row.adjectives
-            ? esc(plain(row.adjectives).toUpperCase())
+          dedupedAdjectives
+            ? esc(plain(dedupedAdjectives).toUpperCase())
             : leader?.slug === slug ? "TOP OF ITS SIDE" : "JUDGED BY THREE LABS"
         }</div>
         <div style="display:flex">andorlabs.ca/tools/rank-my-adtech</div>

@@ -20,16 +20,25 @@ interface Props {
 const { entries, championSlug = null, limit = 0 } = Astro.props;
 const shown = limit > 0 ? entries.slice(0, limit) : entries;
 const rest = limit > 0 ? entries.slice(limit) : [];
+
+// A row tied with the one above says so — three 17.3s rendered as ranks 5/6/7
+// imply an ordering the panel never made.
+const tiedWithPrev = (i: number, list: Entry[], prev?: Entry) =>
+  i > 0 ? list[i - 1].total === list[i].total : prev ? prev.total === list[i].total : false;
 ---
 
 <div class="aol-rb">
   {entries.length === 0 ? (
-    <p class="aol-rb__empty">Nobody yet. Whoever goes first takes the crown by walking in.</p>
+    <p class="aol-rb__empty">
+      Nobody yet. Whoever goes first takes the crown by walking in.{" "}
+      <a href="/tools/rank-my-adtech/">Rank your company →</a>
+    </p>
   ) : (
     <>
       <ol class="aol-rb__list">
         {shown.map((entry, i) => (
           <RankRow entry={entry} rank={i + 1} leader={i === 0}
+            tied={tiedWithPrev(i, shown)}
             champion={entry.slug === championSlug} />
         ))}
       </ol>
@@ -42,6 +51,7 @@ const rest = limit > 0 ? entries.slice(limit) : [];
           <ol class="aol-rb__list">
             {rest.map((entry, i) => (
               <RankRow entry={entry} rank={limit + i + 1}
+                tied={tiedWithPrev(i, rest, shown[shown.length - 1])}
                 champion={entry.slug === championSlug} />
             ))}
           </ol>

@@ -63,7 +63,9 @@ export type Side = "buy" | "sell" | "independent";
 export const SIDE_LABELS: Record<Side, string> = {
   buy: "Buy-side",
   sell: "Sell-side",
-  independent: "Independent",
+  // Renders as "Infrastructure" everywhere a reader sees it (site + OG card) —
+  // "independent" reads as a maturity band. The KEY stays `independent`.
+  independent: "Infrastructure",
 };
 
 /**

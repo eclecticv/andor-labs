@@ -79,8 +79,12 @@ export const SIDES: { key: Side; label: string; icon: string; blurb: string }[] 
     blurb: "They own or represent the inventory." },
   { key: "buy", label: "Buy-side", icon: "analytics",
     blurb: "They spend somebody's media budget." },
-  { key: "independent", label: "Independent", icon: "handshake",
-    blurb: "Measurement, identity, safety, tooling. Paid by neither, trusted by both." },
+  // "Infrastructure", not "Independent" — on a board of private startups,
+  // "independent" reads as a maturity band (indie/small/unfunded). All eight
+  // members are neutral plumbing: verification, identity, clean rooms,
+  // measurement. The key stays `independent`; it is in every published URL row.
+  { key: "independent", label: "Infrastructure", icon: "handshake",
+    blurb: "They sell nobody's inventory and spend nobody's budget." },
 ];
 
 /**

@@ -308,6 +308,18 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const site = await readSite(domain);
   if (!site.html) return json(failure("read"), 502);
 
+  /**
+   * Hard floor, not a flag. `thin` used to publish anyway (as "provisional"),
+   * and identical empty input produced a 12.6-point spread: Assertive Yield
+   * (React shell, 51 chars) scored 9.3 while HUMAN Security (bot-blocked, 35
+   * chars) scored 21.9 — when there is no document, the score is brand recall,
+   * not a reading. "Three models read your site" has to be true to publish.
+   */
+  const corpus = site.pages.replace(/^## .*$/gm, "").replace(/\s+/g, " ").trim();
+  if (corpus.length < 1_500) {
+    return json(failure("read"), 200);
+  }
+
   const detected = detectStack(site.html);
 
   // ── Identify ──────────────────────────────────────────────────────────────
@@ -411,6 +423,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       (text) => assertSummaryUsable(normalizeSummary(extractJson(text))),
       {
         preferred: WRITER.model,
+        // Pinned like the jurors: the company page states, statically, that
+        // THIS model wrote the verdict — a substituted writer makes that line
+        // false. Two attempts, since the ladder is now one rung.
+        only: [WRITER.model],
+        attempts: 2,
         // The one call in the pipeline that is NOT at temperature 0. Scores have
         // to be repeatable; prose does not, and a joke sampled greedily is the
         // most obvious joke available. The numbers this paragraph describes are
