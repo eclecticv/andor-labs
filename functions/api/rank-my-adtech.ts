@@ -61,6 +61,7 @@ interface Env {
   GEMINI_API_KEY?: string;
   NVIDIA_API_KEY?: string;
   OPENCODE_API_KEY?: string;
+  CONTEXT_DEV_API_KEY?: string;
   LOOPS_API_KEY?: string;
   DEPLOY_HOOK_URL?: string;
   NIM_MODEL?: string;
@@ -305,8 +306,13 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (existing) return json({ status: "already-ranked", slug: existing.slug, domain }, 200);
 
   // ── Read ──────────────────────────────────────────────────────────────────
-  const site = await readSite(domain);
-  if (!site.html) return json(failure("read"), 502);
+  // context.dev is a fallback only — called by readSite() solely when the
+  // direct fetch already came back thin (client-rendered shell, WAF block).
+  const site = await readSite(domain, env.CONTEXT_DEV_API_KEY);
+  // .pages, not .html — a context.dev rescue can return prose with no raw
+  // markup (stack detection just finds nothing, which is already how the page
+  // describes a warehouse-native setup).
+  if (!site.pages) return json(failure("read"), 502);
 
   /**
    * Hard floor, not a flag. `thin` used to publish anyway (as "provisional"),
@@ -327,7 +333,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   // it takes the first ladder that answers rather than a named seat.
   const identifyPrompt = buildIdentifyPrompt(domain, site.pages, site.thin);
   let identity: ReturnType<typeof normalizeIdentity> | undefined;
-  for (const provider of ["gemini", "opencode", "nvidia"] as Provider[]) {
+  // OpenCode Go leads by standing preference — one subscription across ~26
+  // curated open models, so it is the cheapest rung that answers and the least
+  // likely to rate-limit. Gemini and NIM stay beneath it as fallback.
+  for (const provider of ["opencode", "gemini", "nvidia"] as Provider[]) {
     if (!keyFor(provider, env)) continue;
     try {
       const { value } = await askLadder(provider, env, identifyPrompt, (text) =>

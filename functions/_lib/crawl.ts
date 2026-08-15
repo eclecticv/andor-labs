@@ -55,6 +55,38 @@ export interface SiteRead {
   thin: boolean;
 }
 
+/**
+ * context.dev fallback — JS rendering and bot-detection bypass for the sites
+ * a plain fetch cannot read: client-rendered shells (Assertive Yield's Gatsby
+ * app returned 51 chars direct) and WAF blocks (HUMAN Security returned a
+ * literal "Access to this page has been denied"). Free tier is 250-500
+ * credits/month; this is called ONLY when the direct fetch already came back
+ * thin, so it costs nothing on the ~90% of sites that just work.
+ */
+async function readViaContextDev(url: string, apiKey: string): Promise<string | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const res = await fetch(
+      `https://api.context.dev/v1/web/scrape/markdown?url=${encodeURIComponent(url)}`,
+      { signal: controller.signal, headers: { authorization: `Bearer ${apiKey}` } },
+    );
+    if (!res.ok) return null;
+    const body = (await res.json()) as { success?: boolean; markdown?: string };
+    if (!body.success || !body.markdown) return null;
+    // Some sites come back as clean markdown prose; others as a fenced raw-HTML
+    // blob when the readability pass finds nothing to simplify. Strip the
+    // fence and run it through the same toText() as everything else so both
+    // shapes land as plain text.
+    const fenced = /^```html\n([\s\S]*)\n```$/.exec(body.markdown.trim());
+    return fenced ? toText(fenced[1], 10_000) : body.markdown.trim().slice(0, 10_000);
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function get(url: string, timeoutMs = 10_000): Promise<string | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -130,11 +162,26 @@ async function countSitemap(origin: string): Promise<number | null> {
   return locs;
 }
 
-export async function readSite(domain: string): Promise<SiteRead> {
+export async function readSite(domain: string, contextDevKey?: string): Promise<SiteRead> {
   const homeUrl = `https://${domain}`;
   const home = await get(homeUrl);
+
   if (!home) {
-    return { pages: "", html: "", finalUrl: homeUrl, titles: [], sitemapUrlCount: null, thin: true };
+    // Direct fetch failed outright (some WAFs 403 rather than serving a block
+    // page). One fallback attempt — no raw HTML to pick extra-page links from,
+    // but a homepage-only read is enough to clear the corpus floor.
+    const rendered = contextDevKey ? await readViaContextDev(homeUrl, contextDevKey) : null;
+    if (!rendered) {
+      return { pages: "", html: "", finalUrl: homeUrl, titles: [], sitemapUrlCount: null, thin: true };
+    }
+    return {
+      pages: `## Homepage (${homeUrl})\n${rendered}`,
+      html: "",
+      finalUrl: homeUrl,
+      titles: [],
+      sitemapUrlCount: null,
+      thin: rendered.length < 120,
+    };
   }
 
   const origin = new URL(homeUrl).origin;
@@ -148,7 +195,14 @@ export async function readSite(domain: string): Promise<SiteRead> {
 
   const sitemapUrlCount = await countSitemap(origin);
 
-  const homeText = toText(home, 10_000);
+  let homeText = toText(home, 10_000);
+  // The direct fetch returned a shell — a client-rendered app or a WAF's block
+  // page served with a 200. Try context.dev on the homepage alone before
+  // giving up; the extra pages already fetched above stay as-is regardless.
+  if (homeText.length < 120 && contextDevKey) {
+    const rendered = await readViaContextDev(homeUrl, contextDevKey);
+    if (rendered && rendered.length > homeText.length) homeText = rendered;
+  }
   const sections = [`## Homepage (${homeUrl})\n${homeText}`];
   const titles = [title(home)].filter((t): t is string => !!t);
   let html = home;

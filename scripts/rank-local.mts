@@ -38,6 +38,7 @@ const env = {
   NVIDIA_API_KEY: process.env.NVIDIA_API_KEY,
   OPENCODE_API_KEY: process.env.OPENCODE_API_KEY,
 };
+const CONTEXT_DEV_API_KEY = process.env.CONTEXT_DEV_API_KEY;
 
 const q = (v: unknown) =>
   v === null || v === undefined ? "NULL" : `'${String(v).replace(/'/g, "''")}'`;
@@ -47,14 +48,16 @@ const slugify = (v: string) =>
 
 async function rank(domain: string) {
   const t0 = Date.now();
-  const site = await readSite(domain);
-  if (!site.html) throw new Error("read failed");
+  const site = await readSite(domain, CONTEXT_DEV_API_KEY);
+  if (!site.pages) throw new Error("read failed");
   console.error(`  read ${site.pages.length} chars`);
 
   const detected = detectStack(site.html);
 
   let identity;
-  for (const provider of ["gemini", "opencode", "nvidia"] as Provider[]) {
+  // OpenCode Go leads — mirrors the Function's order so a local re-run seats
+  // the same identifier the live pipeline would.
+  for (const provider of ["opencode", "gemini", "nvidia"] as Provider[]) {
     if (!keyFor(provider, env)) continue;
     try {
       const { value } = await askLadder(provider, env, buildIdentifyPrompt(domain, site.pages, site.thin),
