@@ -203,7 +203,16 @@ async function triggerRebuild(env: Env): Promise<void> {
     }
     // Only record a fire that actually fired. Stamping the throttle regardless
     // once let a wrong hook URL 404 on every call while the logs looked healthy.
-    const hook = await fetch(env.DEPLOY_HOOK_URL, { method: "POST" });
+    // Bounded — even backgrounded via waitUntil(), an unbounded fetch here
+    // would burn the isolate's execution budget indefinitely on a hung hook.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8_000);
+    let hook: Response;
+    try {
+      hook = await fetch(env.DEPLOY_HOOK_URL, { method: "POST", signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
     if (!hook.ok) {
       console.error(`[rank] deploy hook ${hook.status} — board will not refresh`);
       await env.RANKINGS.prepare("UPDATE build_state SET pending = 1 WHERE id = 1").run();
@@ -239,7 +248,7 @@ const RESERVED_SLUGS = new Set(["leaderboard", "index", "api", "og"]);
 
 // ── Handler ─────────────────────────────────────────────────────────────────
 
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
   const origin = request.headers.get("origin") ?? "";
   if (origin && !isLocalOrigin(origin) && !origin.endsWith("andorlabs.ca") && !origin.endsWith(".pages.dev")) {
     return json({ error: "Forbidden origin." }, 403);
@@ -512,7 +521,20 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     ),
   );
 
-  await triggerRebuild(env);
+  /**
+   * Bug found live 2026-08-15: this used to be `await`ed here, on the critical
+   * path between "the ranking is safely in D1" and "the client gets its
+   * response." The hook fetch below had no timeout, so any slowness on the
+   * far end held the whole HTTP response open — a run that had already
+   * succeeded (the row IS written by this point) would time out client-side
+   * as "the panel is unreachable," and the deploy that would have put it on
+   * the board never got a clean confirmation either. admiral.com published
+   * cleanly and sat invisible for hours because of exactly this.
+   *
+   * waitUntil() runs it after the response is already on the wire — a slow
+   * or hung deploy hook can no longer cost the visitor their result.
+   */
+  waitUntil(triggerRebuild(env));
 
   return json({
     status: "ranked",
