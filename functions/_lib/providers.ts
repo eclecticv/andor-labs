@@ -225,6 +225,7 @@ export async function callGemini(
   prompt: string,
   temperature = DEFAULT_TEMPERATURE,
   system?: string,
+  schema?: unknown,
 ): Promise<string> {
   const res = await fetchWithDeadline(`${geminiEndpoint(model)}?key=${key}`, {
     method: "POST",
@@ -235,7 +236,24 @@ export async function callGemini(
       // A juror who is told who they are in the same breath as what to score
       // drifts toward the rubric's voice; a standing instruction does not.
       ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
-      generationConfig: { temperature, responseMimeType: "application/json" },
+      /**
+       * `responseMimeType` asks for JSON; `responseSchema` enforces it.
+       *
+       * The difference stopped being academic on playwire.com, where Flash Lite
+       * returned `"summary":Staging a ...` — an unquoted string value, so not
+       * JSON at all. At temperature 0 that is not bad luck to be retried away:
+       * the same input gives the same output, so the seat failed three retries
+       * identically and would have failed forever. A schema makes the decoder
+       * itself refuse to emit that shape.
+       *
+       * Passed per call rather than baked in, because this caller also serves
+       * the identify and writer prompts, which have different shapes.
+       */
+      generationConfig: {
+        temperature,
+        responseMimeType: "application/json",
+        ...(schema ? { responseSchema: schema } : {}),
+      },
     }),
   }, model);
   if (!res.ok) throw new Error(`gemini ${res.status}`);
@@ -346,8 +364,9 @@ export async function askOnce(
   prompt: string,
   temperature = DEFAULT_TEMPERATURE,
   system?: string,
+  schema?: unknown,
 ) {
-  if (provider === "gemini") return callGemini(key, model, prompt, temperature, system);
+  if (provider === "gemini") return callGemini(key, model, prompt, temperature, system, schema);
   return callOpenAICompatible(
     OPENAI_COMPATIBLE_BASE[provider],
     key,
@@ -395,6 +414,14 @@ export interface LadderOptions {
    * the system message is what makes them three different opinions.
    */
   system?: string;
+  /**
+   * Response schema, honoured by providers that can enforce one.
+   *
+   * Gemini can; the OpenAI-compatible seats already get `response_format:
+   * json_object`, which has held. Passing it is what turns "please return JSON"
+   * into a decoder constraint — see callGemini.
+   */
+  schema?: unknown;
 }
 
 /**
@@ -438,7 +465,7 @@ export async function askLadder<T>(
     for (let attempt = 1; attempt <= attempts; attempt++) {
       try {
         const value = accept(
-          await askOnce(provider, key, model, prompt, options.temperature, options.system),
+          await askOnce(provider, key, model, prompt, options.temperature, options.system, options.schema),
           model,
         );
         // Log WHY the higher rungs failed, not just how many. A ladder that

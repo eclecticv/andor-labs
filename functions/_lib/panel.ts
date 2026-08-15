@@ -396,6 +396,55 @@ the same company right now. You cannot see their answers and they cannot see
 yours.`;
 }
 
+/**
+ * The panel response, as a schema a decoder can enforce.
+ *
+ * The prompt already describes this shape, and describing it was not enough:
+ * Flash Lite returned `"summary":Staging a ...` on playwire.com — an unquoted
+ * string, so not JSON. At temperature 0 that repeats exactly, so the seat
+ * failed three identical retries and would have failed indefinitely. A schema
+ * is the difference between asking for a shape and constraining the decoder to
+ * produce one.
+ *
+ * Gemini honours this via `responseSchema`; the OpenAI-compatible seats already
+ * run with `response_format: json_object` and have not produced malformed JSON.
+ * Kept in OpenAPI-ish form because that is what Gemini accepts.
+ */
+const RATING_SCHEMA = {
+  type: "object",
+  properties: {
+    score: { type: "integer" },
+    summary: { type: "string" },
+    adjective: { type: "string" },
+  },
+  required: ["score", "summary", "adjective"],
+};
+
+export const PANEL_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    case_against: { type: "array", items: { type: "string" } },
+    innovation: RATING_SCHEMA,
+    difficulty: RATING_SCHEMA,
+    investability: RATING_SCHEMA,
+    adjective: { type: "string" },
+    category: { type: "string" },
+    funding: {
+      type: "object",
+      properties: {
+        round: { type: "string" },
+        year: { type: "integer" },
+        investor: { type: "string" },
+      },
+      required: ["round", "year", "investor"],
+    },
+  },
+  required: [
+    "case_against", "innovation", "difficulty", "investability",
+    "adjective", "category", "funding",
+  ],
+};
+
 export function buildPanelPrompt(input: PanelInput): string {
   const categories = input.categories
     .map((c) => {
@@ -705,7 +754,8 @@ export async function runPanel(env: ProviderEnv, input: PanelInput): Promise<Pan
         //
         // `system` carries the character; `prompt` is byte-identical across
         // seats. Same rubric, three different people reading it.
-        { preferred: p.model, only: [p.model], attempts: 2, system: buildPanelSystem(p) },
+        { preferred: p.model, only: [p.model], attempts: 2, system: buildPanelSystem(p),
+          schema: PANEL_RESPONSE_SCHEMA },
       ).then((r) => r.value),
     ),
   );
