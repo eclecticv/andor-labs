@@ -338,6 +338,23 @@ export interface LadderOptions {
    */
   preferred?: string;
   temperature?: number;
+  /**
+   * Restrict the ladder to exactly these models — the neutrality pin.
+   *
+   * A juror seat exists so that every company is judged by the SAME three
+   * models. The open ladder broke that silently: when deepseek-v4-pro failed,
+   * GLM 5.3 (Zhipu) or Qwen (Alibaba) answered in its seat, and five of the
+   * first 23 companies were scored by a different jury than the other
+   * eighteen. The substitution was disclosed on the page, but disclosure does
+   * not make the scores comparable — same argument runPanel already makes for
+   * refusing a two-judge panel. A pinned seat that cannot answer fails the
+   * run, which is recoverable; a board whose numbers mean different things
+   * per row is not.
+   */
+  only?: string[];
+  /** Tries per rung before moving on (default 1). Pinned seats get a second
+      swing, since their whole ladder is one rung. */
+  attempts?: number;
 }
 
 /**
@@ -366,26 +383,36 @@ export async function askLadder<T>(
   // it as fallback. It is inserted even when the catalogue call did not report
   // it: a /models listing that omits a model we know answers is a worse guide
   // than simply trying it and letting the rung fail.
-  const models = options.preferred
+  const ordered = options.preferred
     ? [options.preferred, ...available.filter((m) => m !== options.preferred)]
     : available;
+  // A pinned seat's ladder is the allowlist and nothing else — see `only`.
+  const models = options.only
+    ? options.only.filter((m) => ordered.includes(m) || m === options.preferred)
+    : ordered;
+  if (!models.length) throw new Error(`${provider}: pin excluded every candidate`);
 
+  const attempts = Math.max(1, options.attempts ?? 1);
   const failures: string[] = [];
   for (const model of models) {
-    try {
-      const value = accept(
-        await askOnce(provider, key, model, prompt, options.temperature),
-        model,
-      );
-      // Log WHY the higher rungs failed, not just how many. A ladder that
-      // silently drops a rung every call is a ladder whose top entry should be
-      // reordered, and the count alone never tells you that.
-      if (failures.length) {
-        console.log(`[rank] ${provider} seated ${model}; skipped — ${failures.join(" ; ")}`);
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        const value = accept(
+          await askOnce(provider, key, model, prompt, options.temperature),
+          model,
+        );
+        // Log WHY the higher rungs failed, not just how many. A ladder that
+        // silently drops a rung every call is a ladder whose top entry should be
+        // reordered, and the count alone never tells you that.
+        if (failures.length) {
+          console.log(`[rank] ${provider} seated ${model}; skipped — ${failures.join(" ; ")}`);
+        }
+        return { model, value };
+      } catch (err) {
+        failures.push(
+          `${model}${attempts > 1 ? ` (try ${attempt})` : ""}: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
-      return { model, value };
-    } catch (err) {
-      failures.push(`${model}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
   throw new Error(`${provider} exhausted — ${failures.join(" | ")}`);

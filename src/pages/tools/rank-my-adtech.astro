@@ -57,7 +57,7 @@ const HOW = [
   { icon: "vote-yeah", title: "Three labs judge it",
     body: "NVIDIA, DeepSeek and Google, at the same moment, unable to see each other." },
   { icon: "shapes", title: "Nine ratings",
-    body: "Three questions each, scored against a fixed scale rather than a feeling." },
+    body: "Three questions times three judges, scored against a fixed scale rather than a feeling." },
   { icon: "trophy-solid", title: "A fourth writes it up",
     body: "Then it goes on the public board, ranked against its own corner of adtech." },
 ];
@@ -82,9 +82,10 @@ const description =
       <div class="aol-rma__inner aol-rma__split">
         <div class="aol-rma__copy">
           <p class="aol-rma__eyebrow">
-            <PixelIcon name="vote-yeah" size={12} /> Free tool · {ranked} ranked
+            <PixelIcon name="vote-yeah" size={12} /> Free tool ·{" "}
+            {ranked > 0 ? `${ranked} ranked` : "fresh board"}
           </p>
-          <h1 class="aol-rma__h1">Rank My AdTech.</h1>
+          <h1 class="aol-rma__h1 aol-rma__h1--display">Rank My AdTech.</h1>
           <p class="aol-rma__lede">
             Three models from three different labs read your site and answer the same
             three questions about it. A fourth reads all nine answers and writes the
@@ -100,32 +101,66 @@ const description =
         <div class="aol-rma__formcard">
           <form id="rank-form" novalidate>
             <label class="aol-rma__field">
-              <span class="aol-rma__label">Company URL</span>
+              <span class="aol-rma__label">Company domain</span>
               <Input type="text" name="url" id="rank-url" placeholder="company.com"
-                autocomplete="url" inputmode="url" required />
+                autocomplete="url" inputmode="url" autocapitalize="none"
+                autocorrect="off" spellcheck="false"
+                aria-describedby="rank-status" required />
             </label>
             <p class="aol-rma__hint">Any private adtech company. Yours or somebody else's.</p>
             <Button type="submit" variant="primary" size="lg" fullWidth id="rank-submit" arrow>
               Rank it
             </Button>
 
-            <div class="aol-rma__step" id="rank-step" data-state="idle" data-steps={JSON.stringify(STEPS)}>
+            {/* The stepper is the live region — during a 70-90s run these seven
+                lines are the only signal, and they must reach screen readers. */}
+            <div class="aol-rma__step" id="rank-step" data-state="idle"
+              data-steps={JSON.stringify(STEPS)} role="status" aria-live="polite">
               <span class="aol-rma__step-n" id="rank-step-n">00/07</span>
               <span class="aol-rma__step-text" id="rank-step-text">Takes about a minute. The panel is thorough.</span>
             </div>
 
             <p class="aol-rma__notice">
               Every ranking goes on the public board, under the company's own name.
-              No takebacks.
+              No takebacks — though one email to{" "}
+              <a href="mailto:hello@andorlabs.ca?subject=Rank%20My%20AdTech%20removal">hello@andorlabs.ca</a>{" "}
+              takes a row down.
             </p>
+            <noscript>
+              <p class="aol-rma__notice">
+                This one needs JavaScript — the panel is called from your browser.
+                The board below works either way.
+              </p>
+            </noscript>
           </form>
-          <p class="aol-rma__status" id="rank-status" role="status" aria-live="polite"></p>
+          <p class="aol-rma__status" id="rank-status" role="alert"></p>
         </div>
       </div>
     </section>
 
     {/* ── Result, injected client-side ───────────────────────────────────── */}
     <section class="aol-rma__result-slot" id="rank-result" hidden></section>
+
+    {/* ── Board preview — the proof, before the methodology. A skeptical
+        visitor needs "someone else already did this" more than they need the
+        mechanism; the old order buried the first row ~1,850px down. ────────── */}
+    <section class="aol-rma__board">
+      <div class="aol-rma__inner">
+        <div class="aol-rma__board-head">
+          <h2 class="aol-rma__h2">Top of the board.</h2>
+          <a class="aol-rma__board-link" href="/tools/rank-my-adtech/leaderboard/">
+            The full leaderboard <span aria-hidden="true">→</span>
+          </a>
+        </div>
+        <RankBoard entries={preview} championSlug={all[0]?.slug ?? null} />
+
+        <p class="aol-rma__disclosure">
+          <PixelIcon name="question-circle" size={12} /> Scored by a language model reading
+          public pages. An opinion, meant to be funny, not research. Want a row gone?
+          Email{" "}<a href="mailto:hello@andorlabs.ca?subject=Rank%20My%20AdTech%20removal">hello@andorlabs.ca</a>{" "}and it goes.
+        </p>
+      </div>
+    </section>
 
     {/* ── How it works: one row, not one screen ──────────────────────────── */}
     <section class="aol-rma__axes">
@@ -164,33 +199,6 @@ const description =
         <DitherLine />
 
         <PanelStrip questions={false} />
-      </div>
-    </section>
-
-    {/* ── Board preview ──────────────────────────────────────────────────── */}
-    <section class="aol-rma__board">
-      <div class="aol-rma__inner">
-        <div class="aol-rma__board-head">
-          <h2 class="aol-rma__h2">Top of the board.</h2>
-          <a class="aol-rma__board-link" href="/tools/rank-my-adtech/leaderboard/">
-            The full leaderboard <span aria-hidden="true">→</span>
-          </a>
-        </div>
-        {
-          preview.length ? (
-            <RankBoard entries={preview} championSlug={all[0]?.slug ?? null} />
-          ) : (
-            <p class="aol-rb__empty">
-              Nobody yet. Whoever goes first takes the crown by walking in.
-            </p>
-          )
-        }
-
-        <p class="aol-rma__disclosure">
-          <PixelIcon name="question-circle" size={12} /> Scored by a language model reading
-          public pages. An opinion, meant to be funny, not research. Want a row gone?
-          Email{" "}<a href="mailto:hello@andorlabs.ca?subject=Rank%20My%20AdTech%20removal">hello@andorlabs.ca</a>{" "}and it goes.
-        </p>
       </div>
     </section>
   </main>
@@ -248,9 +256,24 @@ const description =
   if (form && statusEl && resultEl && stepEl && stepText && stepN && cardTpl && failTpl) {
     const STEPS: string[] = JSON.parse(stepEl.dataset.steps ?? "[]");
     const IDLE = "Takes about a minute. The panel is thorough.";
+    const input = document.getElementById("rank-url") as HTMLInputElement | null;
+    // Cheap shape gate — "asdf" would otherwise cost the visitor 90 seconds
+    // and cost us three model calls before the server says the same thing.
+    const DOMAIN = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}([/?#].*)?$/i;
     let timer: number | undefined;
+    let running = false;
 
     const say = (text: string) => { statusEl.textContent = text; };
+    const flag = (bad: boolean) => {
+      if (input) input.setAttribute("aria-invalid", bad ? "true" : "false");
+    };
+    // Swap only the button's text node — textContent would take the arrow with it.
+    const setLabel = (text: string) => {
+      if (!submit) return;
+      for (const n of Array.from(submit.childNodes)) {
+        if (n.nodeType === Node.TEXT_NODE && n.textContent?.trim()) { n.textContent = text; return; }
+      }
+    };
 
     /**
      * Pacing, not telemetry — there is one request and one response.
@@ -264,6 +287,7 @@ const description =
       let i = 0;
       const paint = () => {
         stepEl.dataset.state = "busy";
+        stepEl.style.setProperty("--step-i", String(i + 1));
         stepText.textContent = STEPS[i] ?? IDLE;
         stepN.textContent = `${String(i + 1).padStart(2, "0")}/${String(STEPS.length).padStart(2, "0")}`;
       };
@@ -279,16 +303,24 @@ const description =
       if (timer) window.clearInterval(timer);
       timer = undefined;
       stepEl.dataset.state = "idle";
+      stepEl.style.setProperty("--step-i", "0");
       stepText.textContent = IDLE;
       stepN.textContent = `00/${String(STEPS.length).padStart(2, "0")}`;
     };
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const url = (document.getElementById("rank-url") as HTMLInputElement).value.trim();
-      if (!url) { say("Give us a company URL."); return; }
+      // Re-entry guard instead of disabling the button — disabling the focused
+      // element silently drops keyboard focus to <body> for the whole run.
+      if (running) return;
+      const url = input?.value.trim() ?? "";
+      if (!url) { flag(true); say("Give us a company domain."); return; }
+      if (!DOMAIN.test(url)) { flag(true); say("That doesn't look like a domain. Try acme.com."); return; }
+      flag(false);
 
-      if (submit) submit.disabled = true;
+      running = true;
+      form.setAttribute("aria-busy", "true");
+      setLabel("Ranking…");
       resultEl.hidden = true;
       say("");
       runSteps();
@@ -303,7 +335,13 @@ const description =
 
         if (data?.status === "failed") { renderFail(data); return; }
         if (!res.ok) { say(data?.error ?? "That did not work. Try again shortly."); return; }
-        if (data.status === "not-adtech") { say(data.verdict); return; }
+        if (data.status === "not-adtech") {
+          // The designed failure frame, not a one-line mono squint — this is
+          // the most common non-success outcome and model prose is reading
+          // text, not a label.
+          renderFail({ headline: "Not adtech, says the panel.", detail: data.verdict });
+          return;
+        }
         if (data.status === "already-ranked") {
           say("Already ranked — taking you to the verdict.");
           window.location.href = `/tools/rank-my-adtech/${data.slug}/`;
@@ -314,7 +352,9 @@ const description =
         say("The panel is unreachable. Try again shortly.");
       } finally {
         stopSteps();
-        if (submit) submit.disabled = false;
+        running = false;
+        form.removeAttribute("aria-busy");
+        setLabel("Rank it");
       }
     });
 
@@ -322,7 +362,9 @@ const description =
       resultEl!.textContent = "";
       resultEl!.appendChild(node);
       resultEl!.hidden = false;
-      resultEl!.scrollIntoView({ behavior: "smooth", block: "start" });
+      // The CSS reduced-motion guard cannot reach a JS-initiated scroll.
+      const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      resultEl!.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "start" });
     };
 
     function renderFail(d: any) {

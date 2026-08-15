@@ -104,12 +104,8 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
               <span>{SIDE_LABELS[entry.side]}</span>
               <span>·</span>
               <span>{categoryLabel(entry.category)}</span>
-              {/* Stage appears only when something established it. Most adtech
-                  sites never state a round, so an always-present band would be
-                  the middle-band default wearing a label. */}
-              {bandBadge ? (
-                <><span>·</span><span title={bandBadge.evidence}>{bandBadge.label}</span></>
-              ) : null}
+              {/* Stage lives in the band-note below the ranks — printing it here
+                  too said the same thing twice within 200px. */}
               {entry.provisional ? (
                 <span class="aol-rb__provisional">
                   <PixelIcon name="question-circle" size={12} /> provisional
@@ -123,6 +119,11 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
             </span>
             <span class="aol-rmc__total">{fmt(entry.total)}</span>
             <span class="aol-rmc__out">/30</span>
+            {/* The band said out loud — "BRUTAL" under a 64px 9.3 is the caption
+                the glyph always needed, and the joke lands in text. */}
+            <span class:list={["aol-rmc__band-word", band.solid && "aol-rmc__band-word--solid"]}>
+              {band.label}
+            </span>
           </div>
         </header>
 
@@ -159,6 +160,9 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
 
         {/* ── 2. What the panel came to ──────────────────────────────────── */}
         <h2 class="aol-rmc__h2">The verdict.</h2>
+        <p class="aol-rmc__verdict">{entry.summary}</p>
+        {/* The split is a footnote TO the verdict — printed before it, the
+            reader got the disclaimer before the claim it qualifies. */}
         {splitQuestion ? (
           <p class="aol-rmc__split">
             <PixelIcon name="vote-yeah" size={12} />
@@ -168,29 +172,28 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
             </span>
           </p>
         ) : null}
-        <p class="aol-rmc__verdict">{entry.summary}</p>
 
         {/* ── 3. Share, at peak reaction ─────────────────────────────────── */}
         <div class="aol-rmc__share">
-          <p class="aol-rmc__share-label">
-            <PixelIcon name="trophy-solid" size={24} />
+          <p class:list={["aol-rmc__share-label", band.solid && "aol-rmc__share-label--solid"]}>
+            {/* The band's own glyph — a blue trophy over "Brutal." was gloating. */}
+            <PixelIcon name={band.icon as any} size={24} />
             {shareBrag}
           </p>
           <p class="aol-rmc__share-actions">
             <a class="aol-rmc__share-btn" href={xHref} target="_blank" rel="noopener">Post on X</a>
-            <a class="aol-rmc__share-btn" href={liHref} target="_blank" rel="noopener">Share on LinkedIn</a>
-            <button class="aol-rmc__share-btn" type="button" data-copy={pageUrl}>Copy link</button>
+            <a class="aol-rmc__share-btn" href={liHref} target="_blank" rel="noopener">Post on LinkedIn</a>
+            <button class="aol-rmc__share-btn" type="button" data-copy={pageUrl} aria-live="polite">Copy link</button>
           </p>
         </div>
 
         <DitherLine />
 
         {/* ── 4. The nine ratings ────────────────────────────────────────── */}
-        <h2 class="aol-rmc__h2">The scoring.</h2>
+        <h2 class="aol-rmc__h2">Nine ratings.</h2>
         <p class="aol-rmc__note">
-          Three panelists, three questions, nine ratings. Each scored against a
-          fixed scale rather than a feeling, so two runs land in roughly the
-          same place.
+          Three panelists, three questions. Each scored against a fixed scale
+          rather than a feeling, so two runs land in roughly the same place.
         </p>
 
         <div class="aol-rmc__questions">
@@ -218,8 +221,9 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
                           <span class="aol-rmc__take-word">{rating.adjective}</span>
                           <span class="aol-rmc__take-score">{take[q.key]}<em>/10</em></span>
                         </div>
-                        <span class="aol-rmc__meter"
-                          role="img" aria-label={`${take[q.key]} out of 10`}>
+                        {/* aria-hidden: the same value is text in take-score one
+                            line up — announcing the meter said every score twice. */}
+                        <span class="aol-rmc__meter" aria-hidden="true">
                           <span class="aol-rmc__meter-fill"
                             style={`width:${(take[q.key] / 10) * 100}%`} />
                         </span>

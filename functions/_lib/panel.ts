@@ -466,7 +466,12 @@ export async function runPanel(env: ProviderEnv, input: PanelInput): Promise<Pan
         env,
         prompt,
         (text, model) => assertTakeUsable(normalizeTake(extractJson(text), p.id, model)),
-        { preferred: p.model },
+        // Pinned: the declared model or nobody. The open ladder let GLM and
+        // Qwen answer in DeepSeek's seat, which put five companies in front of
+        // a different jury than the other eighteen — disclosed on the page,
+        // but disclosure does not make the scores comparable. Two attempts,
+        // because this seat's whole ladder is now one rung.
+        { preferred: p.model, only: [p.model], attempts: 2 },
       ).then((r) => r.value),
     ),
   );

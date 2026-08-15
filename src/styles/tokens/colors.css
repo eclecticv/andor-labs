@@ -44,7 +44,11 @@
   --accent-warm-strong: var(--copper-700);
   --accent-warm-faint:  var(--copper-400);
 
-  --surface-card: var(--surface-warm); /* card + footer fill (legacy alias) */
+  /* Card + footer + section-band fill. Was aliased to --surface-warm (pink);
+     the brand invariant is monotone + one signal, and the canonical DS moved
+     this surface to a cool grey — warm tints read as a second accent. The
+     pink/copper family above stays defined for the surfaces that still opt in. */
+  --surface-card: #F7F9FB;
 
   /* ---- Signal: technical blue ---- */
   --blue-700: #0A2EBF;  /* active / pressed */
