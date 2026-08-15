@@ -20,8 +20,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-SLUGS=(playwire tvscientific pixalate freestar chalice)
-DOMAINS=(playwire.com tvscientific.com pixalate.com freestar.com chalice.ai)
+SLUGS=(playwire tvscientific pixalate freestar chalice assertive-yield human-security)
+DOMAINS=(playwire.com tvscientific.com pixalate.com freestar.com chalice.ai assertiveyield.com humansecurity.com)
 
 case "${1:-}" in
   delete)

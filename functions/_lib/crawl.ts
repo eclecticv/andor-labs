@@ -76,17 +76,30 @@ async function readViaContextDev(url: string, apiKey: string): Promise<string | 
     if (!body.success || !body.markdown) return null;
     const raw = body.markdown.trim();
     /**
-     * Bug found live on assertiveyield.com: the response is not consistently a
-     * single ```html fence wrapping the whole page. One call came back with a
-     * Gatsby build's inlined <style> block NOT fully fenced, which the old
-     * "fenced or use as-is" branch handed straight to the model as raw CSS —
-     * it correctly refused, but on garbage input, not a real read.
+     * Two bugs found live on assertiveyield.com, same underlying cause: a
+     * Gatsby build's inlined <style> block reaching the model as content.
      *
-     * Any response that still contains HTML tags — fenced or not — gets the
-     * same script/style/tag strip a direct fetch gets. Only content with no
-     * tags at all is trusted as already-clean prose.
+     * First shape — the response is not consistently a single ```html fence
+     * around the whole page, so the old "fenced or use as-is" branch handed
+     * unstripped markup straight through.
+     *
+     * Second shape, found AFTER fixing the first: on some calls context.dev's
+     * own converter strips the <style> tag markers but leaves the CSS text
+     * itself in place — no tags left to strip, so toText() has nothing to
+     * grab onto and ~10,000 characters of `.styles-module--title{...}` sails
+     * through as if it were prose. Two of three panelists correctly said "the
+     * homepage shows only CSS" — this is the fix so that's caught before
+     * spending the panel call, not after.
+     *
+     * CSS ruleset blocks are stripped unconditionally, tags or not — real
+     * homepage prose does not contain `{`/`}` or `@import`/`@media` at all,
+     * so this is a no-op on every normal page.
      */
-    const text = /<\/?[a-z][\s\S]*>/i.test(raw) ? toText(raw, 10_000) : raw.slice(0, 10_000);
+    const noCss = raw
+      .replace(/@import\s+url\([^)]*\)[^;]*;/gi, " ")
+      .replace(/@media[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/gi, " ")
+      .replace(/[^{}]{0,200}\{[^{}]*\}/g, " ");
+    const text = /<\/?[a-z][\s\S]*>/i.test(noCss) ? toText(noCss, 10_000) : noCss.trim().slice(0, 10_000);
     return text.trim() || null;
   } catch {
     return null;
