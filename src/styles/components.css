@@ -1509,9 +1509,30 @@
   font-weight:var(--weight-regular); /* never inherit the name's 600 — mono is 400-only */
   color:var(--text-muted);
 }
+/* Seat and lens, on one mono line under the character's name. Mono because it
+   is a job title and a standing rule rather than prose — it should read as a
+   label on the person, not as the start of the bio. */
+.aol-panel__role{
+  margin:0; font-family:var(--font-mono); font-size:var(--text-2xs);
+  color:var(--ink-600); line-height:var(--leading-snug);
+}
+/* The bio is the only body copy in the card, so it carries the reading weight
+   and the spec below it steps down again. Three sizes, one direction. */
+.aol-panel__bio{
+  margin:4px 0 0; font-size:var(--text-sm); color:var(--text-default);
+  line-height:var(--leading-normal);
+}
+/* Model and published architecture. Deliberately the quietest line in the
+   card: the character is who wrote the words, but this is the half a reader
+   can check, so it is present on every seat and never dropped. */
 .aol-panel__spec{
   margin:0; font-size:var(--text-sm); color:var(--text-muted);
   line-height:var(--leading-normal);
+}
+/* Where a bio precedes it, the spec is a footnote to the bio rather than a
+   second paragraph of equal weight. */
+.aol-panel__bio + .aol-panel__spec{
+  margin-top:6px; font-size:var(--text-xs); color:var(--text-faint);
 }
 .aol-panel__fallback{
   margin:4px 0 0; font-family:var(--font-mono); font-size:var(--text-2xs);

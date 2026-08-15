@@ -34,19 +34,25 @@ import PixelIcon from "../../components/ds/PixelIcon.astro";
 import DitherLine from "../../components/ds/DitherLine.astro";
 import RankBoard from "../../components/ds/RankBoard.astro";
 import PanelStrip from "../../components/ds/PanelStrip.astro";
-import { getEntries, QUESTIONS } from "../../lib/rankings";
+import { getEntries, QUESTIONS, panelLabs, panelLoadingMessages } from "../../lib/rankings";
 
 const all = await getEntries();
 const preview = all.slice(0, 5);
 const ranked = all.length;
 
-/** Pacing lines. Deliberately name the labs — that IS the product. */
+/**
+ * Pacing lines. Deliberately name the panel — that IS the product.
+ *
+ * Generated from PANELISTS rather than typed. These were typed once, and when
+ * a seat changed the loading state went on announcing "DeepSeek is reading…"
+ * for a lab that was no longer on the panel — while the profile pages named
+ * the new one. Naming the jurors is the whole point of these lines, so naming
+ * them wrongly is worse than not naming them.
+ */
 const STEPS = [
   "Reading the site…",
   "Working out what you are…",
-  "NVIDIA is reading…",
-  "DeepSeek is reading…",
-  "Google is reading…",
+  ...panelLoadingMessages(),
   "Counting the votes…",
   "Writing it up…",
 ];
@@ -55,7 +61,7 @@ const HOW = [
   { icon: "newspaper", title: "We read the site",
     body: "Up to six pages. The about and press pages, not just the homepage." },
   { icon: "vote-yeah", title: "Three labs judge it",
-    body: "NVIDIA, DeepSeek and Google, at the same moment, unable to see each other." },
+    body: `${panelLabs()}, at the same moment, unable to see each other.` },
   { icon: "shapes", title: "Nine ratings",
     body: "Three questions times three judges, scored against a fixed scale rather than a feeling." },
   { icon: "trophy-solid", title: "A fourth writes it up",

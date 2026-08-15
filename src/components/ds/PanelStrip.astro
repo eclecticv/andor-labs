@@ -14,10 +14,20 @@
  * fabricated figure on a page whose whole premise is transparency would
  * discredit everything around it.
  *
+ * A juror is rendered EXACTLY as it is on a company page: character, title and
+ * lens first, then the model underneath. Two shapes for one panel is how a
+ * reader ends up thinking the landing page and the profile describe different
+ * things — and both halves are load-bearing. The character is who wrote the
+ * words; the model is what makes the claim checkable.
+ *
+ * Everything here is derived from PANELISTS and WRITER. Nothing about the panel
+ * is spelled out in prose on this page, because prose does not update itself
+ * when a seat changes and the last roster change left three pages disagreeing.
+ *
  * Styles: .aol-panel__* in src/styles/components.css
  */
 import PixelIcon from "./PixelIcon.astro";
-import { PANELISTS, WRITER, QUESTIONS } from "../../lib/rankings";
+import { PANELISTS, WRITER, QUESTIONS, panelLabs } from "../../lib/rankings";
 
 interface Props {
   /** Show the three questions alongside the panel. */
@@ -28,19 +38,25 @@ const { questions = true } = Astro.props;
 
 <div class="aol-panel">
   <h2 class="aol-rma__h2">The panelists.</h2>
+  {/* The lab list is computed, never typed. It was typed once and went stale
+      the day a seat changed, leaving the landing page naming a lab that was no
+      longer on the panel. */}
   <p class="aol-rma__note">
-    Three models from three different labs, each handed the same pages and asked
-    the same three questions. They cannot see each other's answers — the calls
-    run at the same moment, which is what makes agreement between them worth
-    something.
+    Three models from three different labs — {panelLabs()} — each handed the
+    same pages and asked the same three questions. Each holds one fixed lens
+    across all three, so the engineer answers the investment question as an
+    engineer. They cannot see each other's answers — the calls run at the same
+    moment, which is what makes agreement between them worth something.
   </p>
 
   <ul class="aol-panel__list">
     {PANELISTS.map((p) => (
       <li class="aol-panel__member">
         <span class="aol-panel__lab">{p.lab}</span>
-        <span class="aol-panel__name">{p.name}</span>
-        <p class="aol-panel__spec">{p.spec}</p>
+        <span class="aol-panel__name">{p.character}</span>
+        <p class="aol-panel__role">{p.title} · {p.lens}</p>
+        <p class="aol-panel__bio">{p.bio}</p>
+        <p class="aol-panel__spec">{p.name} — {p.spec}</p>
       </li>
     ))}
   </ul>
@@ -48,7 +64,8 @@ const { questions = true } = Astro.props;
   <p class="aol-panel__writer">
     <PixelIcon name="quote-left" size={12} />
     <span>
-      <strong>{WRITER.name}</strong> ({WRITER.lab}) writes the summary and scores nothing.
+      <strong>{WRITER.character}</strong>, {WRITER.title}, writes the summary and
+      scores nothing. {WRITER.mandate} Played by {WRITER.name} ({WRITER.lab}).
       {WRITER.spec}
     </span>
   </p>

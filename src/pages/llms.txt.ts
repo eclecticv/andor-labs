@@ -2,7 +2,9 @@ import { ICP_STARTUPS, PROMISE } from "../config";
 import type { APIRoute } from "astro";
 import { sanityClient } from "sanity:client";
 import { toCategory } from "../lib/categories";
-import { BANDS, SIDES, getEntries, categoryLabel, fmt } from "../lib/rankings";
+import {
+  COHORTS, cohortKeyOf, PANELISTS, WRITER, getEntries, categoryLabel, fmt,
+} from "../lib/rankings";
 
 /**
  * /llms.txt — a plain-text map of the site for language models.
@@ -44,17 +46,26 @@ export const GET: APIRoute = async ({ site }) => {
     "",
     `### [Rank My AdTech](${new URL("/tools/rank-my-adtech/", site).href})`,
     "",
+    // Roster and cohorts are interpolated, never typed. Typed copies of both
+    // went stale here while the site itself had moved on — and an answer engine
+    // quoting a stale roster is a citation nobody can check.
     "- What it does: ranks private adtech startups out of 30, judged by three",
-    "  language models from three different labs (NVIDIA Nemotron 3 Super,",
-    "  DeepSeek V4 Pro, Google Gemini 3.5 Flash Lite), with a fourth — OpenAI",
-    "  GPT-5.6 Luna — writing the summary and scoring nothing.",
+    `  language models from three different labs (${PANELISTS.map((p) => `${p.lab} ${p.name}`).join(", ")}),`,
+    `  with a fourth — ${WRITER.lab} ${WRITER.name} — writing the summary and scoring nothing.`,
+    "- Each judge is a fixed persona holding one lens across all three questions,",
+    "  so the engineer answers the investment question as an engineer. Seats are",
+    "  pinned to one model each: a seat that cannot answer fails the ranking",
+    "  rather than being filled by a different lab, because a board whose rows",
+    "  were judged by different juries is not comparable to itself.",
     "- Scoring: each panelist answers three questions 0-10 against fixed anchors —",
-    "  how innovative it is, how hard it would be to rebuild, and whether they",
-    "  would invest. Nine ratings; each question shows the panel's mean and the",
+    "  how innovative it is, what the single hardest thing to replicate is, and",
+    "  whether they would invest. A judge writes the case against the company",
+    "  before any score exists, and a claim not grounded in the pages caps that",
+    "  question at 5. Nine ratings; each question shows the panel's mean and the",
     "  total is the sum of the three, out of 30.",
     "- Publicly listed companies are excluded. Companies rank twice: within their",
-    "  stage band and side of the supply chain (emerging / growth / mature ×",
-    "  buy-side / sell-side / independent), and within their subcategory.",
+    `  ${COHORTS.map((c) => c.label.toLowerCase()).join(" / ")} cohort, and within`,
+    "  their subcategory.",
     "- Caveat for citation: every score and summary is model-generated opinion",
     "  derived from public web pages. It is satire, not research.",
     "",
@@ -78,24 +89,25 @@ export const GET: APIRoute = async ({ site }) => {
   const board = await getEntries().catch(() => []);
   if (board.length) {
     lines.push("## Rank My AdTech — current standings", "");
-    // Grouped exactly as the board groups them. An answer engine asked "the
-    // most innovative sell-side seed companies" should be able to lift the
-    // answer whole rather than reassemble it from a flat list.
-    for (const band of BANDS) {
-      for (const side of SIDES) {
-        const cohort = board
-          .filter((e) => e.band === band.key && e.side === side.key)
-          .slice(0, 10);
-        if (!cohort.length) continue;
-        lines.push(`### ${band.label} · ${side.label}`, "");
-        cohort.forEach((e, i) => {
-          const provisional = e.provisional ? " (provisional — little public detail)" : "";
-          lines.push(`${i + 1}. ${e.name} (${e.domain}) — ${fmt(e.total)}/30${provisional}`);
-          if (e.one_liner) lines.push(`   - ${e.one_liner}`);
-          lines.push(`   - ${categoryLabel(e.category)}`);
-        });
-        lines.push("");
-      }
+    // Grouped exactly as the board groups them — via COHORTS and cohortKeyOf,
+    // the same pair the leaderboard renders from, so the two cannot disagree.
+    //
+    // This used to nest BANDS inside SIDES, which was the board's shape until
+    // stage bands stopped being the spine (see BOARD_AXIS). It kept emitting
+    // "Emerging · Sell-side" headings for a structure the site no longer had,
+    // and since almost no adtech site states its stage, most rows carried an
+    // inferred band and were filed under a heading nothing had established.
+    for (const cohort of COHORTS) {
+      const rows = board.filter((e) => cohortKeyOf(e) === cohort.key).slice(0, 10);
+      if (!rows.length) continue;
+      lines.push(`### ${cohort.label}`, "");
+      rows.forEach((e, i) => {
+        const provisional = e.provisional ? " (provisional — little public detail)" : "";
+        lines.push(`${i + 1}. ${e.name} (${e.domain}) — ${fmt(e.total)}/30${provisional}`);
+        if (e.one_liner) lines.push(`   - ${e.one_liner}`);
+        lines.push(`   - ${categoryLabel(e.category)}`);
+      });
+      lines.push("");
     }
   }
 

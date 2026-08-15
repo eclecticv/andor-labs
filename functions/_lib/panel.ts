@@ -125,27 +125,38 @@ export const PANELISTS: Panelist[] = [
     systemPrefix: "detailed thinking on",
   },
   {
-    id: "qwen",
-    name: "Qwen 3.8 Max",
-    lab: "Alibaba",
+    id: "glm",
+    name: "GLM 5.3",
+    lab: "Zhipu AI",
     /**
-     * This seat was specified as Grok, and Grok is not reachable.
+     * This seat was specified as Grok, and Grok is not reachable: grok-4.5
+     * lists in OpenCode Go's catalogue and fails upstream of it on every call
+     * (re-verified 2026-08-15). It is the only xAI model Go carries, so no xAI
+     * seat exists on this key.
      *
-     * grok-4.5 lists in OpenCode Go's catalogue and fails upstream of it on
-     * every call — re-verified 2026-08-15. It is the only xAI model Go carries,
-     * so no xAI seat exists on this key; reaching one would mean xAI's own API,
-     * its own key, and a paid or credit-granted account.
+     * Qwen 3.8 Max held the seat briefly and had to go, for a reason that only
+     * appears now that seats are pinned: it is too slow on real pages. Measured
+     * against the same 37K-character prompt on 2026-08-15:
      *
-     * Qwen's closed top tier takes the seat instead. It is the right
-     * replacement on the merits rather than a consolation: it is a frontier
-     * closed model from a fourth lab, and it answered the real panel prompt in
-     * 52.9s with clean JSON. It is also, quietly, the model that was already
-     * doing this job — it is what the old open ladder seated whenever DeepSeek
-     * failed.
+     *   glm-5.3          61.6s   usable
+     *   deepseek-v4-pro  77.0s   usable
+     *   qwen3.8-max     136.9s   usable, but past any sane deadline
+     *   kimi-k2.6        62.9s   leaks persona reasoning into the content field
+     *   minimax-m2.7     25.7s   fences its JSON in markdown
+     *   qwen3.7-max      65.6s   truncated JSON
+     *
+     * Latency used to be a quality-of-service problem: a slow rung cost a round
+     * trip and the ladder moved on. With no substitutes it is a correctness
+     * problem — a seat that misses the deadline fails the whole ranking, and
+     * Qwen did exactly that on two of the first six re-ranks.
+     *
+     * GLM is the fastest model here that answers cleanly, and it is a fourth
+     * lab. It is also already proven on this exact workload: it is one of the
+     * models the old open ladder seated when DeepSeek failed.
      */
     provider: "opencode",
-    model: "qwen3.8-max",
-    spec: "The closed top tier of the Qwen line; parameter count undisclosed. Alibaba open-weights most of this family and then declines to say anything at all about the largest one.",
+    model: "glm-5.3",
+    spec: "Open weights with a published architecture, though the exact size of this tier is undisclosed. Built by a lab that spun out of Tsinghua and ships more than it announces.",
     character: "Rook Callaghan",
     title: "Partner, Seat 2",
     bio: "Partner at a fund you have heard of and cannot quite name. Passed on three companies that later mattered and has made peace with exactly one of them. Posts constantly. Thinks in ownership percentages and terminal value, and will happily tell you a great product is a bad business, which is the most useful thing anyone on this panel does.",

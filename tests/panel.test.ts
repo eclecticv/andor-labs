@@ -126,7 +126,7 @@ describe("the recall vote", () => {
   it("takes a category two panelists agree on", () => {
     const r = resolveRecall([
       withRecall("nemotron", { category: "ssp" }),
-      withRecall("qwen", { category: "ssp" }),
+      withRecall("glm", { category: "ssp" }),
       withRecall("gemini", { category: "dsp" }),
     ]);
     expect(r.category).toBe("ssp");
@@ -138,7 +138,7 @@ describe("the recall vote", () => {
     // taking the first would be exactly the single-model wobble this replaces.
     const r = resolveRecall([
       withRecall("nemotron", { category: "ssp" }),
-      withRecall("qwen", { category: "dsp" }),
+      withRecall("glm", { category: "dsp" }),
       withRecall("gemini", { category: "curation" }),
     ]);
     expect(r.category).toBe("");
@@ -150,7 +150,7 @@ describe("the recall vote", () => {
     // on it by chance. The year is what makes agreement mean recall.
     const r = resolveRecall([
       withRecall("nemotron", { round: "series-b", year: 2021, investor: "a16z" }),
-      withRecall("qwen", { round: "series-b", year: 2019, investor: "Index" }),
+      withRecall("glm", { round: "series-b", year: 2019, investor: "Index" }),
       withRecall("gemini", { round: "", year: 0 }),
     ]);
     expect(r.round).toBe("");
@@ -159,14 +159,14 @@ describe("the recall vote", () => {
   it("accepts a round two panelists place in the same year", () => {
     const r = resolveRecall([
       withRecall("nemotron", { round: "series-b", year: 2021, investor: "a16z" }),
-      withRecall("qwen", { round: "series-b", year: 2021, investor: "Accel" }),
+      withRecall("glm", { round: "series-b", year: 2021, investor: "Accel" }),
       withRecall("gemini", { round: "", year: 0 }),
     ]);
     expect(r.round).toBe("series-b");
     expect(r.roundYear).toBe(2021);
     expect(r.roundVotes).toBe(2);
     // The page prints who recalled it, so a reader can weigh the claim.
-    expect(r.evidence).toMatch(/NVIDIA and Alibaba/);
+    expect(r.evidence).toMatch(/NVIDIA and Zhipu AI/);
     expect(r.evidence).toMatch(/2021/);
   });
 
@@ -175,7 +175,7 @@ describe("the recall vote", () => {
     // answer would reintroduce the guesswork that instruction exists to stop.
     const r = resolveRecall([
       withRecall("nemotron", { round: "seed", year: 0 }),
-      withRecall("qwen", { round: "seed", year: 0 }),
+      withRecall("glm", { round: "seed", year: 0 }),
       withRecall("gemini", { round: "seed", year: 0 }),
     ]);
     expect(r.round).toBe("");

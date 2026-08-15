@@ -82,7 +82,21 @@ export const CATEGORY_NOT: Partial<Record<string, string>> = {
   curation: "NOT a DSP — curators package and resell deals bought through a DSP seat; they do not run the auction.",
   mmp: "NOT measurement — MMP is app install attribution and SKAdNetwork/AdAttributionKit postbacks specifically.",
   "retail-media-buying": "NOT retail-media — that is the retailer's own network selling its own inventory, which is sell-side. This is the advertiser-side tooling for buying across those networks.",
-  "agentic-buying": "NOT adops-agentic, and NOT a chatbot bolted onto an existing UI. Requires a protocol implementation or an agent that takes actions rather than drafting them.",
+  /**
+   * Two guards, and the second was learned the hard way.
+   *
+   * The first stops every vendor with a chat box landing here. The second
+   * stops PUBLISHER-side agents landing here, which is a worse failure because
+   * this category is buy-side: pubX, a publisher yield product, classified as
+   * agentic-buying on the first re-rank and would have been moved from
+   * sell-side to buy-side by a category note rather than by anything true
+   * about the company.
+   *
+   * "Agentic" is the word of the moment on both sides of the supply chain, so
+   * the discriminator has to be who the customer is, not what the product is
+   * called.
+   */
+  "agentic-buying": "ADVERTISER-side only — the customer must be someone spending a media budget. A publisher-side agent that optimises yield, floors, or inventory is NOT this; it is publisher-monetization or ssp no matter how agentic the copy is. Also NOT adops-agentic, and NOT a chatbot bolted onto an existing UI: requires a protocol implementation or an agent that takes actions rather than drafting them.",
   "adops-agentic": "Neutral ad ops tooling sold to the ecosystem. If the product is advertisers buying media through an agent, that is agentic-buying.",
   measurement: "NOT fraud-quality — measurement asks whether the ad worked; verification asks whether it was viewable and safe.",
 };
@@ -455,7 +469,25 @@ export interface Identity {
   stage: string;
 }
 
-const CATEGORY_LINES = CATEGORIES.map((c) => `    ${c.key} — ${c.label}`).join("\n");
+/**
+ * The category menu the IDENTIFIER sees, disambiguation included.
+ *
+ * The notes have to be here and not only in the panel prompt. Category is
+ * resolved from the identifier's answer and the panel's recall together, so a
+ * guard the identifier never sees is a guard that only works half the time —
+ * which is how pubX, a publisher yield product, was still landing in
+ * `agentic-buying` after the note was written for the panel alone.
+ */
+const CATEGORY_LINES = CATEGORIES.map((c) => {
+  const note = CATEGORY_NOT[c.key];
+  return `    ${c.key} — ${c.label}${note ? `\n        ${note}` : ""}`;
+}).join("\n");
+
+/** The side hints, grouped from the lookup rather than typed out beside it. */
+const KEYS_BY_SIDE = (side: Side): string =>
+  CATEGORIES.filter((c) => sideFor(c.key) === side && c.key !== "other")
+    .map((c) => c.key)
+    .join(", ");
 
 export function buildIdentifyPrompt(domain: string, pages: string, thin: boolean): string {
   return `Identify a company from its website. You are not judging it — another
@@ -480,13 +512,12 @@ not using AI. The board covers all private adtech startups.
 category: EXACTLY ONE of these keys:
 ${CATEGORY_LINES}
   Decide by ONE question: WHO SIGNS THE CHEQUE?
-    - Publishers, broadcasters, retailers with their own inventory → sell-side
-      categories (publisher monetization, SSP, header bidding, ad serving,
-      paywall, adblock recovery, retail media, CTV).
-    - Advertisers, agencies, or anyone spending a media budget → buy-side
-      categories (DSP, curation, creative).
-    - Neither, because the product referees between them → identity,
-      measurement, clean rooms, fraud, consent, ad ops tooling.
+    - Publishers, broadcasters, retailers with their own inventory → sell-side:
+      ${KEYS_BY_SIDE("sell")}
+    - Advertisers, agencies, or anyone spending a media budget → buy-side:
+      ${KEYS_BY_SIDE("buy")}
+    - Neither, because the product referees between them → neutral:
+      ${KEYS_BY_SIDE("independent")}
 
   ⚠ Most adtech copy describes BOTH sides of the transaction, because every
   auction has two. "We optimise buying and selling" tells you nothing about

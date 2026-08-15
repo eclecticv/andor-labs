@@ -149,12 +149,12 @@ export const PANELISTS = [
     lens: "I judge by what breaks at 3am and who gets paged.",
     bio: "Nine years on the exchange side, most of it in the part of the stack nobody demos. Believes a product is whatever survives Black Friday, and that everything else is a landing page. Reads the careers page before the homepage.",
     spec: "Mixture-of-experts, 550B total parameters with roughly 55B active per token — both numbers are published in the model's own name. Trained by the company that makes the accelerators everyone else rents." },
-  { id: "qwen", name: "Qwen 3.8 Max", lab: "Alibaba",
-    model: "qwen3.8-max",
+  { id: "glm", name: "GLM 5.3", lab: "Zhipu AI",
+    model: "glm-5.3",
     character: "Rook Callaghan", title: "Partner, Seat 2",
     lens: "I judge by what this looks like at 10x revenue and whether anyone is left to buy it.",
     bio: "Partner at a fund you have heard of and cannot quite name. Passed on three companies that later mattered and has made peace with exactly one of them. Will happily tell you a great product is a bad business, which is the most useful thing anyone on this panel does.",
-    spec: "The closed top tier of the Qwen line; parameter count undisclosed. Alibaba open-weights most of this family and then declines to say anything at all about the largest one." },
+    spec: "Open weights with a published architecture, though the exact size of this tier is undisclosed. Built by a lab that spun out of Tsinghua and ships more than it announces." },
   { id: "gemini", name: "Gemini 3.5 Flash Lite", lab: "Google DeepMind",
     model: "gemini-3.5-flash-lite",
     character: "Gemma Larkspur", title: "Operator-in-Residence, Seat 3",
@@ -272,6 +272,25 @@ export const isStaleTake = (modelUsed: string, panelistId: string): boolean =>
 
 export const panelistName = (id: string) =>
   PANELISTS.find((p) => p.id === id)?.name ?? id;
+
+/**
+ * The panel's labs as prose: "NVIDIA, Alibaba and Google DeepMind".
+ *
+ * Exists because the roster was previously written out by hand in three
+ * places, and a seat change left the landing page, the loading messages and
+ * llms.txt each naming a different set — one of them a lab that had not been
+ * on the panel for a full deploy. Any sentence naming the labs calls this.
+ */
+export function panelLabs(): string {
+  const labs = PANELISTS.map((p) => p.lab);
+  return labs.length > 1
+    ? `${labs.slice(0, -1).join(", ")} and ${labs[labs.length - 1]}`
+    : (labs[0] ?? "");
+}
+
+/** "Nemo Vasquez is reading…" — one per seat, in panel order. */
+export const panelLoadingMessages = (): string[] =>
+  PANELISTS.map((p) => `${p.character} is reading…`);
 
 export const CATEGORY_LABELS: Record<string, string> = {
   "publisher-monetization": "Publisher Monetization",
