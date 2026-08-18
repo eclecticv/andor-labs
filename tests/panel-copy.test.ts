@@ -48,10 +48,7 @@ function walk(dir: string): string[] {
 describe("panel copy does not drift from the panel", () => {
   const seated = new Set([...PANELISTS.map((p) => p.lab), WRITER.lab]);
 
-  // scout-demo.ts is a frozen fixture of a different tool's output. It is not
-  // panel copy and must not be rewritten when a seat changes.
-  const files = [...walk("src/pages"), ...walk("src/components")]
-    .filter((f) => !f.includes("scout-demo"));
+  const files = [...walk("src/pages"), ...walk("src/components")];
 
   it("never names a lab that is not currently seated", () => {
     const offences: string[] = [];

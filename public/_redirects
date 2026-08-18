@@ -1,0 +1,8 @@
+# Cloudflare Pages redirects. Static assets and Functions win over these, so a
+# rule here only fires for a path nothing else serves.
+
+# Subreddit Scout was retired. The URL was promoted from the homepage hero and
+# listed in llms.txt, so it has inbound links and model-cached citations; those
+# should land on the tools index rather than a 404.
+/tools/subreddit-scout      /tools/   301
+/tools/subreddit-scout/*    /tools/   301

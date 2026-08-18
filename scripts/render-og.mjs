@@ -9,7 +9,7 @@
  * X does not centre-crop them) and land as 2400x1200 files.
  *
  *   node scripts/render-og.mjs                       # all known cards
- *   node scripts/render-og.mjs subreddit-scout       # just one
+ *   node scripts/render-og.mjs rank-my-adtech        # just one
  *
  * Requires the dev server on :4321 (npm run dev).
  */
@@ -30,7 +30,6 @@ const ORIGIN = process.env.OG_ORIGIN ?? "http://127.0.0.1:4321";
  */
 const CARDS = {
   site: { route: "/lab/og-site", out: "og.png" },
-  "subreddit-scout": { route: "/lab/og-subreddit-scout", out: "og-subreddit-scout.png" },
   "rank-my-adtech": { route: "/lab/og-rank-my-adtech", out: "og-rank-my-adtech.png" },
 };
 

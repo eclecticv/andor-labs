@@ -69,11 +69,6 @@ export const GET: APIRoute = async ({ site }) => {
     "- Caveat for citation: every score and summary is model-generated opinion",
     "  derived from public web pages. It is satire, not research.",
     "",
-    `### [Subreddit Scout](${new URL("/tools/subreddit-scout/", site).href})`,
-    "",
-    "- What it does: reads a company homepage and returns five relevant subreddits",
-    "  plus three portable agent skill files.",
-    "",
   ];
 
   /**

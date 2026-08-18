@@ -7,9 +7,9 @@
  * discovery leaderboard clears that bar, and without an index the newer tool
  * would only be reachable from a link somebody already knows about.
  *
- * The homepage hero still points at Subreddit Scout specifically rather than
- * here. That link is tuned to follow the promise the hero just made, and
- * swapping a specific offer for a generic index would weaken it.
+ * The homepage hero points at a specific tool rather than here. That link is
+ * tuned to follow the promise the hero just made, and swapping a specific offer
+ * for a generic index would weaken it.
  */
 import Base from "../../layouts/Base.astro";
 import SiteHeader from "../../components/sections/SiteHeader.astro";
@@ -36,19 +36,11 @@ const TOOLS: {
       "Three models from three different labs read a company's site and answer the same three questions about it — how innovative it is, how hard it would be to rebuild, whether they would invest. A fourth reads all nine answers and writes the verdict.",
     meta: ranked > 0 ? `${ranked} companies ranked` : "Free · about a minute",
   },
-  {
-    name: "Subreddit Scout",
-    href: "/tools/subreddit-scout/",
-    icon: "reddit",
-    blurb:
-      "Give us your work email and we read the homepage behind it, then return five subreddits worth your time and three portable agent skills you can run in any harness.",
-    meta: "Free · includes downloadable SKILL.md files",
-  },
 ];
 
 const title = "Free tools — And/or Labs";
 const description =
-  "Free GTM tools from And/or Labs: rank your adtech company on innovation, find the subreddits worth your time, and see how vendors rank on organic and AI discovery.";
+  "Free GTM tools from And/or Labs: rank your adtech company on innovation, and see how vendors rank on organic and AI discovery.";
 ---
 
 <Base title={title} description={description}>
