@@ -3,17 +3,24 @@
  * One company's ranking — the page a board row links to, and the page that does
  * the organic-search work for this tool.
  *
- * ORDER IS DELIBERATE: ranks, summary, share, the three questions, the panel.
- *   - The two ranks come first because they are the thing that is actually
- *     being claimed. A score out of thirty means nothing on its own; "2nd of 9
- *     in emerging sell-side" is a statement someone can agree or disagree with.
- *   - The summary is what the reader came for.
- *   - Share sits directly under it, at peak reaction. A share row at the bottom
- *     of a long page is a share row nobody reaches.
- *   - Then each question with the panel's three scores side by side, so a
- *     disagreement is visible as a shape before it is read as a sentence.
- *   - The panel's identities go last, as provenance. Who judged matters, but it
- *     is the footnote to the judgement, not the headline.
+ * ORDER IS DELIBERATE: share, the verdict, the case against, the five grades.
+ *   - Score, band and the two ranks live in the HEADER, beside the company
+ *     name rather than under it. They are one statement — the claim, the claim
+ *     in words, the claim in context — and setting them in the header's right
+ *     column costs no vertical space, so the verdict starts near the top of the
+ *     page instead of a screen down it.
+ *   - Share sits high, at peak reaction. A share row at the bottom of a long
+ *     page is a share row nobody reaches.
+ *   - The verdict leads, because it is what the reader came for. Everything
+ *     after it exists to be checked against it.
+ *   - Then the case AGAINST the company, which the grader wrote before it had
+ *     scored anything. Under the panel, the interesting content here was three
+ *     labs disagreeing; with one grader there is no disagreement to show, and
+ *     this is the honest replacement. It is also the strongest evidence the
+ *     page carries that the grade was argued rather than felt.
+ *   - The five grades go last, as the working. They are the evidence behind the
+ *     verdict, and evidence is what you turn to after a conclusion you want to
+ *     check — not the thing to wade through on the way to one.
  *
  * The commercial "here is what would raise your score" layer is deliberately
  * absent. This board's whole claim is neutrality, and a scoring page that also
@@ -31,7 +38,8 @@ import PixelIcon from "../../../components/ds/PixelIcon.astro";
 import DitherLine from "../../../components/ds/DitherLine.astro";
 import {
   getEntries, ranksFor, ordinal, scoreBand, stackFor, categoryLabel,
-  fmt, bandBadgeFor, identityFor, rankingIsStale, QUESTIONS, WRITER, SIDE_LABELS,
+  fmt, bandBadgeFor, isStaleGrade, letterFor, reasonsFor, caseAgainstFor,
+  scoresFor, DIMENSIONS, GRADER, SIDE_LABELS,
 } from "../../../lib/rankings";
 
 export async function getStaticPaths() {
@@ -43,42 +51,38 @@ export async function getStaticPaths() {
 }
 
 const { entry, all } = Astro.props;
-const band = scoreBand(entry.total);
+const band = scoreBand(entry.grade);
+const letter = letterFor(entry.grade);
 const ranks = ranksFor(entry, all);
 const stack = stackFor(entry);
 const stackCount = Object.values(stack).reduce((n, tools) => n + tools.length, 0);
 
 const bandBadge = bandBadgeFor(entry);
 
-/* Who actually answered, per seat. Seats are pinned now, so for anything
-   ranked since the pin this is always the declared juror; `who.stale` marks
-   the older rows where it is not. */
-/* One verdict for the whole ranking, then applied to every seat. Deciding
-   per-seat let an unchanged seat wear its character on a row the rest of the
-   panel predates — see rankingIsStale. */
-const panelStale = rankingIsStale(entry.takes);
-const seated = entry.takes.map((take) => ({
-  take, who: identityFor(take.model_used, take.panelist_id, panelStale),
-}));
+/* Every grade on the board comes from the same pinned model, so this is false
+   for anything graded since the pin. It exists for the day the pin moves: at
+   that moment every existing row was graded by a different instrument, and a
+   page that cannot say so is quietly comparing incomparable numbers. */
+const graderStale = isStaleGrade(entry.model_used);
 
-const splitQuestion = entry.split_question
-  ? QUESTIONS.find((q) => q.key === entry.split_question)
-  : null;
+const scores = scoresFor(entry);
+const reasons = reasonsFor(entry);
+const caseAgainst = caseAgainstFor(entry);
 
 const title = `${entry.name} — Rank My AdTech — And/or Labs`;
-const description = `${entry.name} scores ${fmt(entry.total)}/30 on Rank My AdTech: ${ordinal(ranks.cohortRank)} of ${ranks.cohortSize} in ${ranks.cohortLabel}, judged by three language models from three different labs.`;
+const description = `${entry.name} grades ${fmt(entry.grade)}/5 (${letter}) on Rank My AdTech: ${ordinal(ranks.cohortRank)} of ${ranks.cohortSize} in ${ranks.cohortLabel}, graded on five dimensions by ${GRADER.name}.`;
 
 const pageUrl = new URL(`/tools/rank-my-adtech/${entry.slug}/`, Astro.site).href;
 const shareBrag =
-  entry.total >= 24
+  entry.grade >= 4.5
     ? "Top of the class. Go and gloat."
-    : entry.total >= 19
+    : entry.grade >= 3.5
       ? "Good number. Post it before we change our mind."
-      : entry.total >= 12
+      : entry.grade >= 2.5
         ? "Respectable. We have been meaner."
         : "Brutal. Posting it anyway is the power move.";
 
-const shareText = `${entry.name} scored ${fmt(entry.total)}/30 on Rank My AdTech — ${ordinal(ranks.cohortRank)} in ${ranks.cohortLabel}.`;
+const shareText = `${entry.name} graded ${letter} (${fmt(entry.grade)}/5) on Rank My AdTech — ${ordinal(ranks.cohortRank)} in ${ranks.cohortLabel}.`;
 const xHref = `https://x.com/intent/post?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(pageUrl)}`;
 const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(pageUrl)}`;
 ---
@@ -89,7 +93,7 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
   ogImage={`/og/rank/${entry.slug}.png`}
   ogImageWidth={1200}
   ogImageHeight={600}
-  ogImageAlt={`${entry.name} scores ${fmt(entry.total)} out of 30 on Rank My AdTech.`}
+  ogImageAlt={`${entry.name} grades ${fmt(entry.grade)} out of 5 on Rank My AdTech.`}
 >
   <SiteHeader />
   <main>
@@ -117,37 +121,48 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
               ) : null}
             </p>
           </div>
-          <div class="aol-rmc__score">
-            <span class:list={["aol-rmc__band", band.solid && "aol-rb__band--solid"]}>
-              <PixelIcon name={band.icon as any} size={36} />
-            </span>
-            <span class="aol-rmc__total">{fmt(entry.total)}</span>
-            <span class="aol-rmc__out">/30</span>
-            {/* The band said out loud — "BRUTAL" under a 64px 9.3 is the caption
-                the glyph always needed, and the joke lands in text. */}
-            <span class:list={["aol-rmc__band-word", band.solid && "aol-rmc__band-word--solid"]}>
-              {band.label}
-            </span>
+
+          {/*
+            The stats, in the header's right-hand column.
+
+            They were a full-width row under the header, which left the space
+            beside the company name empty and pushed everything below the fold
+            by the height of a whole band. Set here they cost no vertical space
+            at all: the identity reads left, the numbers read right, and the two
+            halves of "who is this and how did it do" sit on the same line.
+
+            Score, then band, then ranks — the claim, the claim in words, the
+            claim in context.
+          */}
+          <div class="aol-rmc__stats">
+            <p class="aol-rmc__score">
+              <span class="aol-rmc__total">{fmt(entry.grade)}</span>
+              <span class="aol-rmc__out">/5 · {letter}</span>
+            </p>
+            <p class="aol-rmc__vr-band">
+              <span class:list={["aol-rmc__band", band.solid && "aol-rmc__band--solid"]}>
+                <PixelIcon name={band.icon as any} size={24} />
+              </span>
+              <span class:list={["aol-rmc__band-word", band.solid && "aol-rmc__band-word--solid"]}>
+                {band.label}
+              </span>
+            </p>
+            <ul class="aol-rmc__ranks">
+              <li class="aol-rmc__rank">
+                <span class="aol-rmc__rank-n">{ordinal(ranks.cohortRank)}</span>
+                <span class="aol-rmc__rank-of">
+                  of {ranks.cohortSize} in {ranks.cohortLabel}
+                </span>
+              </li>
+              <li class="aol-rmc__rank">
+                <span class="aol-rmc__rank-n">{ordinal(ranks.categoryRank)}</span>
+                <span class="aol-rmc__rank-of">
+                  of {ranks.categorySize} in {ranks.categoryLabel}
+                </span>
+              </li>
+            </ul>
           </div>
         </header>
-
-        <DitherLine />
-
-        {/* ── 1. The two ranks ───────────────────────────────────────────── */}
-        <ul class="aol-rmc__ranks">
-          <li class="aol-rmc__rank">
-            <span class="aol-rmc__rank-n">{ordinal(ranks.cohortRank)}</span>
-            <span class="aol-rmc__rank-of">
-              of {ranks.cohortSize} in {ranks.cohortLabel}
-            </span>
-          </li>
-          <li class="aol-rmc__rank">
-            <span class="aol-rmc__rank-n">{ordinal(ranks.categoryRank)}</span>
-            <span class="aol-rmc__rank-of">
-              of {ranks.categorySize} in {ranks.categoryLabel}
-            </span>
-          </li>
-        </ul>
 
         {/* Shown only when evidenced — see bandBadgeFor. An inferred band
             printed the same way as a real one would be the page overstating
@@ -162,148 +177,111 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
 
         <DitherLine />
 
-        {/* ── 2. What the panel came to ──────────────────────────────────── */}
-        <h2 class="aol-rmc__h2">The verdict.</h2>
-        <p class="aol-rmc__verdict">{entry.summary}</p>
-        {/* The split is a footnote TO the verdict — printed before it, the
-            reader got the disclaimer before the claim it qualifies. */}
-        {splitQuestion ? (
-          <p class="aol-rmc__split">
-            <PixelIcon name="vote-yeah" size={12} />
-            <span>
-              The panel split on <strong>{splitQuestion.label}</strong> — {entry.split_spread} points
-              between the highest and lowest score.
-            </span>
-          </p>
-        ) : null}
-
-        {/* ── 3. Share, at peak reaction ─────────────────────────────────── */}
+        {/* ── 2. Share ───────────────────────────────────────────────────── */}
         <div class="aol-rmc__share">
           <p class:list={["aol-rmc__share-label", band.solid && "aol-rmc__share-label--solid"]}>
             {/* The band's own glyph — a blue trophy over "Brutal." was gloating. */}
             <PixelIcon name={band.icon as any} size={24} />
             {shareBrag}
           </p>
+          {/* Mark plus one word. The buttons were three full-size shadowed
+              blocks reading "Post on X" / "Post on LinkedIn" / "Copy link",
+              which is a lot of furniture for a secondary action sitting
+              directly under the score. The brand marks say "post to X" faster
+              than the words did, so the words shrink to the verb. Icons at 12
+              rather than 24, per the icon sizes the system publishes. */}
           <p class="aol-rmc__share-actions">
-            <a class="aol-rmc__share-btn" href={xHref} target="_blank" rel="noopener">Post on X</a>
-            <a class="aol-rmc__share-btn" href={liHref} target="_blank" rel="noopener">Post on LinkedIn</a>
-            <button class="aol-rmc__share-btn" type="button" data-copy={pageUrl} aria-live="polite">Copy link</button>
+            {/* The visible label is just "Post" on both — the mark carries which
+                network. aria-label restores that for anyone who cannot see the
+                mark, who would otherwise hear "Post link, Post link" and have no
+                way to tell the two apart. */}
+            <a class="aol-btn aol-btn--secondary aol-btn--sm" href={xHref}
+              target="_blank" rel="noopener" aria-label="Post on X">
+              <PixelIcon name="x" size={12} /> Post
+            </a>
+            <a class="aol-btn aol-btn--secondary aol-btn--sm" href={liHref}
+              target="_blank" rel="noopener" aria-label="Post on LinkedIn">
+              <PixelIcon name="linkedin" size={12} /> Post
+            </a>
+            <button class="aol-btn aol-btn--secondary aol-btn--sm" type="button" data-copy={pageUrl} aria-live="polite">
+              Copy link
+            </button>
           </p>
         </div>
 
         <DitherLine />
 
-        {/* ── 4. The nine ratings ────────────────────────────────────────── */}
-        <h2 class="aol-rmc__h2">Nine ratings.</h2>
-        {/* The old version of this line promised "two runs land in roughly the
-            same place". Measured on a re-run of the same company with the same
-            panel at temperature 0, one total moved 13.3 to 10.3 — so the claim
-            was not true, and a page whose whole argument is that you can check
-            it cannot afford a reassurance the data contradicts. Anchors do make
-            scoring a classification rather than a vibe; they do not make it
-            repeatable to a decimal, and saying so costs nothing. */}
-        <p class="aol-rmc__note">
-          Three panelists, three questions. Each scored against a fixed scale
-          rather than a feeling — anchors, not vibes. Run the same company twice
-          and the totals still move a point or two; treat these as a reading,
-          not a measurement.
-        </p>
+        {/* ── 3. What the grader came to ─────────────────────────────────── */}
+        <h2 class="aol-rmc__h2">The verdict.</h2>
+        {/* Same call as the grades. There is no separate writer any more: five
+            grades from one model need no synthesis, and the paragraph was
+            produced by the grader that had already written the case against. */}
+        <p class="aol-rmc__verdict">{entry.summary}</p>
 
-        <div class="aol-rmc__questions">
-          {QUESTIONS.map((q) => {
-            const mean = entry[q.key];
-            return (
-              <section class="aol-rmc__question">
-                <div class="aol-rmc__dim-head">
-                  <span class="aol-rmc__dim-icon"><PixelIcon name={q.icon as any} size={24} /></span>
-                  <span class="aol-rmc__dim-name">{q.label}</span>
-                  <span class="aol-rmc__dim-score">{fmt(mean)}<em>/10</em></span>
-                </div>
-                {/* No persona line here any more. The lens belongs to the
-                    juror, not the question — it is printed once, beside the
-                    juror, in "Who judged this" below. */}
-                <p class="aol-rmc__question-ask">{q.question}</p>
-
-                <ul class="aol-rmc__takes">
-                  {entry.takes.map((take) => {
-                    const rating = take.ratings[q.key];
-                    if (!rating) return null;
-                    return (
-                      <li class="aol-rmc__take">
-                        <div class="aol-rmc__take-head">
-                          {/* The character when the pinned seat answered, the
-                              bare model id when it did not. A stale row must
-                              not carry a byline it did not earn. */}
-                          <span class="aol-rmc__take-who">
-                            {seated.find((s) => s.take.panelist_id === take.panelist_id)?.who
-                              .character
-                              ?? identityFor(take.model_used, take.panelist_id, panelStale).name}
-                          </span>
-                          <span class="aol-rmc__take-word">{rating.adjective}</span>
-                          <span class="aol-rmc__take-score">{take[q.key]}<em>/10</em></span>
-                        </div>
-                        {/* aria-hidden: the same value is text in take-score one
-                            line up — announcing the meter said every score twice. */}
-                        <span class="aol-rmc__meter" aria-hidden="true">
-                          <span class="aol-rmc__meter-fill"
-                            style={`width:${(take[q.key] / 10) * 100}%`} />
-                        </span>
-                        <p class="aol-rmc__take-why">{rating.summary}</p>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
-            );
-          })}
-        </div>
-
-        <DitherLine />
-
-        {/* ── 5. Who judged, and what they are ───────────────────────────── */}
-        <h2 class="aol-rmc__h2">Who judged this.</h2>
-        {/* Said once, about the ranking, because that is what it is about. It
-            used to hang off each seat, which on a stale row printed the same
-            sentence three times under three different names. */}
-        {panelStale ? (
-          <p class="aol-panel__fallback">
-            Scored by an earlier panel, before the seats were pinned. Due a re-rank —
-            until then these are the models that actually answered, named as themselves.
-          </p>
+        {/* ── 4. The case against, written before any score existed ─────── */}
+        {caseAgainst.length ? (
+          <section class="aol-rmc__against">
+            <h2 class="aol-rmc__h2">The case against.</h2>
+            {/* Printed BEFORE the grades, in the order it was produced. The
+                grader wrote these with no score in hand, which is the entire
+                reason they are worth reading: marketing language survives "why
+                is this good" — it is built to — and does not survive "what is
+                the hard part here" asked before anyone has committed. */}
+            <p class="aol-rmc__against-note">
+              Written by the grader before it scored anything, from the pages only.
+            </p>
+            <ol class="aol-rmc__against-list">
+              {caseAgainst.map((line) => <li class="aol-rmc__against-item">{line}</li>)}
+            </ol>
+          </section>
         ) : null}
-        <ul class="aol-panel__list">
-          {seated.map(({ take, who }) => {
-            return (
-              <li class="aol-panel__member">
-                <span class="aol-panel__lab">{who.lab}</span>
-                <span class="aol-panel__name">
-                  {who.character ?? who.name}
-                  <em class="aol-panel__word">“{take.adjective}”</em>
-                </span>
-                {/* Character first, then the model underneath it. Both, always,
-                    and in that order: the character is who wrote the words and
-                    the model is what makes the claim checkable. Dropping either
-                    one turns a disclosed panel back into an anonymous "AI". */}
-                {who.character ? (
-                  <>
-                    <p class="aol-panel__role">{who.title} · {who.lens}</p>
-                    <p class="aol-panel__bio">{who.bio}</p>
-                    <p class="aol-panel__spec">{who.name} — {who.spec}</p>
-                  </>
-                ) : (
-                  <p class="aol-panel__spec">{who.spec}</p>
-                )}
+
+        {/* ── 5. The five grades, as the working ─────────────────────────── */}
+        <section class="aol-rmc__grades">
+          <h2 class="aol-rmc__h2">The working.</h2>
+
+          {graderStale ? (
+            <p class="aol-rmc__stale">
+              Graded by an earlier model, before the current grader was pinned. Its
+              numbers are not comparable to rows graded since — due a re-grade.
+            </p>
+          ) : null}
+
+          <ul class="aol-rmc__dims">
+            {DIMENSIONS.map((d) => (
+              <li class="aol-rmc__dim">
+                <div class="aol-rmc__dim-head">
+                  <span class="aol-rmc__dim-icon"><PixelIcon name={d.icon as any} size={20} /></span>
+                  <h3 class="aol-rmc__dim-name">{d.label}</h3>
+                  <span class="aol-rmc__dim-score">
+                    <span class="aol-rmc__dim-n">{scores[d.key]}</span>
+                    <span class="aol-rmc__dim-of">/5</span>
+                  </span>
+                </div>
+                <p class="aol-rmc__dim-q">{d.question}</p>
+                {reasons[d.key] ? (
+                  <p class="aol-rmc__dim-reason">{reasons[d.key]}</p>
+                ) : null}
+                <span class="aol-rmc__dim-bar" style={`--n:${scores[d.key]}`} aria-hidden="true"></span>
               </li>
-            );
-          })}
-        </ul>
-        <p class="aol-panel__writer">
-          <PixelIcon name="quote-left" size={12} />
-          <span>
-            <strong>{WRITER.name}</strong> ({WRITER.lab}) wrote the verdict above and scored
-            nothing. {WRITER.spec}
-          </span>
-        </p>
+            ))}
+          </ul>
+
+          {/* The grader, named with its published specs. A score from an
+              unnamed "AI" is an appeal to authority with no authority behind
+              it — and with one grader there is no panel to hide behind. */}
+          <div class="aol-rmc__grader">
+            <p class="aol-rmc__grader-label">Graded by</p>
+            <p class="aol-rmc__grader-name">{GRADER.lab} {GRADER.name}</p>
+            <p class="aol-rmc__grader-spec">{GRADER.spec}</p>
+            <p class="aol-rmc__grader-method">
+              One model, temperature 0, against anchored 1–5 scales. Pinned: a grader
+              that cannot answer fails the ranking rather than being substituted,
+              because a board whose rows were graded by different models is not
+              comparable to itself.
+            </p>
+          </div>
+        </section>
 
         {/* ── 6. What we could see ───────────────────────────────────────── */}
         {stackCount ? (
@@ -312,8 +290,8 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
             <h2 class="aol-rmc__h2">The stack we could see.</h2>
             <p class="aol-rmc__note">
               Read from the markup, so browser-side tools only. A warehouse-native setup
-              looks empty here and may still be excellent. The panel was not shown this —
-              it is here as context, not as evidence.
+              looks empty here and may still be excellent. The grader was not shown
+              this — it is here as context, not as evidence.
             </p>
             <ul class="aol-rmc__stack">
               {Object.entries(stack).map(([category, tools]) => (

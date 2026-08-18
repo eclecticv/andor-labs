@@ -32,43 +32,40 @@ import Button from "../../components/ds/Button.astro";
 import Input from "../../components/ds/Input.astro";
 import PixelIcon from "../../components/ds/PixelIcon.astro";
 import DitherLine from "../../components/ds/DitherLine.astro";
-import RankBoard from "../../components/ds/RankBoard.astro";
-import PanelStrip from "../../components/ds/PanelStrip.astro";
-import { getEntries, QUESTIONS, panelLabs, panelLoadingMessages } from "../../lib/rankings";
+import RankTable from "../../components/ds/RankTable.astro";
+import { getEntries, DIMENSIONS, GRADER, graderLoadingMessages } from "../../lib/rankings";
 
 const all = await getEntries();
 const preview = all.slice(0, 5);
 const ranked = all.length;
 
 /**
- * Pacing lines. Deliberately name the panel — that IS the product.
+ * Pacing lines. Deliberately name the grader — that IS the product.
  *
- * Generated from PANELISTS rather than typed. These were typed once, and when
- * a seat changed the loading state went on announcing "DeepSeek is reading…"
- * for a lab that was no longer on the panel — while the profile pages named
- * the new one. Naming the jurors is the whole point of these lines, so naming
- * them wrongly is worse than not naming them.
+ * Generated rather than typed. Typed once, these went on announcing a lab that
+ * was no longer grading while the profile pages named the current one. Naming
+ * the grader is the whole point of these lines, so naming it wrongly is worse
+ * than not naming it at all.
  */
 const STEPS = [
   "Reading the site…",
   "Working out what you are…",
-  ...panelLoadingMessages(),
-  "Counting the votes…",
-  "Writing it up…",
+  ...graderLoadingMessages(),
+  "Putting a grade on it…",
 ];
 
 const HOW = [
   { icon: "newspaper", title: "We read the site",
     body: "Up to six pages. The about and press pages, not just the homepage." },
-  { icon: "vote-yeah", title: "Three labs judge it",
-    body: `${panelLabs()}, at the same moment, unable to see each other.` },
-  { icon: "shapes", title: "Nine ratings",
-    body: "Three questions times three judges, scored against a fixed scale rather than a feeling." },
-  { icon: "trophy-solid", title: "A fourth writes it up",
+  { icon: "vote-yeah", title: `${GRADER.lab} ${GRADER.name} grades it`,
+    body: "One model, temperature 0, against a rubric published in full below." },
+  { icon: "shapes", title: "The case against, first",
+    body: "Three reasons you are weaker than you look, written before any score exists. Marketing language does not survive that order." },
+  { icon: "trophy-solid", title: "Five grades and a verdict",
     body: "Then it goes on the public board, ranked against its own corner of adtech." },
 ];
 
-const title = "Rank My AdTech — private adtech startups, judged by four labs";
+const title = "Rank My AdTech — private adtech startups, graded on five dimensions";
 const description =
   "Three language models from three different labs score your adtech company on innovation, how hard it is to build, and whether they would invest. A fourth writes the verdict. Free, and it goes on a public board.";
 ---
@@ -99,8 +96,8 @@ const description =
           </p>
           <p class="aol-rma__trust">
             <PixelIcon name="handshake" size={12} /> We sell go-to-market work and this
-            scores none of it. Nothing here is a pitch — where the panel disagrees, the
-            page says so.
+            grades none of it. Nothing here is a pitch — the case against your company
+            is published next to its grade.
           </p>
         </div>
 
@@ -123,7 +120,7 @@ const description =
             <div class="aol-rma__step" id="rank-step" data-state="idle"
               data-steps={JSON.stringify(STEPS)} role="status" aria-live="polite">
               <span class="aol-rma__step-n" id="rank-step-n">00/07</span>
-              <span class="aol-rma__step-text" id="rank-step-text">Takes about a minute. The panel is thorough.</span>
+              <span class="aol-rma__step-text" id="rank-step-text">Takes about a minute. The grader is thorough.</span>
             </div>
 
             <p class="aol-rma__notice">
@@ -134,7 +131,7 @@ const description =
             </p>
             <noscript>
               <p class="aol-rma__notice">
-                This one needs JavaScript — the panel is called from your browser.
+                This one needs JavaScript — the grader is called from your browser.
                 The board below works either way.
               </p>
             </noscript>
@@ -158,11 +155,11 @@ const description =
             The full leaderboard <span aria-hidden="true">→</span>
           </a>
         </div>
-        <RankBoard entries={preview} championSlug={all[0]?.slug ?? null} />
+        <RankTable entries={preview} caption={`Top ${preview.length} of ${ranked}`} />
 
         <p class="aol-rma__disclosure">
-          <PixelIcon name="question-circle" size={12} /> Scored by a language model reading
-          public pages. An opinion, meant to be funny, not research. Want a row gone?
+          <PixelIcon name="question-circle" size={12} /> Graded by a language model reading
+          public pages. An opinion with its reasoning attached, not research. Want a row gone?
           Email{" "}<a href="mailto:hello@andorlabs.ca?subject=Rank%20My%20AdTech%20removal">hello@andorlabs.ca</a>{" "}and it goes.
         </p>
       </div>
@@ -187,24 +184,26 @@ const description =
 
         <DitherLine />
 
-        <h2 class="aol-rma__h2">The three questions.</h2>
+        <h2 class="aol-rma__h2">The five dimensions.</h2>
         <ul class="aol-rma__axis-row">
           {
-            QUESTIONS.map((q) => (
+            DIMENSIONS.map((d) => (
               <li class="aol-rma__axis-cell">
                 <span class="aol-rma__axis-label">
-                  <PixelIcon name={q.icon as any} size={12} />
-                  {q.label}<em>0–10</em>
+                  <PixelIcon name={d.icon as any} size={12} />
+                  {d.label}<em>1–5</em>
                 </span>
-                <span class="aol-rma__axis-q">{q.question}</span>
+                <span class="aol-rma__axis-q">{d.question}</span>
               </li>
             ))
           }
         </ul>
 
-        <DitherLine />
-
-        <PanelStrip questions={false} />
+        <p class="aol-rma__note">
+          The grade is the mean of the five, to one decimal. Letters sit on top: A from
+          4.5, B from 3.5, C from 2.5, D from 1.5.
+          {" "}Graded by {GRADER.lab} {GRADER.name} — {GRADER.spec}
+        </p>
       </div>
     </section>
   </main>
@@ -221,13 +220,13 @@ const description =
           </div>
           <div class="aol-rma__card-score">
             <span class="aol-rma__card-total" data-total></span>
-            <span class="aol-rma__card-out">/30</span>
+            <span class="aol-rma__card-out">/5</span>
           </div>
         </header>
         <p class="aol-rma__card-meta"><span data-cohort></span> <span data-provisional></span></p>
         <p class="aol-rma__card-verdict" data-summary></p>
-        <p class="aol-rma__card-split" data-split></p>
-        <p class="aol-rma__card-link"><a data-permalink href="#">See the full panel →</a></p>
+        <p class="aol-rma__card-split" data-against></p>
+        <p class="aol-rma__card-link"><a data-permalink href="#">See the full grade →</a></p>
       </article>
     </div>
   </template>
@@ -261,7 +260,7 @@ const description =
 
   if (form && statusEl && resultEl && stepEl && stepText && stepN && cardTpl && failTpl) {
     const STEPS: string[] = JSON.parse(stepEl.dataset.steps ?? "[]");
-    const IDLE = "Takes about a minute. The panel is thorough.";
+    const IDLE = "Takes about a minute. The grader is thorough.";
     const input = document.getElementById("rank-url") as HTMLInputElement | null;
     // Cheap shape gate — "asdf" would otherwise cost the visitor 90 seconds
     // and cost us three model calls before the server says the same thing.
@@ -345,7 +344,7 @@ const description =
           // The designed failure frame, not a one-line mono squint — this is
           // the most common non-success outcome and model prose is reading
           // text, not a label.
-          renderFail({ headline: "Not adtech, says the panel.", detail: data.verdict });
+          renderFail({ headline: "Not adtech, says the grader.", detail: data.verdict });
           return;
         }
         if (data.status === "already-ranked") {
@@ -355,7 +354,7 @@ const description =
         }
         render(data);
       } catch {
-        say("The panel is unreachable. Try again shortly.");
+        say("The grader is unreachable. Try again shortly.");
       } finally {
         stopSteps();
         running = false;
@@ -391,16 +390,20 @@ const description =
       };
       set("name", d.name);
       set("one-liner", d.oneLiner);
-      set("total", String(d.total));
+      set("total", `${d.grade} ${d.letter}`);
       // The cohort, not the raw band. "emerging sell-side" is what the rank on
       // the company page is expressed in, so the card has to speak the same way
       // or the two pages read as two different measurements.
       set("cohort", [d.cohort, d.categoryLabel].filter(Boolean).join(" · "));
       set("provisional", d.provisional ? "· provisional evidence" : "");
       set("summary", d.summary);
-      // A split is the most interesting thing the panel can produce, so it
-      // survives to the card rather than waiting for the company page.
-      set("split", d.split ? `The panel disagreed by ${d.split.spread} points.` : "");
+      /* The first line of the case against, on the card.
+         Under the panel this slot carried the disagreement spread, which was
+         the most interesting thing three models could produce. One grader
+         produces no disagreement, and the honest equivalent is the strongest
+         thing it wrote against the company — which it wrote before it had
+         scored anything. */
+      set("against", d.caseAgainst?.[0] ?? "");
 
       const logo = node.querySelector("[data-logo]") as HTMLImageElement | null;
       if (logo && d.logo) { logo.src = d.logo; logo.hidden = false; }

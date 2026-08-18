@@ -20,6 +20,11 @@
  */
 import { ImageResponse } from "workers-og";
 import { categoryLabel, SIDE_LABELS, type Side } from "../../_lib/classify";
+/* The axis labels are IMPORTED, not typed out again. They were three hardcoded
+   strings, and renaming the first question on the page left this card still
+   announcing "INNOVATION" to everyone the link was shared with — the one place
+   a stale label is seen by people who never visit the page. */
+import { DIMENSIONS, letterFor } from "../../_lib/grader";
 
 interface Env {
   RANKINGS: D1Database;
@@ -32,12 +37,13 @@ interface Row {
   side: Side;
   category: string | null;
   provisional: number;
-  total: number;
-  innovation: number;
-  difficulty: number;
-  investability: number;
+  grade: number;
+  originality: number;
+  defensibility: number;
+  traction: number;
+  execution: number;
+  durability: number;
   /** The three panelists' words, comma-joined by the query. */
-  adjectives: string | null;
 }
 
 /** Cached per isolate — the font is ~40KB and never changes between requests. */
@@ -56,8 +62,11 @@ async function loadFont(origin: string): Promise<ArrayBuffer | null> {
 }
 
 /** Thresholds are out of 30 — see scoreBand in src/lib/rankings.ts. */
-const BAND = (total: number) =>
-  total >= 24 ? "ON FIRE" : total >= 19 ? "GENUINELY INTERESTING" : total >= 12 ? "THE PANEL IS THINKING" : "BRUTAL";
+/* Mirrors scoreBand() in src/lib/rankings.ts, and its thresholds are the letter
+   boundaries — so the word here can never contradict the letter on the page. */
+const BAND = (grade: number) =>
+  grade >= 4.5 ? "EXCEPTIONAL" : grade >= 3.5 ? "GENUINELY INTERESTING"
+  : grade >= 2.5 ? "COMPETENT" : grade >= 1.5 ? "THIN" : "BRUTAL";
 
 /** 20.1 renders as "20.1", 20 as "20". Never "20.0". */
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
@@ -102,9 +111,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env, request })
 
   const row = await env.RANKINGS.prepare(
     `SELECT c.name, c.domain, c.one_liner, c.side, c.category, c.provisional,
-            r.total, r.innovation, r.difficulty, r.investability,
-            (SELECT group_concat(p.adjective, ', ') FROM panel_take p
-              WHERE p.ranking_id = r.id) AS adjectives
+            r.grade, r.originality, r.defensibility, r.traction,
+            r.execution, r.durability
      FROM company c JOIN ranking r ON r.company_id = c.id
      WHERE c.slug = ? AND c.status = 'published'`,
   )
@@ -117,7 +125,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env, request })
   const leader = await env.RANKINGS.prepare(
     `SELECT c.slug FROM company c JOIN ranking r ON r.company_id = c.id
      WHERE c.side = ? AND c.status = 'published'
-     ORDER BY r.total DESC, c.name ASC LIMIT 1`,
+     ORDER BY r.grade DESC, c.name ASC LIMIT 1`,
   )
     .bind(row.side)
     .first<{ slug: string }>();
@@ -128,22 +136,38 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env, request })
   // Two panelists reaching for the same word is agreement — "CREDIBLE ×2,
   // RESKINNED" reads as consensus, while the raw group_concat's "CREDIBLE,
   // CREDIBLE, RESKINNED" reads as a bug.
-  const dedupedAdjectives = (() => {
-    if (!row.adjectives) return null;
-    const counts = new Map<string, number>();
-    for (const a of row.adjectives.split(",").map((s) => s.trim()).filter(Boolean)) {
-      counts.set(a, (counts.get(a) ?? 0) + 1);
+  /**
+   * The bar's colour on the same cold→amber→hot ramp the company page uses.
+   *
+   * Interpolated to a SOLID colour rather than painted as a gradient: the page
+   * anchors its ramp with `background-size`, and satori does not implement that
+   * — a gradient here would restart at blue inside every bar and the hue would
+   * carry no information. One flat colour picked from the ramp at the score's
+   * position says exactly the same thing and survives the renderer.
+   */
+  const RAMP: [number, [number, number, number]][] = [
+    [0.00, [0x1b, 0x4d, 0xff]], // blue-500
+    [0.25, [0x53, 0x77, 0xff]], // blue-400
+    [0.55, [0xf5, 0xa6, 0x23]], // amber-400
+    [1.00, [0xc2, 0x31, 0x21]], // red-600
+  ];
+  const rampColor = (t: number) => {
+    const p = Math.max(0, Math.min(1, t));
+    let lo = RAMP[0], hi = RAMP[RAMP.length - 1];
+    for (let i = 0; i < RAMP.length - 1; i++) {
+      if (p >= RAMP[i][0] && p <= RAMP[i + 1][0]) { lo = RAMP[i]; hi = RAMP[i + 1]; break; }
     }
-    return [...counts]
-      .map(([word, n]) => (n > 1 ? `${word} x${n}` : word))
-      .join(", ");
-  })();
+    const span = hi[0] - lo[0];
+    const k = span === 0 ? 0 : (p - lo[0]) / span;
+    const ch = (i: number) => Math.round(lo[1][i] + (hi[1][i] - lo[1][i]) * k);
+    return `rgb(${ch(0)},${ch(1)},${ch(2)})`;
+  };
 
   const axis = (label: string, value: number, max: number) => `
     <div style="display:flex;align-items:center;width:100%;margin-bottom:14px">
       <div style="display:flex;width:250px;font-size:22px;color:#52555F">${label}</div>
       <div style="display:flex;width:420px;height:10px;background:#E9EBEF">
-        <div style="display:flex;width:${Math.round((value / max) * 420)}px;height:10px;background:#1B4DFF"></div>
+        <div style="display:flex;width:${Math.round((value / max) * 420)}px;height:10px;background:${rampColor(value / max)}"></div>
       </div>
       <div style="display:flex;margin-left:20px;font-size:22px;color:#14151A">${fmt(value)}/${max}</div>
     </div>`;
@@ -164,26 +188,22 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env, request })
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;width:356px">
           <div style="display:flex;align-items:flex-end">
-            <div style="display:flex;font-size:132px;color:#14151A;line-height:1">${fmt(row.total)}</div>
-            <div style="display:flex;font-size:28px;color:#6D717B;margin-bottom:14px">/30</div>
+            <div style="display:flex;font-size:132px;color:#14151A;line-height:1">${fmt(row.grade)}</div>
+            <div style="display:flex;font-size:28px;color:#6D717B;margin-bottom:14px">/5 · ${letterFor(row.grade)}</div>
           </div>
-          <div style="display:flex;font-size:18px;color:#1B4DFF;letter-spacing:2px">${BAND(row.total)}</div>
+          <div style="display:flex;font-size:18px;color:#1B4DFF;letter-spacing:2px">${BAND(row.grade)}</div>
         </div>
       </div>
 
       <div style="display:flex;width:100%;height:1px;background:#D8DAE0;margin:30px 0 26px"></div>
 
       <div style="display:flex;flex-direction:column;width:100%">
-        ${axis("INNOVATION", row.innovation, 10)}
-        ${axis("HARD TO BUILD", row.difficulty, 10)}
-        ${axis("WOULD YOU INVEST", row.investability, 10)}
+        ${DIMENSIONS.map((d) => axis(d.label.toUpperCase(), row[d.key], 5)).join("")}
       </div>
 
       <div style="display:flex;justify-content:space-between;width:100%;margin-top:auto;font-size:18px;color:#6D717B">
         <div style="display:flex">${
-          dedupedAdjectives
-            ? esc(plain(dedupedAdjectives).toUpperCase())
-            : leader?.slug === slug ? "TOP OF ITS SIDE" : "JUDGED BY THREE LABS"
+          leader?.slug === slug ? "TOP OF ITS SIDE" : "GRADED ON FIVE DIMENSIONS"
         }</div>
         <div style="display:flex">andorlabs.ca/tools/rank-my-adtech</div>
       </div>

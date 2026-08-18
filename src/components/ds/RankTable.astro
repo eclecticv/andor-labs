@@ -1,0 +1,264 @@
+---
+/**
+ * The board, as one dense table.
+ *
+ * Replaces RankBoard + RankRow, which rendered a flat <ol> of rich rows per
+ * cohort tab with the overflow folded into a <details>. That was elegant at 28
+ * companies and unreadable at 400: three tabs, no sort, no filter, and every
+ * row in one column of prose.
+ *
+ * ── Every row ships in the HTML ──
+ * No pagination, no virtualisation, no fetch. The whole board is in the
+ * document, so it is crawlable, quotable by an answer engine, and complete with
+ * scripting off. JavaScript only ever HIDES rows that are already there —
+ * search, sort and the filter chips are enhancements over a working table.
+ * This holds comfortably into four figures; past that, the honest fix is
+ * pagination, not a spinner.
+ *
+ * ── Why a table and not cards ──
+ * Five dimensions per company is a matrix, and a matrix read down a column is
+ * how you see that the board rewards defensibility and punishes traction. Cards
+ * make every company an island and that comparison impossible.
+ *
+ * Styles live in src/styles/components.css (.aol-rt__*).
+ */
+import PixelIcon from "./PixelIcon.astro";
+import {
+  DIMENSIONS, scoreBand, letterFor, fmt, categoryLabel, BAND_LABELS, SIDE_LABELS,
+  type Entry,
+} from "../../lib/rankings";
+
+interface Props {
+  entries: Entry[];
+  /** Rendered above the table; counts update as filters apply. */
+  caption?: string;
+}
+const { entries, caption } = Astro.props;
+
+// Sides and size classes present on the board, so a chip never offers a filter
+// that would empty the table.
+const sides = [...new Set(entries.map((e) => e.side))];
+const bands = [...new Set(entries.map((e) => e.band))];
+---
+
+{entries.length === 0 ? (
+  <p class="aol-rt__empty">
+    Nobody yet. Whoever goes first takes the top of the board by walking in.{" "}
+    <a href="/tools/rank-my-adtech/">Grade your company →</a>
+  </p>
+) : (
+  <div class="aol-rt" data-rank-table>
+    {/* Controls are hidden until the script runs: a search box that cannot
+        search is worse than no search box. */}
+    <div class="aol-rt__controls" data-rt-controls hidden>
+      <label class="aol-rt__search">
+        <span class="aol-rt__search-label">Find</span>
+        <input type="search" data-rt-search placeholder="company or subcategory"
+          autocomplete="off" spellcheck="false" />
+      </label>
+
+      <div class="aol-rt__chips" role="group" aria-label="Filter the board">
+        <button class="aol-rt__chip is-on" data-rt-filter="all" type="button">All</button>
+        {sides.map((s) => (
+          <button class="aol-rt__chip" data-rt-filter={`side:${s}`} type="button">
+            {SIDE_LABELS[s]}
+          </button>
+        ))}
+        {bands.map((b) => (
+          <button class="aol-rt__chip" data-rt-filter={`band:${b}`} type="button">
+            {BAND_LABELS[b]}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <p class="aol-rt__count" data-rt-count>{caption ?? `${entries.length} companies`}</p>
+
+    {/* Its own scroll container: seven columns will not fit a phone, and the
+        page body must never scroll sideways to accommodate them. */}
+    <div class="aol-rt__scroll">
+      <table class="aol-rt__table">
+        <thead>
+          <tr>
+            <th class="aol-rt__th aol-rt__th--rank" scope="col">
+              <span class="aol-rt__sr">Rank</span><span aria-hidden="true">#</span>
+            </th>
+            <th class="aol-rt__th aol-rt__th--name" scope="col">
+              <button class="aol-rt__sort" data-rt-sort="name" type="button">Company</button>
+            </th>
+            <th class="aol-rt__th aol-rt__th--grade" scope="col">
+              <button class="aol-rt__sort is-on" data-rt-sort="grade" data-rt-dir="desc" type="button">Grade</button>
+            </th>
+            {DIMENSIONS.map((d) => (
+              <th class="aol-rt__th aol-rt__th--dim" scope="col">
+                <button class="aol-rt__sort" data-rt-sort={d.key} type="button"
+                  title={d.question}>
+                  <span class="aol-rt__dim-short" aria-hidden="true">{d.label.slice(0, 3)}</span>
+                  <span class="aol-rt__sr">{d.label}</span>
+                </button>
+              </th>
+            ))}
+            <th class="aol-rt__th aol-rt__th--cat" scope="col">Subcategory</th>
+            <th class="aol-rt__th aol-rt__th--class" scope="col">Class</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map((e, i) => {
+            const band = scoreBand(e.grade);
+            return (
+              <tr class="aol-rt__row" data-rt-row
+                data-name={e.name.toLowerCase()}
+                data-cat={categoryLabel(e.category).toLowerCase()}
+                data-side={e.side} data-band={e.band}
+                data-grade={e.grade}
+                data-originality={e.originality} data-defensibility={e.defensibility}
+                data-traction={e.traction} data-execution={e.execution}
+                data-durability={e.durability}>
+                <td class="aol-rt__rank" data-rt-rank>{i + 1}</td>
+                <td class="aol-rt__name">
+                  <a class="aol-rt__link" href={`/tools/rank-my-adtech/${e.slug}/`}>
+                    {e.logo_url ? (
+                      <img class="aol-rt__logo" src={e.logo_url} alt="" width="20" height="20"
+                        loading="lazy" decoding="async" />
+                    ) : (
+                      <span class="aol-rt__logo aol-rt__logo--blank" aria-hidden="true" />
+                    )}
+                    <span class="aol-rt__company">{e.name}</span>
+                  </a>
+                  {e.provisional ? (
+                    <span class="aol-rt__prov" title="Little public detail — graded conservatively">thin</span>
+                  ) : null}
+                </td>
+                <td class="aol-rt__grade">
+                  <span class="aol-rt__letter" data-letter={letterFor(e.grade)}>{letterFor(e.grade)}</span>
+                  <span class="aol-rt__num">{fmt(e.grade)}</span>
+                  <PixelIcon name={band.icon as any} size={12} />
+                </td>
+                {DIMENSIONS.map((d) => (
+                  <td class="aol-rt__dim">
+                    {/* The number is the value; the bar is the same value drawn,
+                        so a column can be read at a glance without reading it. */}
+                    <span class="aol-rt__bar" style={`--n:${e[d.key]}`} aria-hidden="true"></span>
+                    <span class="aol-rt__dim-n">{e[d.key]}</span>
+                  </td>
+                ))}
+                <td class="aol-rt__cat">{categoryLabel(e.category)}</td>
+                <td class="aol-rt__class">{BAND_LABELS[e.band]}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+
+    <p class="aol-rt__legend">
+      Grade is the mean of the five, 1–5. A 4.5+ · B 3.5+ · C 2.5+ · D 1.5+ · E below.
+      {" "}{DIMENSIONS.map((d) => `${d.label.slice(0, 3)} ${d.label}`).join(" · ")}
+    </p>
+  </div>
+)}
+
+<script>
+  /**
+   * Progressive enhancement, and nothing more.
+   *
+   * Every row is already in the document. This adds search, sort and filters by
+   * hiding and reordering what is there — so with scripting off the table is
+   * complete and correct, just static. The controls are `hidden` in the markup
+   * and revealed here, because a search box that cannot search is worse than
+   * none.
+   */
+  type Dir = "asc" | "desc";
+
+  for (const root of document.querySelectorAll<HTMLElement>("[data-rank-table]")) {
+    const tbody = root.querySelector("tbody");
+    const rows = [...root.querySelectorAll<HTMLElement>("[data-rt-row]")];
+    const search = root.querySelector<HTMLInputElement>("[data-rt-search]");
+    const count = root.querySelector<HTMLElement>("[data-rt-count]");
+    const controls = root.querySelector<HTMLElement>("[data-rt-controls]");
+    if (!tbody || !rows.length) continue;
+
+    controls?.removeAttribute("hidden");
+
+    let filter = "all";
+    let term = "";
+
+    const apply = () => {
+      let shown = 0;
+      for (const row of rows) {
+        const [key, value] = filter.includes(":") ? filter.split(":") : ["", ""];
+        const passesFilter = filter === "all" || row.dataset[key as string] === value;
+        const passesTerm =
+          !term ||
+          (row.dataset.name ?? "").includes(term) ||
+          (row.dataset.cat ?? "").includes(term);
+        const show = passesFilter && passesTerm;
+        row.hidden = !show;
+        if (show) shown++;
+      }
+      /* Ranks are RECOMPUTED, never renumbered from the original position. A
+         filtered table showing "1, 4, 9" invites the reader to think those are
+         board positions; showing "1, 2, 3" would be a lie about the board. So
+         the column becomes a position within what is displayed, and the count
+         line says what the display is.
+ 
+         Walk the DOM, not `rows`. Sorting reorders the tbody but leaves `rows`
+         in its original order, so counting through `rows` numbered the visible
+         table 3, 2, 1 after an ascending sort — a rank column that disagreed
+         with the order it was sitting in. */
+      let n = 0;
+      for (const row of [...tbody.children] as HTMLElement[]) {
+        if (row.hidden) continue;
+        const cell = row.querySelector<HTMLElement>("[data-rt-rank]");
+        if (cell) cell.textContent = String(++n);
+      }
+      if (count) {
+        count.textContent =
+          shown === rows.length
+            ? `${rows.length} companies`
+            : `${shown} of ${rows.length} companies`;
+      }
+    };
+
+    for (const chip of root.querySelectorAll<HTMLElement>("[data-rt-filter]")) {
+      chip.addEventListener("click", () => {
+        filter = chip.dataset.rtFilter ?? "all";
+        for (const other of root.querySelectorAll("[data-rt-filter]")) {
+          other.classList.toggle("is-on", other === chip);
+        }
+        apply();
+      });
+    }
+
+    search?.addEventListener("input", () => {
+      term = search.value.trim().toLowerCase();
+      apply();
+    });
+
+    for (const button of root.querySelectorAll<HTMLElement>("[data-rt-sort]")) {
+      button.addEventListener("click", () => {
+        const key = button.dataset.rtSort!;
+        const active = button.dataset.rtDir as Dir | undefined;
+        /* Numbers open descending (best first, which is what a leaderboard is
+           for); names open ascending. Clicking the active column flips it. */
+        const dir: Dir = active ? (active === "desc" ? "asc" : "desc") : key === "name" ? "asc" : "desc";
+
+        for (const other of root.querySelectorAll<HTMLElement>("[data-rt-sort]")) {
+          other.classList.toggle("is-on", other === button);
+          if (other !== button) delete other.dataset.rtDir;
+        }
+        button.dataset.rtDir = dir;
+
+        const sorted = [...rows].sort((a, b) => {
+          if (key === "name") {
+            return (a.dataset.name ?? "").localeCompare(b.dataset.name ?? "");
+          }
+          return Number(a.dataset[key] ?? 0) - Number(b.dataset[key] ?? 0);
+        });
+        if (dir === "desc") sorted.reverse();
+        for (const row of sorted) tbody.appendChild(row);
+        apply();
+      });
+    }
+  }
+</script>
