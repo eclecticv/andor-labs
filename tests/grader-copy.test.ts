@@ -67,12 +67,38 @@ describe("page copy does not drift from the grader", () => {
   });
 
   it("does not describe a panel that no longer sits", () => {
-    // The words that would survive a half-done migration and quietly tell a
-    // reader the board works a way it no longer works.
-    const stale = /\b(three labs|four labs|the panel|panelists?|jurors?)\b/i;
-    const offences = files
-      .filter((f) => stale.test(stripComments(readFileSync(f, "utf8"))))
-      .map((f) => `${f} still describes a panel`);
+    /**
+     * Keyed on the SHAPE being described, not on remembered phrasings.
+     *
+     * The first version of this test listed exact strings — "three labs", "the
+     * panel" — and shipped a hero that read "Three models from three DIFFERENT
+     * labs … A fourth reads all nine answers". Every word of that was wrong and
+     * every one of them slipped past, because the copy said "three different
+     * labs" and the pattern said "three labs".
+     *
+     * So these match the numbers the old design was made of. Any of them
+     * appearing in page copy means that copy is describing a machine that no
+     * longer exists, whatever words it wrapped around it.
+     */
+    const stale: [RegExp, string][] = [
+      [/\b(three|3|four|4)\s+(\w+\s+){0,2}labs?\b/i, "counts labs"],
+      [/\bthree\s+(\w+\s+){0,2}models\b/i, "counts models"],
+      [/\bnine\s+(answers|ratings|scores)\b/i, "counts nine ratings"],
+      [/\ba\s+fourth\b/i, "refers to a fourth model"],
+      [/\bthree\s+questions\b/i, "counts three questions"],
+      [/\b(the\s+panel|panelists?|jurors?)\b/i, "names the panel"],
+      [/\bout\s+of\s+30\b|\/30\b/i, "scores out of 30"],
+      [/would\s+you\s+invest/i, "asks the investability question"],
+    ];
+
+    const offences: string[] = [];
+    for (const file of files) {
+      const src = stripComments(readFileSync(file, "utf8"));
+      for (const [pattern, why] of stale) {
+        const hit = src.match(pattern);
+        if (hit) offences.push(`${file} ${why}: "${hit[0]}"`);
+      }
+    }
     expect(offences, offences.join("\n")).toEqual([]);
   });
 
