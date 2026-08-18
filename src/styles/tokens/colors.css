@@ -44,11 +44,13 @@
   --accent-warm-strong: var(--copper-700);
   --accent-warm-faint:  var(--copper-400);
 
-  /* Card + footer + section-band fill. Was aliased to --surface-warm (pink);
-     the brand invariant is monotone + one signal, and the canonical DS moved
-     this surface to a cool grey — warm tints read as a second accent. The
-     pink/copper family above stays defined for the surfaces that still opt in. */
-  --surface-card: #F7F9FB;
+  /* Card + footer + section-band fill. Held a cool grey (#F7F9FB) between
+     283f1f3 and this change. That commit was a Rank My AdTech critique pass, and
+     re-pointing this shared token was how one tool's surface choice repainted the
+     founder note, offer cards, footer and newsletter block site-wide. The warm
+     paper is the brand; a surface that wants grey should say so in its own rules
+     rather than move the token everything else reads. */
+  --surface-card: var(--surface-warm);
 
   /* ---- Signal: technical blue ---- */
   --blue-700: #0A2EBF;  /* active / pressed */
