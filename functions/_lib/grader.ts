@@ -460,8 +460,18 @@ export async function runGrader(env: ProviderEnv, input: GraderInput): Promise<G
     (text, model) => assertGradeUsable(normalizeGrade(extractJson(text), model)),
     /**
      * Pinned, and the pin is the whole ladder — `only` excludes every other
-     * rung. Two attempts, because one rung means a transient failure has
-     * nowhere else to go.
+     * rung.
+     *
+     * ONE attempt, and the arithmetic is the reason. CALL_TIMEOUT_MS is 120s
+     * and this model measured 76.4s on a real corpus, so a second attempt puts
+     * the worst case at 240s — far outside anything a Pages Function will hold
+     * a response open for. Measured live on 2026-08-18: a first attempt that
+     * returned scores without reasons was retried and the retry timed out at
+     * exactly 120s, turning a 76s failure into a 196s one and telling the
+     * visitor nothing extra.
+     *
+     * The panel could afford attempts: 2 because its four calls ran in
+     * parallel and each juror was faster. One sequential call cannot.
      *
      * Temperature 0: the anchors do the work of making this repeatable, but
      * there is no reason to add sampling noise on top of them.
@@ -469,7 +479,7 @@ export async function runGrader(env: ProviderEnv, input: GraderInput): Promise<G
     {
       preferred: GRADER.model,
       only: [GRADER.model],
-      attempts: 2,
+      attempts: 1,
       temperature: 0,
       system: buildGraderSystem(),
       schema: GRADER_RESPONSE_SCHEMA,
