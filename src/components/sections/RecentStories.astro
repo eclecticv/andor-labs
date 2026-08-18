@@ -32,10 +32,11 @@ const posts: RecentPost[] = await sanityClient.fetch(
 const fmt = (d: string) =>
   new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
 ---
-{/* aol-grid-blue, not white: the homepage alternates grid ↔ white section by
-    section, and FAQ — which this sits directly under — is white. */}
+{/* White, not aol-grid-blue: the homepage alternates grid ↔ white section by
+    section, and Compare — which this now sits directly under — is grid. This
+    section used to be the grid half of the pair, back when it followed the FAQ. */}
 {posts.length > 0 && (
-  <section id="writing" class="aol-recent aol-grid-blue" style="border-bottom:1px solid var(--ink-200)">
+  <section id="writing" class="aol-recent" style="border-bottom:1px solid var(--ink-200);background:var(--paper)">
     <div style="max-width:var(--container-width);margin:0 auto;padding:var(--section-pad-y) var(--gutter)">
       <div class="aol-recent__head">
         <h2 class="aol-recent__h">Blog</h2>

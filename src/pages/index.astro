@@ -22,10 +22,15 @@ import CopyDiffer from "../components/CopyDiffer.astro";
     <Capabilities />
     <Offers />
     <Compare />
-    <FAQ />
     {/* Replaces the old <Newsletter />, which was hidden "until email capture is
-        wired". It now is — RecentStories carries the Loops-backed subscribe box. */}
+        wired". It now is — RecentStories carries the Loops-backed subscribe box.
+        Sits ahead of the FAQ: the ask a reader can act on immediately should not
+        be the last thing on the page, and the FAQ is the better closer anyway —
+        it ends on "book a call" right above the footer's own contact block.
+        Moving it swapped the two sections' surfaces as well, since the grid<->
+        white alternation belongs to the position, not to the section. */}
     <RecentStories />
+    <FAQ />
   </main>
   <SiteFooter />
   <SiteMotion />
