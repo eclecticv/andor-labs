@@ -22,7 +22,7 @@
  */
 import { readSite } from "../functions/_lib/crawl";
 import { detectStack, byCategory } from "../functions/_lib/stack";
-import { lookupCompany, fundingBand } from "../functions/_lib/facts";
+import { gatherFacts, fundingBand } from "../functions/_lib/facts";
 import { resolveLogo } from "../functions/_lib/logo";
 
 import {
@@ -79,7 +79,7 @@ async function rank(domain: string) {
   const markup = placeFromMarkup(site.html, site.pages);
   if (markup.isPublic) return { refused: `Public company — ${markup.isPublic}.`, domain };
 
-  const facts = await lookupCompany(env as any, domain);
+  const facts = await gatherFacts(env as any, domain, identity.name, site.html);
   if (facts) console.error(`  facts: ${fundingBand(facts.totalFundingRaised)} · ${facts.employeeCountRange || "headcount unknown"} (${facts.source})`);
 
   const panel = await runPanel(env, {

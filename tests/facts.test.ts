@@ -26,8 +26,18 @@ const row = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-const respond = (body: unknown, ok = true, status = 200) =>
-  vi.fn().mockResolvedValue({ ok, status, json: async () => body } as unknown as Response);
+/**
+ * Every paid lookup is now preceded by a free /usage check, so the stub has to
+ * answer both. Credits default high; pass `credits` to exercise the budget
+ * guard.
+ */
+const respond = (body: unknown, ok = true, status = 200, credits = 25) =>
+  vi.fn().mockImplementation(async (url: string) => {
+    if (String(url).includes("/usage")) {
+      return { ok: true, status: 200, json: async () => ({ data: { credits_remaining: credits } }) } as unknown as Response;
+    }
+    return { ok, status, json: async () => body } as unknown as Response;
+  });
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -127,5 +137,32 @@ describe("the block handed to the jurors", () => {
     expect(block).not.toContain("based");
     expect(block).not.toContain("sectors");
     expect(block).toContain("headcount");
+  });
+});
+
+describe("the credit budget", () => {
+  it("does not spend when the monthly reserve is reached", async () => {
+    // 25 searches a MONTH against a board with more companies than that. A
+    // reserve that is only a comment is not a reserve.
+    const fetchSpy = respond({ data: [row()] }, true, 200, 5);
+    vi.stubGlobal("fetch", fetchSpy);
+    expect(await lookupCompany({ INDEXED_API_KEY: "idx_x" }, "nexx360.io")).toBeNull();
+    const paidCalls = fetchSpy.mock.calls.filter((c) => !String(c[0]).includes("/usage"));
+    expect(paidCalls).toHaveLength(0);
+  });
+
+  it("spends when there is headroom", async () => {
+    vi.stubGlobal("fetch", respond({ data: [row()] }, true, 200, 20));
+    expect((await lookupCompany({ INDEXED_API_KEY: "idx_x" }, "nexx360.io"))?.name).toBe("Nexx360");
+  });
+
+  it("refuses to spend when the usage endpoint will not answer", async () => {
+    // Guessing wrong here exhausts a monthly budget silently, and someone else
+    // discovers it. Unknown means no.
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(async (url: string) =>
+      String(url).includes("/usage")
+        ? ({ ok: false, status: 500, json: async () => ({}) } as unknown as Response)
+        : ({ ok: true, status: 200, json: async () => ({ data: [row()] }) } as unknown as Response)));
+    expect(await lookupCompany({ INDEXED_API_KEY: "idx_x" }, "nexx360.io")).toBeNull();
   });
 });

@@ -45,7 +45,7 @@
 
 import { readSite } from "../_lib/crawl";
 import { detectStack, byCategory } from "../_lib/stack";
-import { lookupCompany, fundingBand } from "../_lib/facts";
+import { gatherFacts, fundingBand } from "../_lib/facts";
 import { resolveLogo } from "../_lib/logo";
 
 import {
@@ -420,18 +420,6 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
 
   const detected = detectStack(site.html);
 
-  /**
-   * Look the company up BEFORE the panel sits, so the facts are in the prompt.
-   *
-   * Deliberately not awaited alongside the panel: the seats need this in their
-   * input, so it is on the critical path by definition. It is bounded at 8s and
-   * fails soft to null, which costs a ranking nothing — a null just means the
-   * jurors are asked to recall funding the way they always were.
-   */
-  const facts = await lookupCompany(env, domain);
-  if (facts) {
-    console.log(`[rank] ${domain} — facts: ${fundingBand(facts.totalFundingRaised)} · ${facts.employeeCountRange || "headcount unknown"}`);
-  }
 
   // ── Identify ──────────────────────────────────────────────────────────────
   // Any provider will do here; this is a factual question, not a judgement, so
@@ -484,6 +472,22 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
 
   // ── The panel ─────────────────────────────────────────────────────────────
   let panel: Awaited<ReturnType<typeof runPanel>>;
+  /**
+   * Look the company up BEFORE the panel sits, so the facts are in the prompt.
+   *
+   * On the critical path by definition — the seats need it in their input — but
+   * every tier fails soft to null, and a null just means the jurors are asked to
+   * recall funding the way they always were. It runs after `identify` because
+   * the free Wikidata tier needs a company NAME to search on.
+   */
+  const facts = await gatherFacts(env, domain, identity.name, site.html);
+  if (facts) {
+    console.log(
+      `[rank] ${domain} — facts: ${fundingBand(facts.totalFundingRaised)}` +
+      ` · ${facts.employeeCountRange || "headcount unknown"} · via ${facts.source}`,
+    );
+  }
+
   try {
     panel = await runPanel(env, {
       domain, pages: site.pages, thin: site.thin, facts,
