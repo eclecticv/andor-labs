@@ -227,7 +227,18 @@ const description =
         <p class="aol-rma__card-meta"><span data-cohort></span> <span data-provisional></span></p>
         <p class="aol-rma__card-verdict" data-summary></p>
         <p class="aol-rma__card-split" data-split></p>
-        <p class="aol-rma__card-link"><a data-permalink href="#">See the full panel →</a></p>
+        {/*
+          Two states, one slot. The verdict exists the moment this card
+          renders; the PAGE for it does not exist until a build deploys, which
+          is why this used to be a live link to a 404.
+        */}
+        <p class="aol-rma__card-link">
+          <span class="aol-rma__publishing" data-publishing>
+            <span class="aol-rma__publishing-dot" aria-hidden="true"></span>
+            Publishing to the board — about a minute.
+          </span>
+          <a class="aol-rma__card-cta" data-permalink href="#" hidden>See the full panel →</a>
+        </p>
       </article>
     </div>
   </template>
@@ -270,6 +281,47 @@ const description =
     let running = false;
 
     const say = (text: string) => { statusEl.textContent = text; };
+
+    /**
+     * Ask whether a ranking's page has actually deployed.
+     *
+     * The endpoint answers from the origin rather than from the database, so
+     * true means the URL really resolves — and asking also drains any build the
+     * server-side throttle swallowed.
+     */
+    const isLive = async (slug: string): Promise<boolean> => {
+      try {
+        const res = await fetch(`/api/rank-my-adtech?slug=${encodeURIComponent(slug)}`, {
+          headers: { accept: "application/json" },
+        });
+        if (!res.ok) return false;
+        return Boolean(((await res.json()) as { ready?: boolean }).ready);
+      } catch {
+        return false;
+      }
+    };
+
+    /**
+     * Hold the link back until the page exists, then reveal it.
+     *
+     * Backs off 2s → 15s and gives up after three minutes, at which point the
+     * link is shown anyway: a build that slow has almost certainly landed, and
+     * a permanently hidden link is worse than an optimistic one. The card
+     * already carries the whole verdict, so nothing is gated on this except the
+     * deep link.
+     */
+    const waitForPage = async (slug: string, link: HTMLAnchorElement, pending: HTMLElement) => {
+      const DEADLINE = Date.now() + 180_000;
+      let wait = 2_000;
+      for (;;) {
+        if (await isLive(slug)) break;
+        if (Date.now() > DEADLINE) break;
+        await new Promise((r) => setTimeout(r, wait));
+        wait = Math.min(wait * 1.5, 15_000);
+      }
+      pending.hidden = true;
+      link.hidden = false;
+    };
     const flag = (bad: boolean) => {
       if (input) input.setAttribute("aria-invalid", bad ? "true" : "false");
     };
@@ -349,8 +401,16 @@ const description =
           return;
         }
         if (data.status === "already-ranked") {
-          say("Already ranked — taking you to the verdict.");
-          window.location.href = `/tools/rank-my-adtech/${data.slug}/`;
+          /* Never navigate blind. The row is in D1, but a company ranked during
+             the last build window has no page yet — and redirecting into a 404
+             is worse than waiting, because the visitor loses the tool as well
+             as the verdict. */
+          say("Already ranked — fetching the verdict.");
+          if (await isLive(data.slug)) {
+            window.location.href = `/tools/rank-my-adtech/${data.slug}/`;
+          } else {
+            say("Already ranked, and its page is still publishing. Try again in a minute.");
+          }
           return;
         }
         render(data);
@@ -406,9 +466,11 @@ const description =
       if (logo && d.logo) { logo.src = d.logo; logo.hidden = false; }
 
       const permalink = node.querySelector("[data-permalink]") as HTMLAnchorElement | null;
+      const publishing = node.querySelector("[data-publishing]") as HTMLElement | null;
       if (permalink) permalink.href = `/tools/rank-my-adtech/${d.slug}/`;
 
       show(node);
+      if (permalink && publishing) waitForPage(d.slug, permalink, publishing);
     }
   }
 </script>

@@ -226,6 +226,54 @@ async function triggerRebuild(env: Env): Promise<void> {
   }
 }
 
+/**
+ * Fire a build that is OWED but was never triggered.
+ *
+ * `pending` is written in two places above and read in none, which makes the
+ * throttle a queue with no consumer: rank two companies four minutes apart and
+ * the second sits in D1, complete and correct, with no build scheduled to
+ * publish it. It surfaces only when some later, unrelated submission happens to
+ * fall outside the window and sweeps it up.
+ *
+ * Pages has no cron, so there is no background sweeper to add. The consumer is
+ * therefore whoever is actually waiting on the page: the status endpoint calls
+ * this every time it answers "not yet". `triggerRebuild` still owns the
+ * throttle — inside the window it re-flags pending and returns — so polling
+ * cannot stampede the hook.
+ */
+async function drainPendingBuild(env: Env): Promise<void> {
+  const state = await env.RANKINGS.prepare(
+    "SELECT pending FROM build_state WHERE id = 1",
+  ).first<{ pending: number }>();
+  if (!state?.pending) return;
+  await triggerRebuild(env);
+}
+
+/**
+ * Has a build carrying this row actually deployed yet?
+ *
+ * Asking the origin for the page is the only honest answer. Comparing the row's
+ * timestamp against `last_fired_at` would say a build was TRIGGERED, which is a
+ * different claim: the hook returning 200 means Cloudflare accepted the
+ * request, not that the deploy finished, and a failed build fires the hook just
+ * as cheerfully as a good one.
+ *
+ * `/tools/...` is a static asset rather than a Function route, so this cannot
+ * recurse into this Worker.
+ */
+async function isPublished(origin: string, slug: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${origin}/tools/rank-my-adtech/${slug}/`, {
+      method: "GET",
+      redirect: "manual",
+      headers: { "cache-control": "no-cache" },
+    });
+    return res.status === 200;
+  } catch {
+    return false;
+  }
+}
+
 // ── HTTP plumbing ───────────────────────────────────────────────────────────
 
 const json = (body: unknown, status: number) =>
@@ -247,6 +295,38 @@ const RATE_LIMIT_PER_DAY = 5;
 const RESERVED_SLUGS = new Set(["leaderboard", "index", "api", "og"]);
 
 // ── Handler ─────────────────────────────────────────────────────────────────
+
+/**
+ * Is this ranking's page live yet?
+ *
+ * The board is static, so a ranking exists in D1 a whole build before it exists
+ * at a URL. The result card used to link straight at that URL and the
+ * already-ranked path used to redirect to it, both within a second of the
+ * deploy hook firing — so the reliable outcome of ranking a company was a 404
+ * on your own panel.
+ *
+ * The client polls this instead of guessing, and answering also drains any
+ * build the throttle swallowed.
+ */
+export const onRequestGet: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
+  const url = new URL(request.url);
+  const slug = (url.searchParams.get("slug") ?? "").trim().toLowerCase();
+  // The shape slugify() produces, and nothing else — this string goes into a
+  // subrequest path.
+  if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(slug)) return json({ error: "Bad slug." }, 400);
+
+  const ready = await isPublished(url.origin, slug);
+  if (!ready) waitUntil(drainPendingBuild(env));
+
+  return new Response(JSON.stringify({ ready }), {
+    status: 200,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      // A cached "not ready" would strand the very page it reports on.
+      "cache-control": "no-store",
+    },
+  });
+};
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
   const origin = request.headers.get("origin") ?? "";
