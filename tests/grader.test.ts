@@ -13,17 +13,39 @@ import { describe, expect, it } from "vitest";
 import {
   DIMENSIONS, DIMENSION_KEYS, GRADER, gradeOf, letterFor,
   normalizeGrade, assertGradeUsable, recallFrom, buildGraderPrompt,
-  buildGraderSystem, type Grade,
+  buildGraderSystem, verifyQuotes, foldForMatch, rubricVersion, type Grade,
 } from "../functions/_lib/grader";
 import { CATEGORIES, CATEGORY_NOT } from "../functions/_lib/classify";
 
+/**
+ * The snapshot every fixture quote is checked against. Real prose rather than
+ * lorem, because the fold-and-match logic is about punctuation and whitespace
+ * and lorem has neither.
+ */
+const SNAPSHOT = `## Homepage (https://example.com)
+Curation, packaged as a bidder-side product. We connect twelve OpenRTB
+integrations   and publish a dated changelog. The curation category is young
+and we don't pretend otherwise.
+
+## About (https://example.com/about)
+Founded 2021. We're a team of nine.`;
+
 const raw = (over: Record<string, unknown> = {}) => ({
-  case_against: ["thin on proof", "no named integrations", "one platform away from irrelevance"],
-  originality: { score: 4, reason: "first to package curation as a bidder-side product" },
-  defensibility: { score: 3, reason: "names twelve OpenRTB integrations, no depth given" },
-  traction: { score: 3, reason: "four named publishers, no volumes" },
-  execution: { score: 4, reason: "public API reference and a dated changelog" },
-  durability: { score: 3, reason: "depends on the curation category surviving" },
+  originality: {
+    score: 4, reason: "first to package curation as a bidder-side product",
+    quote: "Curation, packaged as a bidder-side product",
+    source_url: "https://example.com",
+  },
+  defensibility: {
+    score: 3, reason: "names twelve OpenRTB integrations, no depth given",
+    quote: "We connect twelve OpenRTB integrations",
+    source_url: "https://example.com",
+  },
+  outlook: {
+    score: 3, reason: "depends on the curation category surviving",
+    quote: "The curation category is young and we don't pretend otherwise",
+    source_url: "https://example.com",
+  },
   summary: "A curation platform that packages deals for buy-side seats, with real integration breadth and thin public proof of use.",
   category: "curation",
   funding: { round: "series-a", year: 2024, investor: "Example Ventures" },
@@ -31,10 +53,16 @@ const raw = (over: Record<string, unknown> = {}) => ({
 });
 
 describe("the rubric", () => {
-  it("is five dimensions, in a fixed order", () => {
-    expect(DIMENSION_KEYS).toEqual([
-      "originality", "defensibility", "traction", "execution", "durability",
-    ]);
+  it("is three dimensions, in a fixed order", () => {
+    expect(DIMENSION_KEYS).toEqual(["originality", "defensibility", "outlook"]);
+  });
+
+  it("no longer scores go-to-market motion or self-reported proof", () => {
+    // Both cut after audit: execution anchored on public dev docs, which caps
+    // every enterprise sales-led vendor at 2; traction accepted a vendor's own
+    // testimonial wall as evidence of customers.
+    expect(DIMENSION_KEYS).not.toContain("execution");
+    expect(DIMENSION_KEYS).not.toContain("traction");
   });
 
   it("anchors every dimension from 1 to 5 with no gaps", () => {
@@ -51,9 +79,9 @@ describe("the rubric", () => {
     // This is the fix. Without it the model reads "acquired by X" as a defect,
     // which is what the dimension it replaced did to every good outcome on the
     // board.
-    const durability = DIMENSIONS.find((d) => d.key === "durability")!;
-    expect(durability.anchors).toMatch(/acquisition is an outcome, not a verdict/i);
-    expect(durability.anchors).toMatch(/never score down merely because a company was acquired/i);
+    const outlook = DIMENSIONS.find((d) => d.key === "outlook")!;
+    expect(outlook.anchors).toMatch(/acquisition is an outcome, not a verdict/i);
+    expect(outlook.anchors).toMatch(/never score down merely because a company was acquired/i);
   });
 
   it("asks no dimension to imagine a transaction", () => {
@@ -74,19 +102,18 @@ describe("the rubric", () => {
 });
 
 describe("grade arithmetic", () => {
-  it("averages the five to one decimal", () => {
-    expect(gradeOf({ originality: 4, defensibility: 3, traction: 3, execution: 4, durability: 3 }))
-      .toBe(3.4);
+  it("averages the three to one decimal", () => {
+    expect(gradeOf({ originality: 4, defensibility: 3, outlook: 3 })).toBe(3.3);
   });
 
-  it("lands on 0.2 steps, which is what keeps ties rare", () => {
-    // Five integers in 1-5 produce 21 distinct means. Rounding to whole numbers
-    // would collapse those into 5 and put most of a board in a three-way tie.
+  it("lands on 13 distinct means, which is the cost of cutting two dimensions", () => {
+    // Three integers in 1-5 produce 13 means in 0.33 steps, where five produced
+    // 21 in 0.2 steps. Ties got MORE likely, not less — which is why the
+    // leaderboard's tie-break keys matter more now than they did.
     const means = new Set<number>();
     for (let a = 1; a <= 5; a++) for (let b = 1; b <= 5; b++) for (let c = 1; c <= 5; c++)
-      for (let d = 1; d <= 5; d++) for (let e = 1; e <= 5; e++)
-        means.add(gradeOf({ originality: a, defensibility: b, traction: c, execution: d, durability: e }));
-    expect(means.size).toBe(21);
+      means.add(gradeOf({ originality: a, defensibility: b, outlook: c }));
+    expect(means.size).toBe(13);
     expect(Math.min(...means)).toBe(1);
     expect(Math.max(...means)).toBe(5);
   });
@@ -108,10 +135,9 @@ describe("grade arithmetic", () => {
 describe("normalising what came back", () => {
   it("reads a well-formed response", () => {
     const g = normalizeGrade(raw(), GRADER.model);
-    expect(g.grade).toBe(3.4);
+    expect(g.grade).toBe(3.3);
     expect(g.letter).toBe("C");
     expect(g.scores.originality.score).toBe(4);
-    expect(g.caseAgainst).toHaveLength(3);
     expect(g.category).toBe("curation");
     expect(g.modelUsed).toBe(GRADER.model);
   });
@@ -122,26 +148,26 @@ describe("normalising what came back", () => {
     // the database CHECK and lose the whole ranking.
     const g = normalizeGrade(raw({ originality: { score: 8, reason: "x".repeat(20) } }), "m");
     expect(g.scores.originality.score).toBe(5);
-    const low = normalizeGrade(raw({ traction: { score: 0, reason: "x".repeat(20) } }), "m");
-    expect(low.scores.traction.score).toBe(1);
+    const low = normalizeGrade(raw({ outlook: { score: 0, reason: "x".repeat(20) } }), "m");
+    expect(low.scores.outlook.score).toBe(1);
   });
 
   it("rounds a decimal score to a band rather than storing it", () => {
     // The column is INTEGER. A 3.5 here means the model averaged something of
     // its own, and there is no averaging left to do.
-    const g = normalizeGrade(raw({ execution: { score: 3.6, reason: "x".repeat(20) } }), "m");
-    expect(g.scores.execution.score).toBe(4);
+    const g = normalizeGrade(raw({ defensibility: { score: 3.6, reason: "x".repeat(20) } }), "m");
+    expect(g.scores.defensibility.score).toBe(4);
   });
 
   it("takes a score sent as a string", () => {
-    const g = normalizeGrade(raw({ durability: { score: "4", reason: "x".repeat(20) } }), "m");
-    expect(g.scores.durability.score).toBe(4);
+    const g = normalizeGrade(raw({ outlook: { score: "4", reason: "x".repeat(20) } }), "m");
+    expect(g.scores.outlook.score).toBe(4);
   });
 
   it("falls back to the neutral band when a dimension is missing entirely", () => {
-    const g = normalizeGrade(raw({ traction: undefined }), "m");
-    expect(g.scores.traction.score).toBe(3);
-    expect(g.scores.traction.reason).toBe("");
+    const g = normalizeGrade(raw({ outlook: undefined }), "m");
+    expect(g.scores.outlook.score).toBe(3);
+    expect(g.scores.outlook.reason).toBe("");
   });
 
   it("survives a response that is not an object at all", () => {
@@ -149,11 +175,6 @@ describe("normalising what came back", () => {
     expect(() => normalizeGrade(null, "m")).not.toThrow();
     expect(() => normalizeGrade("nope", "m")).not.toThrow();
     expect(normalizeGrade(null, "m").grade).toBe(3);
-  });
-
-  it("keeps at most three items in the case against", () => {
-    const g = normalizeGrade(raw({ case_against: ["a", "b", "c", "d", "e"] }), "m");
-    expect(g.caseAgainst).toHaveLength(3);
   });
 
   it("normalises the funding round the way the classifier expects it", () => {
@@ -182,13 +203,16 @@ describe("refusing an unusable answer", () => {
   it("rejects a score with no reason behind it", () => {
     // A number with no pointer to evidence is indistinguishable from a guess,
     // and the company page renders the reason directly under the score.
-    expect(() => assertGradeUsable(parsed({ traction: { score: 4, reason: "yes" } })))
-      .toThrow(/no reason given for: traction/);
+    expect(() => assertGradeUsable(parsed({ outlook: { score: 4, reason: "yes" } })))
+      .toThrow(/no reason given for: outlook/);
   });
 
-  it("rejects a case against that barely tried", () => {
-    expect(() => assertGradeUsable(parsed({ case_against: ["only one"] })))
-      .toThrow(/at least 2/);
+  it("ignores a case_against a stale caller still sends", () => {
+    // The pre-score prosecution step was removed after measurement. A payload
+    // carrying it must grade normally rather than fail or resurrect the field.
+    const g = normalizeGrade(raw({ case_against: ["a", "b"] }), "m");
+    expect(g.grade).toBe(3.3);
+    expect("caseAgainst" in g).toBe(false);
   });
 });
 
@@ -255,5 +279,95 @@ describe("recall", () => {
     const r = recallFrom(normalizeGrade(raw({ funding: { round: "", year: 0, investor: "" } }), "m"));
     expect(r.round).toBe("");
     expect(r.categoryVotes).toBe(1);
+  });
+});
+
+describe("quote verification — the guarantee the board rests on", () => {
+  const parsedOk = () => normalizeGrade(raw(), "m");
+
+  it("passes a grade whose every quote is in the snapshot", () => {
+    const checks = verifyQuotes(parsedOk(), SNAPSHOT);
+    expect(checks.every((c) => c.ok)).toBe(true);
+  });
+
+  it("catches a quote the model invented", () => {
+    // The exact failure this whole design exists to stop: fluent, plausible,
+    // attributed, and nowhere in the source.
+    const g = normalizeGrade(raw({
+      originality: {
+        score: 5, reason: "the first bidder-side curation product",
+        quote: "We were the first company in the world to do bidder-side curation",
+        source_url: "https://example.com",
+      },
+    }), "m");
+    const bad = verifyQuotes(g, SNAPSHOT).filter((c) => !c.ok);
+    expect(bad).toHaveLength(1);
+    expect(bad[0].key).toBe("originality");
+    expect(bad[0].why).toMatch(/not found/);
+  });
+
+  it("forgives whitespace, curly quotes and dashes — the honest differences", () => {
+    // A quote retyped with straight punctuation is not a fabrication. If the
+    // check failed on these it would be weakened until it stopped catching
+    // anything, which is how a verification step becomes decoration.
+    const g = normalizeGrade(raw({
+      defensibility: {
+        score: 3, reason: "twelve integrations",
+        // Source has a newline and three spaces inside this span.
+        quote: "We connect twelve OpenRTB integrations and publish a dated changelog",
+        source_url: "https://example.com",
+      },
+      outlook: {
+        score: 3, reason: "young category",
+        // Source uses a straight apostrophe; this uses a curly one.
+        quote: "The curation category is young and we don\u2019t pretend otherwise",
+        source_url: "https://example.com",
+      },
+    }), "m");
+    expect(verifyQuotes(g, SNAPSHOT).every((c) => c.ok)).toBe(true);
+  });
+
+  it("rejects a quote too short to mean anything", () => {
+    // "We" appears in the snapshot and supports nothing. A substring check
+    // without a length floor is a check that always passes.
+    const g = normalizeGrade(raw({
+      outlook: { score: 5, reason: "great", quote: "We", source_url: "https://example.com" },
+    }), "m");
+    const bad = verifyQuotes(g, SNAPSHOT).filter((c) => !c.ok);
+    expect(bad[0].why).toMatch(/too short/);
+  });
+
+  it("rejects an empty quote rather than treating it as nothing to check", () => {
+    const g = normalizeGrade(raw({
+      outlook: { score: 5, reason: "great", quote: "", source_url: "" },
+    }), "m");
+    expect(verifyQuotes(g, SNAPSHOT).filter((c) => !c.ok)).toHaveLength(1);
+  });
+
+  it("fails the whole grade when a snapshot is supplied and a quote is bogus", () => {
+    // assertGradeUsable throws INSIDE the provider ladder, so an unverifiable
+    // answer is a failed rung rather than a published row.
+    const g = normalizeGrade(raw({
+      originality: { score: 5, reason: "x".repeat(20), quote: "nothing like this appears anywhere in the source", source_url: "" },
+    }), "m");
+    expect(() => assertGradeUsable(g, SNAPSHOT)).toThrow(/unverifiable/);
+  });
+
+  it("still grades when no snapshot is passed, so verification is opt-in per caller", () => {
+    expect(() => assertGradeUsable(parsedOk(), undefined)).not.toThrow();
+  });
+
+  it("folds a string to the form both sides can agree on", () => {
+    expect(foldForMatch("  A\u00A0B \u201Cc\u201D  \u2014 d  ")).toBe('a b "c" - d');
+  });
+});
+
+describe("the rubric fingerprint", () => {
+  it("is stable across calls", () => {
+    expect(rubricVersion()).toBe(rubricVersion());
+  });
+
+  it("names the dimension count, so a row says how many it averaged", () => {
+    expect(rubricVersion()).toMatch(/^r3-[0-9a-f]{8}$/);
   });
 });

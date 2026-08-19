@@ -14,10 +14,10 @@
  * a short preview so a first-time visitor can see the thing is alive without
  * paying for the whole table in vertical space.
  *
- * A run takes 60-90 seconds, because three models each write several sentences
- * of argument before a fourth writes the verdict. The progress line is a pacing
- * device rather than real telemetry (same device as Scout) — but here it earns
- * its keep twice over, because a jury that deliberates for a minute is the
+ * A run takes 60-90 seconds: one crawl, one cheap identify call and one grader
+ * call that writes three quoted scores and a verdict. The progress line is a
+ * pacing device rather than real telemetry (same device as Scout) — but here it
+ * earns its keep twice over, because a grader that reads for a minute is the
  * premise rather than an apology for it.
  *
  * Results are rendered by cloning templates and setting textContent, NEVER
@@ -59,15 +59,15 @@ const HOW = [
     body: "Up to six pages. The about and press pages, not just the homepage." },
   { icon: "vote-yeah", title: `${GRADER.lab} ${GRADER.name} grades it`,
     body: "One model, temperature 0, against a rubric published in full below." },
-  { icon: "shapes", title: "The case against, first",
-    body: "Three reasons you are weaker than you look, written before any score exists. Marketing language does not survive that order." },
-  { icon: "trophy-solid", title: "Five grades and a verdict",
+  { icon: "shapes", title: "Every score quotes your site",
+    body: "Each grade cites a verbatim line from your pages. The quote is string-matched against the crawl — anything the grader cannot quote is thrown out." },
+  { icon: "trophy-solid", title: "Three grades and a verdict",
     body: "Then it goes on the public board, ranked against its own corner of adtech." },
 ];
 
-const title = "Rank My AdTech — private adtech startups, graded on five dimensions";
+const title = "Rank My AdTech — private adtech startups, graded on three dimensions";
 const description =
-  "One model grades your adtech company 1-5 on five dimensions — originality, defensibility, traction, execution, durability — from your own website, and writes the case against you before it scores anything. Free, and it goes on a public board.";
+  "One model grades your adtech company 1-5 on three dimensions — originality, defensibility and future outlook — from your own website, and quotes the line it read for every number. Free, and it goes on a public board.";
 ---
 
 <Base
@@ -76,7 +76,7 @@ const description =
   ogImage="/og-rank-my-adtech.png"
   ogImageWidth={2400}
   ogImageHeight={1200}
-  ogImageAlt="Rank My AdTech — a free And/or Labs tool that grades your adtech company 1-5 on five dimensions and publishes the verdict to a public leaderboard."
+  ogImageAlt="Rank My AdTech — a free And/or Labs tool that grades your adtech company 1-5 on three dimensions and publishes the verdict to a public leaderboard."
 >
   <SiteHeader />
   <main>
@@ -90,14 +90,14 @@ const description =
           </p>
           <h1 class="aol-rma__h1 aol-rma__h1--display">Rank My AdTech.</h1>
           <p class="aol-rma__lede">
-            One model reads your site, writes down three reasons you are weaker than
-            you look, and only then grades you 1&ndash;5 on five dimensions. You get the
-            grade, the reasoning, and an opinion you didn't ask for.
+            One model reads your site and grades you 1&ndash;5 on three dimensions,
+            quoting the line it read for every number. You get the grade, the
+            working, and an opinion you didn't ask for.
           </p>
           <p class="aol-rma__trust">
             <PixelIcon name="handshake" size={12} /> We sell go-to-market work and this
-            grades none of it. Nothing here is a pitch — the case against your company
-            is published next to its grade.
+            grades none of it. Nothing here is a pitch — every score is published
+            with the sentence it was drawn from.
           </p>
         </div>
 
@@ -184,7 +184,7 @@ const description =
 
         <DitherLine />
 
-        <h2 class="aol-rma__h2">The five dimensions.</h2>
+        <h2 class="aol-rma__h2">The three dimensions.</h2>
         <ul class="aol-rma__axis-row">
           {
             DIMENSIONS.map((d) => (
@@ -200,7 +200,7 @@ const description =
         </ul>
 
         <p class="aol-rma__note">
-          The grade is the mean of the five, to one decimal. Letters sit on top: A from
+          The grade is the mean of the three, to one decimal. Letters sit on top: A from
           4.5, B from 3.5, C from 2.5, D from 1.5.
           {" "}Graded by {GRADER.lab} {GRADER.name} — {GRADER.spec}
         </p>
@@ -225,8 +225,19 @@ const description =
         </header>
         <p class="aol-rma__card-meta"><span data-cohort></span> <span data-provisional></span></p>
         <p class="aol-rma__card-verdict" data-summary></p>
-        <p class="aol-rma__card-split" data-against></p>
-        <p class="aol-rma__card-link"><a data-permalink href="#">See the full grade →</a></p>
+        {/*
+          Two states, one slot. The grade exists the moment this card renders;
+          the PAGE for it does not exist until a build deploys, which is why
+          this used to be a live link to a 404. The link is withheld until the
+          URL actually answers 200.
+        */}
+        <p class="aol-rma__card-link">
+          <span class="aol-rma__publishing" data-publishing>
+            <span class="aol-rma__publishing-dot" aria-hidden="true"></span>
+            Publishing to the board — about a minute.
+          </span>
+          <a class="aol-rma__card-cta" data-permalink href="#" hidden>See the full grade →</a>
+        </p>
       </article>
     </div>
   </template>
@@ -269,6 +280,47 @@ const description =
     let running = false;
 
     const say = (text: string) => { statusEl.textContent = text; };
+
+    /**
+     * Ask whether a ranking's page has actually deployed.
+     *
+     * The endpoint answers from the origin rather than from the database, so a
+     * true here means the URL really resolves — and asking also drains any
+     * build the server-side throttle swallowed.
+     */
+    const isLive = async (slug: string): Promise<boolean> => {
+      try {
+        const res = await fetch(`/api/rank-my-adtech?slug=${encodeURIComponent(slug)}`, {
+          headers: { accept: "application/json" },
+        });
+        if (!res.ok) return false;
+        return Boolean(((await res.json()) as { ready?: boolean }).ready);
+      } catch {
+        return false;
+      }
+    };
+
+    /**
+     * Hold the link back until the page exists, then reveal it.
+     *
+     * Backs off 2s → 15s and gives up after three minutes, at which point the
+     * link is shown anyway: a build that slow has almost certainly landed and
+     * a permanently hidden link is worse than an optimistic one. The card
+     * itself already carries the whole grade, so nothing is gated on this
+     * except the deep link.
+     */
+    const waitForPage = async (slug: string, link: HTMLAnchorElement, pending: HTMLElement) => {
+      const DEADLINE = Date.now() + 180_000;
+      let wait = 2_000;
+      for (;;) {
+        if (await isLive(slug)) break;
+        if (Date.now() > DEADLINE) break;
+        await new Promise((r) => setTimeout(r, wait));
+        wait = Math.min(wait * 1.5, 15_000);
+      }
+      pending.hidden = true;
+      link.hidden = false;
+    };
     const flag = (bad: boolean) => {
       if (input) input.setAttribute("aria-invalid", bad ? "true" : "false");
     };
@@ -348,8 +400,16 @@ const description =
           return;
         }
         if (data.status === "already-ranked") {
-          say("Already ranked — taking you to the verdict.");
-          window.location.href = `/tools/rank-my-adtech/${data.slug}/`;
+          /* Never navigate blind. This row is in D1, but a row that was ranked
+             during the last build window has no page yet — and redirecting
+             into a 404 is worse than waiting, because the visitor loses the
+             tool as well as the verdict. */
+          say("Already ranked — fetching the verdict.");
+          if (await isLive(data.slug)) {
+            window.location.href = `/tools/rank-my-adtech/${data.slug}/`;
+          } else {
+            say("Already ranked, and its page is still publishing. Try again in a minute.");
+          }
           return;
         }
         render(data);
@@ -397,21 +457,16 @@ const description =
       set("cohort", [d.cohort, d.categoryLabel].filter(Boolean).join(" · "));
       set("provisional", d.provisional ? "· provisional evidence" : "");
       set("summary", d.summary);
-      /* The first line of the case against, on the card.
-         Under the panel this slot carried the disagreement spread, which was
-         the most interesting thing three models could produce. One grader
-         produces no disagreement, and the honest equivalent is the strongest
-         thing it wrote against the company — which it wrote before it had
-         scored anything. */
-      set("against", d.caseAgainst?.[0] ?? "");
 
       const logo = node.querySelector("[data-logo]") as HTMLImageElement | null;
       if (logo && d.logo) { logo.src = d.logo; logo.hidden = false; }
 
       const permalink = node.querySelector("[data-permalink]") as HTMLAnchorElement | null;
+      const publishing = node.querySelector("[data-publishing]") as HTMLElement | null;
       if (permalink) permalink.href = `/tools/rank-my-adtech/${d.slug}/`;
 
       show(node);
+      if (permalink && publishing) waitForPage(d.slug, permalink, publishing);
     }
   }
 </script>

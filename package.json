@@ -10,7 +10,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "test": "vitest run"
+    "test": "vitest run",
+    "rank:reliability": "tsx scripts/grader-reliability.mts"
   },
   "dependencies": {
     "@astrojs/react": "^6.0.0",

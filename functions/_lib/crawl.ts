@@ -126,19 +126,68 @@ async function get(url: string, timeoutMs = 10_000): Promise<string | null> {
   }
 }
 
-/** Strip markup to readable text. Same reduction the old single-page read used. */
+/**
+ * The named entities worth spelling out. Everything numeric is decoded below.
+ *
+ * `&amp;` must be decoded LAST or it re-creates the ampersands of entities that
+ * have already been decoded — "&amp;#39;" would otherwise become "'".
+ */
+const NAMED_ENTITIES: [RegExp, string][] = [
+  [/&nbsp;/gi, " "],
+  [/&quot;/gi, '"'],
+  [/&apos;/gi, "'"],
+  [/&lsquo;/gi, "\u2018"], [/&rsquo;/gi, "\u2019"],
+  [/&ldquo;/gi, "\u201C"], [/&rdquo;/gi, "\u201D"],
+  [/&ndash;/gi, "\u2013"], [/&mdash;/gi, "\u2014"],
+  [/&hellip;/gi, "\u2026"],
+  [/&lt;/gi, "<"], [/&gt;/gi, ">"],
+];
+
+/**
+ * Strip markup to readable text.
+ *
+ * ── Why numeric entities are DECODED and not blanked ──
+ * This line used to read `.replace(/&#\d+;/g, " ")`, which turned every numeric
+ * entity into a space. On a site that writes its apostrophes as `&#8217;` —
+ * which is most sites built by a CMS — "We&#8217;re stepping up" came out of
+ * the crawler as "We re stepping up".
+ *
+ * That was invisible while the text was only ever fed to a model, because a
+ * model reads "We re" as "We're" without noticing. It stopped being invisible
+ * the moment scores had to cite the source verbatim: the grader quoted the
+ * sentence correctly, with the apostrophe the site actually shows, and the
+ * quote check failed against our own mangled copy. The first real casualty of
+ * the citation gate was not a hallucination — it was this.
+ *
+ * The wider point is that this text IS the snapshot. It is what gets hashed,
+ * stored, cited and shown to a reader as the company's own words, so a
+ * transformation that silently drops characters is not a formatting choice, it
+ * is a corruption of the evidence.
+ */
 export function toText(html: string, limit = 9_000): string {
-  return html
+  let text = html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&#\d+;/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, limit);
+    .replace(/<[^>]+>/g, " ");
+
+  for (const [pattern, char] of NAMED_ENTITIES) text = text.replace(pattern, char);
+
+  // Numeric entities, decimal and hex. Anything outside the Unicode range is
+  // left as written rather than throwing — a malformed entity on one page must
+  // not cost the whole crawl.
+  text = text
+    .replace(/&#(\d+);/g, (whole, code) => {
+      const n = Number(code);
+      return n > 0 && n <= 0x10FFFF ? String.fromCodePoint(n) : whole;
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (whole, code) => {
+      const n = parseInt(code, 16);
+      return n > 0 && n <= 0x10FFFF ? String.fromCodePoint(n) : whole;
+    })
+    .replace(/&amp;/gi, "&");
+
+  return text.replace(/\s+/g, " ").trim().slice(0, limit);
 }
 
 const title = (html: string) => /<title[^>]*>([^<]*)<\/title>/i.exec(html)?.[1]?.trim() ?? null;

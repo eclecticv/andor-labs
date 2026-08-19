@@ -1014,33 +1014,6 @@
 }
 .aol-rmc__note{ margin:0 0 var(--space-4); font-size:var(--text-base); color:var(--text-muted); max-width:var(--measure); }
 
-/* Meter as a segmented tick scale — a diagram, not a SaaS progress pill.
-   Ten visible cells let a reader COUNT the score; the ink fill keeps the
-   accent budget for the things that are actually blue (links, ranks). */
-.aol-rmc__meter{
-  display:block; height:8px;
-  background:
-    repeating-linear-gradient(to right,
-      transparent 0 calc(10% - 1px),
-      var(--ink-300) calc(10% - 1px) 10%);
-  box-shadow:inset 0 0 0 1px var(--ink-200);
-  overflow:hidden;
-}
-/* Cold at 0, amber through the middle, hot at 10 — the bar encodes the score
-   twice, once as length and once as temperature, which is what makes a row of
-   them scannable without reading a single number.
-   The ramp is anchored to the ten-point track by an inline background-size set
-   per bar (see the page); this rule owns the colours, the page owns the scale. */
-.aol-rmc__meter-fill{
-  display:block; height:100%;
-  background-image:linear-gradient(to right,
-    var(--blue-500)  0%,
-    var(--blue-400)  25%,
-    var(--amber-400) 55%,
-    var(--red-600)   100%);
-  background-repeat:no-repeat;
-}
-
 @media (max-width:640px){
   .aol-rmc__head{ grid-template-columns:44px minmax(0,1fr); }
   .aol-rmc__logo{ width:44px; height:44px; }
@@ -1259,6 +1232,178 @@
    page: a ragged right edge, and half the screen empty. One column, one edge. */
 .aol-rmc .aol-rma__inner{ max-width:880px; }
 
+/* ---- The working: three dimensions, one row each ----------------------
+   These rules did not exist. The markup emitted __grades, __dims, __dim,
+   __dim-q, __dim-reason, __dim-bar, __dim-n, __dim-of, __stale and the five
+   __grader-* classes and every one of them resolved to nothing, so the whole
+   evidence half of the page rendered at browser defaults: a UA-margined list,
+   naked paragraphs, and a score bar that was an empty span consuming a --n
+   nobody read. The section was not under-designed, it was undrawn.
+
+   The row is a two-column grid rather than a card. A card per dimension would
+   be five boxes down a page that already carries a header card and a stack
+   table, and the thing being compared here is five numbers on one scale —
+   which is a table's job, not a deck's. Hairlines separate; nothing floats. */
+
+.aol-rmc__grades{ margin-top:var(--space-12); }
+
+/* The kicker names what the section IS before the serif heading says it with
+   personality. "The working." is a good heading and a bad label; a reader
+   scanning for the evidence needs the label. Same mono micro-type as the band
+   word and the stack categories — this page already had the component. */
+.aol-rmc__kicker{
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  letter-spacing:var(--tracking-mono); text-transform:uppercase;
+  color:var(--ink-500); margin:var(--space-12) 0 0;
+}
+.aol-rmc__kicker + .aol-rmc__h2{ margin-top:var(--space-2); }
+
+.aol-rmc__dims{
+  list-style:none; margin:var(--space-6) 0 0; padding:0;
+  display:grid; gap:0;
+  border-top:1px solid var(--ink-200);
+}
+.aol-rmc__dim{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  padding:var(--space-6) 0;
+  border-bottom:1px solid var(--ink-200);
+}
+
+/* The rubric question, verbatim from DIMENSIONS[].question. It is the reason
+   the number means anything, so it sits directly under the name rather than in
+   a tooltip or a legend at the foot of the page. */
+.aol-rmc__dim-q{
+  margin:var(--space-2) 0 0; padding-left:32px;
+  font-size:var(--text-sm); line-height:var(--leading-normal);
+  color:var(--ink-500); max-width:62ch;
+}
+/* The evidence. Serif and a reading leading, because this is the one string per
+   row a human actually reads rather than scans. Indented to the icon column so
+   name, question and reason share a left edge and the score column stays clean. */
+.aol-rmc__dim-reason{
+  margin:var(--space-3) 0 0; padding-left:32px;
+  font-family:var(--font-serif); font-size:var(--text-base);
+  line-height:var(--leading-relaxed); color:var(--text-body);
+  max-width:var(--measure);
+}
+
+/* The bar, drawn the way the board draws it — .aol-rt__bar's exact ramp and the
+   same --n/5 arithmetic, three times the height because this page shows five
+   bars rather than a hundred and can afford the weight. A colour means the same
+   score here as it does in a leaderboard row, which is the only reason having
+   both is not two measurements. */
+.aol-rmc__dim-bar{
+  display:block; height:6px; margin:var(--space-4) 0 0;
+  background:linear-gradient(
+    to right,
+    var(--signal) calc(var(--n) / 5 * 100%),
+    var(--ink-100) calc(var(--n) / 5 * 100%)
+  );
+}
+
+/* ---- The citation --------------------------------------------------------
+   The one element on this page a reader can check without trusting us. It was
+   string-matched against the stored crawl before the row was written, so it
+   provably appeared on the company's own site — which is exactly why it is set
+   as a quotation and not as more of our own prose.
+
+   Indented and ruled on the left at 1px. That is a hairline rule on a
+   blockquote, the oldest typographic convention there is for "these are
+   someone else's words", not a coloured status stripe: no fill, no accent, no
+   width above a hairline. */
+.aol-rmc__cite{
+  margin:var(--space-3) 0 0 32px; padding:0 0 0 var(--space-4);
+  border-left:1px solid var(--ink-200);
+  max-width:var(--measure);
+}
+.aol-rmc__cite-quote{
+  margin:0; font-family:var(--font-serif); font-size:var(--text-sm);
+  line-height:var(--leading-relaxed); color:var(--ink-600);
+  font-style:italic; text-wrap:pretty;
+}
+/* Straight quotes around a span that was copied verbatim — the marks are ours,
+   the words are theirs, and the distinction is the point of the whole block. */
+.aol-rmc__cite-quote::before{ content:"\201C"; }
+.aol-rmc__cite-quote::after{ content:"\201D"; }
+.aol-rmc__cite-src{
+  display:flex; align-items:center; gap:6px; margin-top:var(--space-2);
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  color:var(--ink-500); overflow-wrap:anywhere;
+}
+.aol-rmc__cite-src svg{ flex:none; color:var(--ink-400); }
+.aol-rmc__cite-src a{ color:inherit; text-decoration:underline; text-underline-offset:2px; }
+.aol-rmc__cite-src a:hover{ color:var(--signal); }
+
+/* Reproducibility, printed. Which bytes, which rubric, which model — the three
+   things that have to match for two rows on this board to be comparable at all. */
+.aol-rmc__provenance{
+  grid-column:2; margin:var(--space-2) 0 0;
+  font-family:var(--font-mono); font-size:var(--text-2xs); line-height:1.7;
+  color:var(--ink-400); overflow-wrap:anywhere;
+}
+.aol-rmc__provenance b{ color:var(--ink-500); font-weight:var(--weight-regular); }
+
+/* Score: display face for the number, mono for the unit — the same pairing as
+   __total / __out in the header, one size down. Tabular figures so five rows of
+   digits sit on a common axis. */
+.aol-rmc__dim-n{
+  font-family:var(--font-display); font-size:var(--text-xl); line-height:1;
+  font-variant-numeric:tabular-nums; color:var(--text-strong);
+}
+.aol-rmc__dim-of{
+  font-family:var(--font-mono); font-size:var(--text-xs); color:var(--text-muted);
+  margin-left:2px;
+}
+
+/* A grade from a model that is no longer the pinned one is not comparable to
+   the rows around it. That is a correctness warning, not a footnote, so it is
+   set on the warm surface the rest of the site uses for set-apart panels. */
+.aol-rmc__stale{
+  margin:var(--space-4) 0 0; padding:var(--space-3) var(--space-4);
+  background:var(--surface-warm); color:var(--text-on-warm-muted);
+  font-size:var(--text-sm); line-height:var(--leading-normal);
+  max-width:var(--measure);
+}
+
+/* ---- Who graded it ----------------------------------------------------
+   A score from an unnamed "AI" is an appeal to authority with no authority
+   behind it, so the instrument is named with its published spec. Set as a
+   datasheet row — label, then fact — rather than as a card, because that is
+   what it is. */
+.aol-rmc__grader{
+  margin-top:var(--space-8); padding-top:var(--space-5);
+  border-top:1px solid var(--ink-200);
+  display:grid; gap:var(--space-1) var(--space-6);
+  grid-template-columns:minmax(0,auto) minmax(0,1fr);
+  align-items:baseline;
+}
+.aol-rmc__grader-label{
+  grid-column:1; margin:0;
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  letter-spacing:var(--tracking-mono); text-transform:uppercase;
+  color:var(--ink-500);
+}
+.aol-rmc__grader-name{
+  grid-column:2; margin:0;
+  font-size:var(--text-md); color:var(--text-strong);
+}
+.aol-rmc__grader-spec,
+.aol-rmc__grader-method{
+  grid-column:2; margin:0;
+  font-size:var(--text-sm); line-height:var(--leading-normal);
+  color:var(--ink-500); max-width:var(--measure);
+}
+@media (max-width:560px){
+  .aol-rmc__grader{ grid-template-columns:minmax(0,1fr); }
+  .aol-rmc__grader-name,
+  .aol-rmc__grader-spec,
+  .aol-rmc__grader-method{ grid-column:1; }
+  .aol-rmc__dim-q, .aol-rmc__dim-reason{ padding-left:0; }
+  .aol-rmc__cite{ margin-left:0; }
+  .aol-rmc__provenance{ grid-column:1; }
+}
+
 /* ---- Question heading rows on a company page ---- */
 .aol-rmc__dim-head{ display:flex; align-items:center; gap:12px; }
 .aol-rmc__dim-icon{ color:var(--ink-700); flex:none; display:flex; line-height:0; }
@@ -1397,96 +1542,16 @@
   text-align:right;
 }
 
-.aol-rmc__band-note,
-.aol-rmc__split{
+.aol-rmc__band-note{
   display:grid; grid-template-columns:12px minmax(0,1fr); gap:0 8px;
   align-items:start; margin:0 0 var(--space-6);
   font-size:var(--text-sm); color:var(--text-muted); max-width:70ch;
 }
 .aol-rmc__band-note > svg{ margin-top:5px; color:var(--text-faint); }
-/* Ink, not copper — this page's ground is paper, and the monotone invariant
-   holds. The glyph and the bold question name carry the emphasis. Sits AFTER
-   the verdict as its footnote, so the margin flips. */
-.aol-rmc__split{ color:var(--ink-600); margin:var(--space-4) 0 0; }
-.aol-rmc__split > svg{ margin-top:5px; }
-.aol-rmc__split strong{ color:var(--text-strong); font-weight:var(--weight-semibold); }
+/* The panel-era rules that lived here — __questions, __question-ask, __takes
+   and the nine __take-* blocks — went with the three jurors they styled. No
+   page has emitted those class names since the single grader landed. */
 
-/* ---- One question, three panelists ---- */
-.aol-rmc__questions{ display:grid; gap:var(--space-12); margin-bottom:var(--space-4); }
-.aol-rmc__question-ask{
-  margin:8px 0 var(--space-6); font-size:var(--text-sm); color:var(--text-muted);
-}
-.aol-rmc__question-ask span{
-  display:block; font-family:var(--font-mono); font-size:var(--text-2xs);
-  text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint);
-  margin-top:4px;
-}
-/* Three columns or one — NEVER two. auto-fit gave 2+1 at tablet widths, which
-   reads as a grouping the panel does not have. The panel's structure is the
-   page's claim; the grid must not misreport it. */
-.aol-rmc__takes{
-  list-style:none; margin:0; padding:0;
-  display:grid; grid-template-columns:minmax(0,1fr);
-  gap:var(--space-6);
-}
-@media (min-width:820px){
-  .aol-rmc__takes{ grid-template-columns:repeat(3, minmax(0,1fr)); }
-}
-.aol-rmc__take{
-  display:grid; gap:8px; align-content:start;
-  /* A column edge, so each panelist reads as a datasheet entry. */
-  border-top:1px solid var(--ink-200); padding-top:8px;
-}
-.aol-rmc__take-head{
-  display:grid; grid-template-columns:minmax(0,1fr) auto; gap:0 10px;
-  align-items:baseline;
-}
-/* The byline over each take. Was a muted uppercase mono label, which read as
-   metadata; the juror is the author of the sentence below it, so the NAME now
-   carries the page's own serif at full ink and the title trails it as the
-   quieter half. */
-.aol-rmc__take-who{
-  grid-column:1; font-size:var(--text-sm); color:var(--text-muted);
-}
-.aol-rmc__take-name{
-  font-family:var(--font-serif); font-size:var(--text-base);
-  font-weight:var(--weight-semibold); color:var(--text-strong);
-}
-.aol-rmc__take-title{ color:var(--text-muted); }
-.aol-rmc__take-word{
-  grid-column:1; font-size:var(--text-sm); color:var(--text-strong);
-  font-weight:var(--weight-semibold);
-}
-.aol-rmc__take-score{
-  grid-column:2; grid-row:1 / span 2;
-  font-family:var(--font-mono); font-size:var(--text-lg);
-  font-variant-numeric:tabular-nums; color:var(--text-strong);
-  align-self:center;
-}
-.aol-rmc__take-score em{ font-style:normal; font-size:var(--text-xs); color:var(--text-faint); }
-/* 16px, not 14: this is the juror's actual reasoning and the only prose in the
-   ratings block. At --text-sm it was set at the size of a caption while asking
-   to be read as an argument. Paired with the 55-word ceiling in the panel
-   prompt — bigger type earns its space only if there is less of it. */
-/* The juror's summary, verbatim from the row. 16px rather than the 14px this
-   used to be — it is the only prose in the ratings block and was set at caption
-   size while asking to be read as an argument.
-   No clamp, no min-height and no truncation: the summaries vary in length
-   because the three models write to different lengths, and every attempt to
-   hide that in the presentation layer was worse than the variation. If they
-   need levelling, that belongs in what the panel is asked for, not here. */
-.aol-rmc__take-why{
-  margin:2px 0 0; font-size:16px; color:var(--text-body);
-  line-height:var(--leading-normal); max-width:var(--measure);
-}
-
-@media (max-width:640px){
-  /* Long cohort labels wrap; a baseline-pinned right cell left the wrapped
-     lines hanging. Stack the rank instead. */
-  .aol-rmc__rank{ grid-template-columns:minmax(0,1fr); gap:2px; }
-  .aol-rmc__rank::after{ display:none; }
-  .aol-rmc__rank-of{ grid-column:1; text-align:left; }
-}
 /* Screen-reader-only text — meaning must not live in title= alone. */
 .aol-sr-only{
   position:absolute; width:1px; height:1px; padding:0; margin:-1px;
@@ -1495,7 +1560,7 @@
 
 /* ---- The board, as one dense table (.aol-rt) ----
    Replaces the per-cohort <ol> of rich rows. Everything here is in service of
-   one idea: five dimensions per company is a MATRIX, and a matrix is only
+   one idea: three dimensions per company is a MATRIX, and a matrix is only
    worth building if a column can be read down. So the numbers align, the bars
    share one scale, and nothing decorative sits between two rows. */
 

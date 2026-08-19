@@ -34,7 +34,7 @@ import { getEntries, GRADER, DIMENSIONS } from "../../../lib/rankings";
 const all = await getEntries();
 
 const title = "The Rank My AdTech leaderboard — private adtech startups, graded";
-const description = `${all.length} private adtech companies graded 1-5 on five dimensions by ${GRADER.name}, from their own websites.`;
+const description = `${all.length} private adtech companies graded 1-5 on three dimensions by ${GRADER.name}, from their own websites.`;
 ---
 
 <Base title={title} description={description}
@@ -49,7 +49,7 @@ const description = `${all.length} private adtech companies graded 1-5 on five d
         </p>
         <h1 class="aol-rma__h1">The leaderboard.</h1>
         <p class="aol-rma__lede">
-          Private adtech companies, graded 1–5 on five dimensions from their own
+          Private adtech companies, graded 1–5 on three dimensions from their own
           websites and nothing else. Sort by any column; the interesting reading is
           down a column rather than across a row.
         </p>

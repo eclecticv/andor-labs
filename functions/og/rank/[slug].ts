@@ -40,9 +40,7 @@ interface Row {
   grade: number;
   originality: number;
   defensibility: number;
-  traction: number;
-  execution: number;
-  durability: number;
+  outlook: number;
   /** The three panelists' words, comma-joined by the query. */
 }
 
@@ -111,8 +109,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env, request })
 
   const row = await env.RANKINGS.prepare(
     `SELECT c.name, c.domain, c.one_liner, c.side, c.category, c.provisional,
-            r.grade, r.originality, r.defensibility, r.traction,
-            r.execution, r.durability
+            r.grade, r.originality, r.defensibility, r.outlook
      FROM company c JOIN ranking r ON r.company_id = c.id
      WHERE c.slug = ? AND c.status = 'published'`,
   )

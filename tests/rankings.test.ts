@@ -9,18 +9,21 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   GRADER, isStaleGrade, BOARD_AXIS, COHORTS, cohortKeyOf, ranksFor,
-  bandBadgeFor, ordinal, fmt, scoreBand, letterFor, scoresFor, reasonsFor,
-  caseAgainstFor, CATEGORY_LABELS, DIMENSIONS, DIMENSION_KEYS, type Entry,
+  bandBadgeFor, ordinal, fmt, scoreBand, letterFor, scoresFor,
+  CATEGORY_LABELS, DIMENSIONS, DIMENSION_KEYS, evidenceFor, type Entry,
 } from "../src/lib/rankings";
 import { CATEGORIES, CATEGORY_NOT, sideFor } from "../functions/_lib/classify";
+import { DIMENSION_KEYS as GRADER_DIMENSION_KEYS } from "../functions/_lib/grader";
 
 const entry = (over: Partial<Entry> = {}): Entry => ({
   slug: "acme", name: "Acme", domain: "acme.com", logo_url: null, one_liner: null,
   provisional: 0, category: "ssp", band: "growth", side: "sell",
   band_evidence: null, band_inferred: 1,
-  grade: 3.4, originality: 4, defensibility: 3, traction: 3, execution: 4, durability: 3,
-  reasons_json: "{}", case_against_json: "[]",
-  summary: "", stack_json: "{}", model_used: GRADER.model, created_at: "", ...over,
+  grade: 3.3, originality: 4, defensibility: 3, outlook: 3,
+  evidence_json: "{}",
+  summary: "", stack_json: "{}",
+  input_hash: "0".repeat(64), rubric_version: "r3-00000000",
+  model_used: GRADER.model, created_at: "", ...over,
 });
 
 describe("the grader", () => {
@@ -49,11 +52,16 @@ describe("the grader", () => {
 });
 
 describe("the rubric", () => {
-  it("has five dimensions and no more", () => {
-    expect(DIMENSIONS).toHaveLength(5);
-    expect(DIMENSION_KEYS).toEqual([
-      "originality", "defensibility", "traction", "execution", "durability",
-    ]);
+  it("has three dimensions and no more", () => {
+    expect(DIMENSIONS).toHaveLength(3);
+    expect(DIMENSION_KEYS).toEqual(["originality", "defensibility", "outlook"]);
+  });
+
+  it("mirrors the grader exactly — a drifted mirror is a silently wrong page", () => {
+    // These two lists are duplicated across the Functions/Astro boundary on
+    // purpose (see the comment on DIMENSIONS). Duplication is only safe while
+    // something fails when they diverge.
+    expect(DIMENSION_KEYS).toEqual(GRADER_DIMENSION_KEYS);
   });
 
   it("names an icon PixelIcon can actually draw", () => {
@@ -111,23 +119,32 @@ describe("letter bands", () => {
 });
 
 describe("reading a row", () => {
-  it("pulls the five scores off the entry", () => {
+  it("pulls the three scores off the entry", () => {
     expect(scoresFor(entry())).toEqual({
-      originality: 4, defensibility: 3, traction: 3, execution: 4, durability: 3,
+      originality: 4, defensibility: 3, outlook: 3,
     });
   });
 
   it("survives malformed JSON rather than failing the build", () => {
     // These columns are model output that went through JSON.stringify. A single
     // bad row must not take the whole static build down with it.
-    expect(reasonsFor(entry({ reasons_json: "not json" }))).toEqual({});
-    expect(caseAgainstFor(entry({ case_against_json: "not json" }))).toEqual([]);
-    expect(caseAgainstFor(entry({ case_against_json: '{"a":1}' }))).toEqual([]);
+    expect(evidenceFor(entry({ evidence_json: "not json" }))).toEqual({});
+    expect(evidenceFor(entry({ evidence_json: '"a string"' }))).toEqual({});
+    expect(evidenceFor(entry({ evidence_json: "[1,2]" }))).toEqual({});
   });
 
-  it("reads the case against as a list of strings", () => {
-    expect(caseAgainstFor(entry({ case_against_json: '["one","two"]' })))
-      .toEqual(["one", "two"]);
+  it("reads reason, quote and source off each dimension", () => {
+    const e = entry({ evidence_json: JSON.stringify({
+      originality: { reason: "r", quote: "q".repeat(20), source_url: "https://x.test" },
+    }) });
+    expect(evidenceFor(e).originality).toEqual({
+      reason: "r", quote: "q".repeat(20), sourceUrl: "https://x.test",
+    });
+  });
+
+  it("drops a dimension whose evidence is not an object", () => {
+    const e = entry({ evidence_json: '{"originality":"just a string"}' });
+    expect(evidenceFor(e)).toEqual({});
   });
 });
 

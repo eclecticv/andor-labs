@@ -44,8 +44,9 @@ import {
   place, placeFromMarkup, sideFor, cohortLabel, categoryLabel, categoryFor,
   CATEGORIES, CATEGORY_NOT,
 } from "../functions/_lib/classify";
+import { createHash } from "node:crypto";
 import {
-  runGrader, recallFrom, GRADER, DIMENSION_KEYS,
+  runGrader, recallFrom, GRADER, DIMENSION_KEYS, rubricVersion, verifyQuotes,
   buildGraderPrompt, buildGraderSystem,
   type Grade, type GraderInput,
 } from "../functions/_lib/grader";
@@ -130,7 +131,12 @@ async function rank(domain: string, cache: CacheOptions) {
     `  ${grade.grade}/5 (${grade.letter}) — ` +
     DIMENSION_KEYS.map((k) => `${k}=${grade.scores[k].score}`).join("  "),
   );
-  for (const line of grade.caseAgainst) console.error(`  against: ${line}`);
+  /* Print the audit, not just the result. runGrader already refuses an
+     unverifiable answer; showing each quote is how a human spot-checks that the
+     matcher is matching real spans rather than trivially short ones. */
+  for (const c of verifyQuotes(grade, site.pages)) {
+    console.error(`  ${c.ok ? "✓" : "✗"} ${c.key.padEnd(14)} "${c.quote.slice(0, 88)}"`);
+  }
 
   /* No writer stage. The verdict came back in the same response as the grades,
      which is the whole point of the change — there is nothing left to re-roll
@@ -146,16 +152,22 @@ async function rank(domain: string, cache: CacheOptions) {
   return {
     domain, slug, identity, placement, side, cohort, grade, summary, logo, category,
     stack: byCategory(detected), thin: site.thin,
+    pages: site.pages, inputHash: sha256(site.pages),
   };
 }
+
+/** Same digest the Function computes with crypto.subtle, so hashes match. */
+const sha256 = (text: string) => createHash("sha256").update(text, "utf8").digest("hex");
 
 const sqlFor = (r: any) => {
   const lines = [
     `DELETE FROM company WHERE domain = ${q(r.domain)} AND id NOT IN (SELECT company_id FROM ranking);`,
     `INSERT INTO company (domain, name, slug, logo_url, one_liner, division, category, stage, band, side, band_evidence, band_inferred, provisional)
  VALUES (${q(r.domain)}, ${q(r.identity.name)}, ${q(r.slug)}, ${q(r.logo)}, ${q(r.identity.oneLiner)}, 'middleweight', ${q(r.category)}, ${q(r.identity.stage)}, ${q(r.placement.band)}, ${q(r.side)}, ${q(r.placement.bandEvidence)}, ${r.placement.bandInferred ? 1 : 0}, ${r.thin ? 1 : 0});`,
-    `INSERT INTO ranking (company_id, grade, originality, defensibility, traction, execution, durability, reasons_json, case_against_json, summary, stack_json, model_used)
- VALUES ((SELECT id FROM company WHERE domain = ${q(r.domain)}), ${r.grade.grade}, ${r.grade.scores.originality.score}, ${r.grade.scores.defensibility.score}, ${r.grade.scores.traction.score}, ${r.grade.scores.execution.score}, ${r.grade.scores.durability.score}, ${q(JSON.stringify(Object.fromEntries(DIMENSION_KEYS.map((k) => [k, r.grade.scores[k].reason]))))}, ${q(JSON.stringify(r.grade.caseAgainst))}, ${q(r.summary)}, ${q(JSON.stringify(r.stack))}, ${q(r.grade.modelUsed)});`,
+    /* The snapshot first — ranking.input_hash is a foreign key onto it. */
+    `INSERT OR IGNORE INTO snapshot (hash, domain, pages) VALUES (${q(r.inputHash)}, ${q(r.domain)}, ${q(r.pages)});`,
+    `INSERT INTO ranking (company_id, grade, originality, defensibility, outlook, evidence_json, summary, stack_json, input_hash, rubric_version, model_used)
+ VALUES ((SELECT id FROM company WHERE domain = ${q(r.domain)}), ${r.grade.grade}, ${r.grade.scores.originality.score}, ${r.grade.scores.defensibility.score}, ${r.grade.scores.outlook.score}, ${q(JSON.stringify(Object.fromEntries(DIMENSION_KEYS.map((k) => [k, { reason: r.grade.scores[k].reason, quote: r.grade.scores[k].quote, source_url: r.grade.scores[k].sourceUrl }]))))}, ${q(r.summary)}, ${q(JSON.stringify(r.stack))}, ${q(r.inputHash)}, ${q(rubricVersion())}, ${q(r.grade.modelUsed)});`,
   ];
   /* No per-juror rows to emit: one grader has a byline, not a seat. */
   return lines.join("\n");

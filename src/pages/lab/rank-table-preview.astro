@@ -18,18 +18,18 @@ import type { Entry } from "../../lib/rankings";
 const row = (over: Partial<Entry>): Entry => ({
   slug: "x", name: "X", domain: "x.com", logo_url: null, one_liner: null, provisional: 0,
   category: "ssp", band: "growth", side: "sell", band_evidence: null, band_inferred: 1,
-  grade: 3, originality: 3, defensibility: 3, traction: 3, execution: 3, durability: 3,
-  reasons_json: "{}", case_against_json: "[]", summary: "", stack_json: "{}",
+  grade: 3, originality: 3, defensibility: 3, outlook: 3,
+  reasons_json: "{}", summary: "", stack_json: "{}",
   model_used: "nvidia/nemotron-3-ultra-550b-a55b", created_at: "", ...over,
 });
 
 const entries: Entry[] = [
-  row({ slug: "verax", name: "Verax", grade: 5, originality: 5, defensibility: 5, traction: 5, execution: 5, durability: 5, category: "identity", side: "independent", band: "mature" }),
-  row({ slug: "nexx", name: "Nexx360", grade: 4.2, originality: 4, defensibility: 5, traction: 4, execution: 4, durability: 4, category: "header-bidding" }),
-  row({ slug: "pubx", name: "pubX", grade: 3.4, originality: 4, defensibility: 3, traction: 3, execution: 4, durability: 3, category: "publisher-monetization" }),
-  row({ slug: "curate", name: "Curation Collective", grade: 3.4, originality: 3, defensibility: 4, traction: 3, execution: 3, durability: 4, category: "curation", side: "buy", band: "emerging" }),
-  row({ slug: "adq", name: "AdQuality", grade: 2.8, originality: 2, defensibility: 3, traction: 3, execution: 3, durability: 3, category: "fraud-quality", side: "independent" }),
-  row({ slug: "thin", name: "Stealth Thing", grade: 1.2, originality: 1, defensibility: 1, traction: 1, execution: 2, durability: 1, category: "other", band: "emerging", provisional: 1 }),
+  row({ slug: "verax", name: "Verax", grade: 5, originality: 5, defensibility: 5, outlook: 5, category: "identity", side: "independent", band: "mature" }),
+  row({ slug: "nexx", name: "Nexx360", grade: 4.2, originality: 4, defensibility: 5, outlook: 4, category: "header-bidding" }),
+  row({ slug: "pubx", name: "pubX", grade: 3.4, originality: 4, defensibility: 3, outlook: 3, category: "publisher-monetization" }),
+  row({ slug: "curate", name: "Curation Collective", grade: 3.4, originality: 3, defensibility: 4, outlook: 4, category: "curation", side: "buy", band: "emerging" }),
+  row({ slug: "adq", name: "AdQuality", grade: 2.8, originality: 2, defensibility: 3, outlook: 3, category: "fraud-quality", side: "independent" }),
+  row({ slug: "thin", name: "Stealth Thing", grade: 1.2, originality: 1, defensibility: 1, outlook: 1, category: "other", band: "emerging", provisional: 1 }),
 ];
 ---
 

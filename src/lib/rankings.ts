@@ -112,23 +112,26 @@ export const SIDE_LABELS: Record<string, string> =
   Object.fromEntries(SIDES.map((s) => [s.key, s.label]));
 
 /**
- * The five dimensions, mirrored from functions/_lib/grader.ts.
+ * The three dimensions, mirrored from functions/_lib/grader.ts.
  *
  * Duplicated rather than imported for the same reason the Loops list ids are:
  * Pages Functions bundle separately from the Astro build, and a cross-boundary
  * import is a thing to discover at deploy time. Change one, change the other.
+ *
+ * Was five. Traction and execution were cut after an audit of the only two rows
+ * on the board: traction was scoring vendor testimonial walls as verified
+ * customers, and execution graded the presence of public developer docs, which
+ * caps every enterprise sales-led company in adtech at 2 no matter what it has
+ * built. Both scored the same value for the same reason on both companies —
+ * zero variance, and therefore nothing added to the grade but noise.
  */
 export const DIMENSIONS = [
-  { key: "originality",   label: "Originality",   icon: "lightbulb",
+  { key: "originality",   label: "Originality",     icon: "lightbulb",
     question: "Was this first, or only?" },
-  { key: "defensibility", label: "Defensibility", icon: "laptop-code",
-    question: "What is the single hardest thing here to replicate?" },
-  { key: "traction",      label: "Traction",      icon: "handshake",
-    question: "What proof is there that anyone uses this?" },
-  { key: "execution",     label: "Execution",     icon: "bolt",
-    question: "Does this look built by people who ship?" },
-  { key: "durability",    label: "Durability",    icon: "bank",
-    question: "Does this still matter in three years?" },
+  { key: "defensibility", label: "Defensibility",   icon: "laptop-code",
+    question: "Could a competent team rebuild this in a weekend?" },
+  { key: "outlook",       label: "Future outlook",  icon: "bank",
+    question: "Where does this sit in three years?" },
 ] as const;
 
 export type DimensionKey = (typeof DIMENSIONS)[number]["key"];
@@ -166,8 +169,7 @@ export const isStaleGrade = (modelUsed: string): boolean =>
 
 export const graderLoadingMessages = (): string[] => [
   `Handing the pages to ${GRADER.name}…`,
-  "Writing the case against them first…",
-  "Scoring five dimensions against fixed anchors…",
+  "Scoring three dimensions against fixed anchors…",
   "Working out what the grade turns on…",
 ];
 
@@ -227,21 +229,27 @@ export interface Entry {
   band_evidence: string | null;
   band_inferred: number;
 
-  /** The mean of the five, 1-5, to one decimal. */
+  /** The mean of the three, 1-5, to one decimal. */
   grade: number;
   originality: number;
   defensibility: number;
-  traction: number;
-  execution: number;
-  durability: number;
+  outlook: number;
 
-  /** Per-dimension reasons, keyed by dimension. */
-  reasons_json: string;
-  /** Three reasons the company is weaker than it looks, written before scoring. */
-  case_against_json: string;
+  /** {dimension: {reason, quote, source_url}} — see evidenceFor(). */
+  evidence_json: string;
 
   summary: string;
   stack_json: string;
+
+  /**
+   * What produced this number: which bytes, which rubric, which model.
+   *
+   * All three are shown on the company page. A board that averages rows graded
+   * by different instruments without saying so is not a leaderboard, it is a
+   * pile of numbers that happen to share a column.
+   */
+  input_hash: string;
+  rubric_version: string;
   model_used: string;
   created_at: string;
 }
@@ -249,26 +257,47 @@ export interface Entry {
 export const scoresFor = (entry: Entry): Record<DimensionKey, number> => ({
   originality: entry.originality,
   defensibility: entry.defensibility,
-  traction: entry.traction,
-  execution: entry.execution,
-  durability: entry.durability,
+  outlook: entry.outlook,
 });
 
-export function reasonsFor(entry: Entry): Record<string, string> {
+/** One dimension's working: what the grader concluded, and the span it cited. */
+export interface Evidence {
+  reason: string;
+  quote: string;
+  sourceUrl: string;
+}
+
+/**
+ * The per-dimension evidence, defended twice over.
+ *
+ * `JSON.parse` succeeding does not mean the result is the shape this returns —
+ * `"a string"` and `[1,2]` are both valid JSON and neither is a record. The
+ * type said Record and the function could hand back a string, which is the kind
+ * of lie that surfaces as a blank section rather than as an error.
+ *
+ * A single malformed row must not take the static build down with it, so every
+ * failure degrades to an empty record rather than throwing.
+ */
+export function evidenceFor(entry: Entry): Record<string, Evidence> {
+  let parsed: unknown;
   try {
-    return JSON.parse(entry.reasons_json || "{}");
+    parsed = JSON.parse(entry.evidence_json || "{}");
   } catch {
     return {};
   }
-}
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return {};
 
-export function caseAgainstFor(entry: Entry): string[] {
-  try {
-    const parsed = JSON.parse(entry.case_against_json || "[]");
-    return Array.isArray(parsed) ? parsed.map(String) : [];
-  } catch {
-    return [];
+  const out: Record<string, Evidence> = {};
+  for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) continue;
+    const cell = value as Record<string, unknown>;
+    out[key] = {
+      reason: typeof cell.reason === "string" ? cell.reason : "",
+      quote: typeof cell.quote === "string" ? cell.quote : "",
+      sourceUrl: typeof cell.source_url === "string" ? cell.source_url : "",
+    };
   }
+  return out;
 }
 
 export type Letter = "A" | "B" | "C" | "D" | "E";
@@ -366,9 +395,9 @@ async function query<T>(sql: string, params: unknown[] = []): Promise<T[]> {
 const ENTRY_SELECT = `
   SELECT c.slug, c.name, c.domain, c.logo_url, c.one_liner, c.provisional,
          c.category, c.band, c.side, c.band_evidence, c.band_inferred,
-         r.grade, r.originality, r.defensibility, r.traction, r.execution,
-         r.durability, r.reasons_json, r.case_against_json, r.summary,
-         r.stack_json, r.model_used, r.created_at
+         r.grade, r.originality, r.defensibility, r.outlook,
+         r.evidence_json, r.summary, r.stack_json,
+         r.input_hash, r.rubric_version, r.model_used, r.created_at
   FROM company c
   JOIN ranking r ON r.company_id = c.id
   WHERE c.status = 'published'`;
@@ -380,7 +409,7 @@ let cache: Entry[] | null = null;
  *
  * ONE query now. The panel needed two — ranking rows, then three takes per row,
  * stitched in memory — because a join would have repeated every company row
- * three times. With the grade and its five dimensions all on the ranking row,
+ * three times. With the grade and its three dimensions all on the ranking row,
  * there is nothing left to stitch. Still memoised: `getStaticPaths` and each
  * page body would otherwise re-fetch the whole board over the network for every
  * company on it.
@@ -389,23 +418,21 @@ export async function getEntries(): Promise<Entry[]> {
   if (cache) return cache;
 
   /**
-   * Tie-break, in order: defensibility, traction, originality, then name.
+   * Tie-break, in order: defensibility, outlook, originality, then name.
    *
-   * Ties are rarer than they were but not rare. Five integers in 1-5 average
-   * onto 21 values in 0.2 steps — far better than the old lattice, where nine
-   * integers averaged three ways collapsed 6/6/6, 6/8/4 and 8/4/6 all onto 18
-   * and put three of seven companies on 17.3 — but two companies sharing 3.4 is
-   * entirely ordinary.
+   * Ties got MORE likely with three dimensions, not less — three integers in
+   * 1-5 average onto 13 values in 0.33 steps where five gave 21 in 0.2 steps —
+   * so the tie-break matters more than it did, not less.
    *
    * Alphabetical alone was the worst available answer: arbitrary, but it LOOKS
    * ordered, so a reader infers a judgement that was never made. These keys are
    * defensible instead, and the order encodes what the board is FOR: at the same
-   * grade, the company that is harder to replicate ranks above the one with more
-   * logos, and both rank above the one whose only edge is being first.
+   * grade, the company that is harder to replicate ranks above the one riding a
+   * better market, and both rank above the one whose only edge is being first.
    */
   const rows = await query<Entry>(
     `${ENTRY_SELECT}
-     ORDER BY r.grade DESC, r.defensibility DESC, r.traction DESC,
+     ORDER BY r.grade DESC, r.defensibility DESC, r.outlook DESC,
               r.originality DESC, c.name ASC`,
   );
 

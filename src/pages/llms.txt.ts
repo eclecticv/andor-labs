@@ -53,14 +53,14 @@ export const GET: APIRoute = async ({ site }) => {
     // Roster and rubric are interpolated, never typed. Typed copies went stale
     // here while the site itself had moved on — and an answer engine quoting a
     // stale rubric is a citation nobody can check.
-    "- What it does: grades private adtech startups 1-5 on five dimensions, from",
+    "- What it does: grades private adtech startups 1-5 on three dimensions, from",
     "  the company's own website and nothing else.",
     `- Graded by a single model: ${GRADER.lab} ${GRADER.name} (${GRADER.model}), at`,
     "  temperature 0 against published anchors. The model is PINNED — a grader",
     "  that cannot answer fails the ranking rather than being substituted,",
     "  because a board whose rows were graded by different models is not",
     "  comparable to itself.",
-    `- The five dimensions: ${DIMENSIONS.map((d) => d.label.toLowerCase()).join(", ")}.`,
+    `- The three dimensions: ${DIMENSIONS.map((d) => d.label.toLowerCase()).join(", ")}. Every score quotes the source page verbatim; the quote is verified against the stored crawl before publishing.`,
     "  Each is an integer 1-5 against fixed anchors; the headline grade is their",
     "  mean to one decimal, and letter bands sit on top (A from 4.5, B from 3.5,",
     "  C from 2.5, D from 1.5).",

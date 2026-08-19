@@ -3,7 +3,7 @@
  * One company's ranking — the page a board row links to, and the page that does
  * the organic-search work for this tool.
  *
- * ORDER IS DELIBERATE: share, the verdict, the case against, the five grades.
+ * ORDER IS DELIBERATE: share, the verdict, the three grades.
  *   - Score, band and the two ranks live in the HEADER, beside the company
  *     name rather than under it. They are one statement — the claim, the claim
  *     in words, the claim in context — and setting them in the header's right
@@ -13,12 +13,13 @@
  *     page is a share row nobody reaches.
  *   - The verdict leads, because it is what the reader came for. Everything
  *     after it exists to be checked against it.
- *   - Then the case AGAINST the company, which the grader wrote before it had
- *     scored anything. Under the panel, the interesting content here was three
- *     labs disagreeing; with one grader there is no disagreement to show, and
- *     this is the honest replacement. It is also the strongest evidence the
- *     page carries that the grade was argued rather than felt.
- *   - The five grades go last, as the working. They are the evidence behind the
+ *   - A pre-score "case against" block used to sit here. It was removed after
+ *     measurement: re-grading the same crawls without it moved both test
+ *     companies up 0.6 and restored the dimension spread one of them had lost
+ *     entirely, so it was priming the scorer rather than showing its work. The
+ *     five reasons below already carry the same evidence, each attached to the
+ *     number it actually explains.
+ *   - The three grades go last, as the working. They are the evidence behind the
  *     verdict, and evidence is what you turn to after a conclusion you want to
  *     check — not the thing to wade through on the way to one.
  *
@@ -38,7 +39,7 @@ import PixelIcon from "../../../components/ds/PixelIcon.astro";
 import DitherLine from "../../../components/ds/DitherLine.astro";
 import {
   getEntries, ranksFor, ordinal, scoreBand, stackFor, categoryLabel,
-  fmt, bandBadgeFor, isStaleGrade, letterFor, reasonsFor, caseAgainstFor,
+  fmt, bandBadgeFor, isStaleGrade, letterFor, evidenceFor,
   scoresFor, DIMENSIONS, GRADER, SIDE_LABELS,
 } from "../../../lib/rankings";
 
@@ -66,11 +67,10 @@ const bandBadge = bandBadgeFor(entry);
 const graderStale = isStaleGrade(entry.model_used);
 
 const scores = scoresFor(entry);
-const reasons = reasonsFor(entry);
-const caseAgainst = caseAgainstFor(entry);
+const evidence = evidenceFor(entry);
 
 const title = `${entry.name} — Rank My AdTech — And/or Labs`;
-const description = `${entry.name} grades ${fmt(entry.grade)}/5 (${letter}) on Rank My AdTech: ${ordinal(ranks.cohortRank)} of ${ranks.cohortSize} in ${ranks.cohortLabel}, graded on five dimensions by ${GRADER.name}.`;
+const description = `${entry.name} grades ${fmt(entry.grade)}/5 (${letter}) on Rank My AdTech: ${ordinal(ranks.cohortRank)} of ${ranks.cohortSize} in ${ranks.cohortLabel}, graded on three dimensions by ${GRADER.name}.`;
 
 const pageUrl = new URL(`/tools/rank-my-adtech/${entry.slug}/`, Astro.site).href;
 const shareBrag =
@@ -212,32 +212,16 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
         <DitherLine />
 
         {/* ── 3. What the grader came to ─────────────────────────────────── */}
+        <p class="aol-rmc__kicker">Verdict</p>
         <h2 class="aol-rmc__h2">The verdict.</h2>
         {/* Same call as the grades. There is no separate writer any more: five
             grades from one model need no synthesis, and the paragraph was
-            produced by the grader that had already written the case against. */}
+            produced in the same response as the grades. */}
         <p class="aol-rmc__verdict">{entry.summary}</p>
 
-        {/* ── 4. The case against, written before any score existed ─────── */}
-        {caseAgainst.length ? (
-          <section class="aol-rmc__against">
-            <h2 class="aol-rmc__h2">The case against.</h2>
-            {/* Printed BEFORE the grades, in the order it was produced. The
-                grader wrote these with no score in hand, which is the entire
-                reason they are worth reading: marketing language survives "why
-                is this good" — it is built to — and does not survive "what is
-                the hard part here" asked before anyone has committed. */}
-            <p class="aol-rmc__against-note">
-              Written by the grader before it scored anything, from the pages only.
-            </p>
-            <ol class="aol-rmc__against-list">
-              {caseAgainst.map((line) => <li class="aol-rmc__against-item">{line}</li>)}
-            </ol>
-          </section>
-        ) : null}
-
-        {/* ── 5. The five grades, as the working ─────────────────────────── */}
+        {/* ── 5. The three grades, as the working ────────────────────────── */}
         <section class="aol-rmc__grades">
+          <p class="aol-rmc__kicker">Scores &amp; evidence · three dimensions</p>
           <h2 class="aol-rmc__h2">The working.</h2>
 
           {graderStale ? (
@@ -259,8 +243,30 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
                   </span>
                 </div>
                 <p class="aol-rmc__dim-q">{d.question}</p>
-                {reasons[d.key] ? (
-                  <p class="aol-rmc__dim-reason">{reasons[d.key]}</p>
+                {evidence[d.key]?.reason ? (
+                  <p class="aol-rmc__dim-reason">{evidence[d.key].reason}</p>
+                ) : null}
+                {/*
+                  The quote is the only thing on this page a reader can check
+                  without trusting us. It was string-matched against the stored
+                  crawl before the row was written — see verifyQuotes() — so
+                  what is printed here provably appeared on the company's own
+                  site at the moment it was read. Set as a blockquote because
+                  that is what it is, and cited, because an uncited quote is
+                  just more of our prose.
+                */}
+                {evidence[d.key]?.quote ? (
+                  <figure class="aol-rmc__cite">
+                    <blockquote class="aol-rmc__cite-quote">{evidence[d.key].quote}</blockquote>
+                    {evidence[d.key].sourceUrl ? (
+                      <figcaption class="aol-rmc__cite-src">
+                        <PixelIcon name="quote-left" size={12} />
+                        <a href={evidence[d.key].sourceUrl} rel="nofollow noopener" target="_blank">
+                          {evidence[d.key].sourceUrl.replace(/^https?:\/\//, "")}
+                        </a>
+                      </figcaption>
+                    ) : null}
+                  </figure>
                 ) : null}
                 <span class="aol-rmc__dim-bar" style={`--n:${scores[d.key]}`} aria-hidden="true"></span>
               </li>
@@ -278,7 +284,21 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
               One model, temperature 0, against anchored 1–5 scales. Pinned: a grader
               that cannot answer fails the ranking rather than being substituted,
               because a board whose rows were graded by different models is not
-              comparable to itself.
+              comparable to itself. Every score must quote the page it came from,
+              and a quote that is not found verbatim in the crawl fails the whole
+              ranking rather than publishing unchecked.
+            </p>
+            {/*
+              Printed because it is the difference between a score and an
+              opinion. These three values say which bytes, which rubric and which
+              model produced this number — change any one and this row stops
+              being comparable to the rows around it. A board that averages
+              measurements taken with different instruments, and cannot say so,
+              is not a leaderboard.
+            */}
+            <p class="aol-rmc__provenance">
+              <b>input</b> sha256:{entry.input_hash.slice(0, 16)}…<br />
+              <b>rubric</b> {entry.rubric_version} · <b>model</b> {entry.model_used}
             </p>
           </div>
         </section>
@@ -287,6 +307,7 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
         {stackCount ? (
           <>
             <DitherLine />
+            <p class="aol-rmc__kicker">Detected from the markup</p>
             <h2 class="aol-rmc__h2">The stack we could see.</h2>
             <p class="aol-rmc__note">
               Read from the markup, so browser-side tools only. A warehouse-native setup

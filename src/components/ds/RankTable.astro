@@ -17,7 +17,7 @@
  *
  * ── Why a table and not cards ──
  * Five dimensions per company is a matrix, and a matrix read down a column is
- * how you see that the board rewards defensibility and punishes traction. Cards
+ * how you see that the board rewards defensibility over novelty. Cards
  * make every company an island and that comparison impossible.
  *
  * Styles live in src/styles/components.css (.aol-rt__*).
@@ -112,8 +112,7 @@ const bands = [...new Set(entries.map((e) => e.band))];
                 data-side={e.side} data-band={e.band}
                 data-grade={e.grade}
                 data-originality={e.originality} data-defensibility={e.defensibility}
-                data-traction={e.traction} data-execution={e.execution}
-                data-durability={e.durability}>
+                data-outlook={e.outlook}>
                 <td class="aol-rt__rank" data-rt-rank>{i + 1}</td>
                 <td class="aol-rt__name">
                   <a class="aol-rt__link" href={`/tools/rank-my-adtech/${e.slug}/`}>
@@ -152,7 +151,7 @@ const bands = [...new Set(entries.map((e) => e.band))];
     </div>
 
     <p class="aol-rt__legend">
-      Grade is the mean of the five, 1–5. A 4.5+ · B 3.5+ · C 2.5+ · D 1.5+ · E below.
+      Grade is the mean of the three, 1–5. A 4.5+ · B 3.5+ · C 2.5+ · D 1.5+ · E below.
       {" "}{DIMENSIONS.map((d) => `${d.label.slice(0, 3)} ${d.label}`).join(" · ")}
     </p>
   </div>

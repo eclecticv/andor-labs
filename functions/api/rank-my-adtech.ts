@@ -19,9 +19,12 @@
  *             evidence (an announced round, an accelerator batch) and never
  *             from tone; side derived from subcategory by lookup, so the two
  *             can never contradict each other.
- *   grade     ONE model call. Five dimensions on anchored 1-5 scales, the case
- *             against written before any score exists, the classification, and
- *             the verdict paragraph — all in a single response.
+ *   grade     ONE model call. Five dimensions on anchored 1-5 scales, the
+ *             classification and the verdict paragraph, in a single response.
+ *             A pre-score "case against" step used to run here and was removed:
+ *             measured against the same crawls it cost 0.6 of a grade on both
+ *             test companies and collapsed the dimension spread to zero on one,
+ *             i.e. it was priming the scorer rather than disciplining it.
  *
  * Three rules carried over, all learned the hard way: totals are arithmetic in
  * code and never asked of a model; a provider is a LADDER whose rung fails on an
@@ -51,7 +54,9 @@ import {
   place, placeFromMarkup, sideFor, cohortLabel, categoryLabel, categoryFor,
   CATEGORIES, CATEGORY_NOT, BAND_LABELS, SIDE_LABELS,
 } from "../_lib/classify";
-import { runGrader, recallFrom, DIMENSIONS, DIMENSION_KEYS, GRADER } from "../_lib/grader";
+import {
+  runGrader, recallFrom, DIMENSIONS, DIMENSION_KEYS, GRADER, rubricVersion,
+} from "../_lib/grader";
 import { askLadder, extractJson, keyFor, type Provider } from "../_lib/providers";
 
 interface Env {
@@ -133,6 +138,20 @@ export function normalizeDomain(input: string): string | null {
 
 export function slugify(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+}
+
+/**
+ * The content hash of the text the grader was given.
+ *
+ * This is what makes a score reproducible. Stored beside the row, it answers
+ * "what exactly was this graded from" with bytes rather than with a date and a
+ * hope that the site has not changed — and sites change constantly, which is
+ * the whole reason a score needs its input pinned.
+ */
+async function hashPages(pages: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pages));
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 /**
@@ -219,6 +238,55 @@ async function triggerRebuild(env: Env): Promise<void> {
   }
 }
 
+/**
+ * Fire a build that is OWED but was never triggered.
+ *
+ * `pending` was written in two places above and read in none, which made the
+ * throttle a queue with no consumer: rank two companies four minutes apart and
+ * the second one sat in D1, correct and complete, with no build ever scheduled
+ * to publish it. It surfaced only when some later, unrelated submission
+ * happened to fall outside the window and swept it up.
+ *
+ * Pages has no cron, so there is no background sweeper to add. The consumer is
+ * therefore the person actually waiting on the page: the status endpoint below
+ * calls this every time it reports "not yet," which means the queue is drained
+ * by whoever cares that it is full. `triggerRebuild` still owns the throttle —
+ * if the window has not passed it simply re-flags pending and returns, so
+ * polling cannot stampede the hook.
+ */
+async function drainPendingBuild(env: Env): Promise<void> {
+  const state = await env.RANKINGS.prepare(
+    "SELECT pending FROM build_state WHERE id = 1",
+  ).first<{ pending: number }>();
+  if (!state?.pending) return;
+  await triggerRebuild(env);
+}
+
+/**
+ * Has a build carrying this row actually deployed yet?
+ *
+ * Asking the origin for the page is the only honest answer. Comparing the
+ * row's timestamp against `last_fired_at` would tell us a build was TRIGGERED,
+ * which is a different claim — the hook returning 200 says Cloudflare accepted
+ * the request, not that the deploy finished, and a failed build fires the hook
+ * just as cheerfully as a good one.
+ *
+ * `/tools/...` is a static asset rather than a Function route, so this cannot
+ * recurse into this Worker.
+ */
+async function isPublished(origin: string, slug: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${origin}/tools/rank-my-adtech/${slug}/`, {
+      method: "GET",
+      redirect: "manual",
+      headers: { "cache-control": "no-cache" },
+    });
+    return res.status === 200;
+  } catch {
+    return false;
+  }
+}
+
 // ── HTTP plumbing ───────────────────────────────────────────────────────────
 
 const json = (body: unknown, status: number) =>
@@ -240,6 +308,38 @@ const RATE_LIMIT_PER_DAY = 5;
 const RESERVED_SLUGS = new Set(["leaderboard", "index", "api", "og"]);
 
 // ── Handler ─────────────────────────────────────────────────────────────────
+
+/**
+ * Is this ranking's page live yet?
+ *
+ * The board is static, so a ranking exists in D1 a full build before it exists
+ * at a URL. The result card used to link straight at that URL and the
+ * already-ranked path used to redirect to it, both within a second of the
+ * deploy hook firing — so the reliable outcome of ranking a company was a 404
+ * on your own result.
+ *
+ * The client polls this instead of guessing, and the answer also drains any
+ * build the throttle swallowed.
+ */
+export const onRequestGet: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
+  const url = new URL(request.url);
+  const slug = (url.searchParams.get("slug") ?? "").trim().toLowerCase();
+  // Same shape slugify() produces. Anything else is not a slug we ever wrote,
+  // and this string goes into a subrequest path.
+  if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(slug)) return json({ error: "Bad slug." }, 400);
+
+  const ready = await isPublished(url.origin, slug);
+  if (!ready) waitUntil(drainPendingBuild(env));
+
+  return new Response(JSON.stringify({ ready }), {
+    status: 200,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      // A cached "not ready" would strand the very page it is reporting on.
+      "cache-control": "no-store",
+    },
+  });
+};
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
   const origin = request.headers.get("origin") ?? "";
@@ -422,8 +522,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
    * to synthesise them, and because a model that had scored nothing could
    * report a split honestly rather than defend its own number. Neither applies
    * to five grades from one grader: it returned the paragraph in the same
-   * response, having already written the case against the company before it
-   * scored anything.
+   * response.
    */
   const summary = grade.summary;
 
@@ -458,22 +557,40 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
 
   if (!companyRow?.id) return json({ error: "Could not save that ranking." }, 500);
 
+  /**
+   * Freeze the input BEFORE the score that cites it.
+   *
+   * `ranking.input_hash` is a foreign key onto this row, so the ordering is not
+   * stylistic — a score inserted first would reference a snapshot that does not
+   * exist. The upsert is a no-op when the same bytes have been graded before,
+   * which is what makes a re-grade cost nothing and read unambiguously as a
+   * re-grade rather than a re-crawl.
+   */
+  const inputHash = await hashPages(site.pages);
+  await env.RANKINGS.prepare(
+    "INSERT OR IGNORE INTO snapshot (hash, domain, pages) VALUES (?, ?, ?)",
+  ).bind(inputHash, domain, site.pages).run();
+
   const rankingRow = await env.RANKINGS.prepare(
-    `INSERT INTO ranking (company_id, grade, originality, defensibility, traction,
-                          execution, durability, reasons_json, case_against_json,
-                          summary, stack_json, model_used)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+    `INSERT INTO ranking (company_id, grade, originality, defensibility, outlook,
+                          evidence_json, summary, stack_json,
+                          input_hash, rubric_version, model_used)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
   ).bind(
     companyRow.id, grade.grade,
     grade.scores.originality.score, grade.scores.defensibility.score,
-    grade.scores.traction.score, grade.scores.execution.score,
-    grade.scores.durability.score,
-    // Reasons keyed by dimension, so a column added later cannot silently
-    // reorder them the way a positional array would.
-    JSON.stringify(Object.fromEntries(DIMENSION_KEYS.map((k) => [k, grade.scores[k].reason]))),
-    JSON.stringify(grade.caseAgainst),
+    grade.scores.outlook.score,
+    /* Keyed by dimension, so a column added later cannot silently reorder them
+       the way a positional array would. Each entry carries the quote that was
+       verified against the snapshot above — the reason is what the grader
+       concluded, the quote is what a reader can check it against. */
+    JSON.stringify(Object.fromEntries(DIMENSION_KEYS.map((k) => [k, {
+      reason: grade.scores[k].reason,
+      quote: grade.scores[k].quote,
+      source_url: grade.scores[k].sourceUrl,
+    }]))),
     summary, JSON.stringify(byCategory(detected)),
-    grade.modelUsed,
+    inputHash, rubricVersion(), grade.modelUsed,
   ).first<{ id: number }>();
 
   if (!rankingRow?.id) return json({ error: "Could not save that ranking." }, 500);
@@ -516,8 +633,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
       label: d.label,
       score: grade.scores[d.key].score,
       reason: grade.scores[d.key].reason,
+      quote: grade.scores[d.key].quote,
+      sourceUrl: grade.scores[d.key].sourceUrl,
     })),
-    caseAgainst: grade.caseAgainst,
     grader: { name: GRADER.name, lab: GRADER.lab, spec: GRADER.spec, model: grade.modelUsed },
     summary,
     stack: byCategory(detected),
