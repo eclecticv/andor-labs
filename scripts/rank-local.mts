@@ -89,7 +89,7 @@ async function rank(domain: string) {
   const side = sideFor(category);
   const cohort = cohortLabel(placement.band, side);
   console.error(`  ${cohort} · ${category} (cat ${recall.categoryVotes}/3, round ${recall.round||"none"} ${recall.roundVotes}/3) — ${placement.bandEvidence}`);
-  console.error(`  ${panel.total}/30 — ${panel.takes.map((t) => `${t.panelistId} ${t.ratings.innovation.score}/${t.ratings.difficulty.score}/${t.ratings.investability.score}`).join("  ")}`);
+  console.error(`  ${panel.total}/30 — ${panel.takes.map((t) => `${t.panelistId} ${t.ratings.innovation.score}/${t.ratings.difficulty.score}/${t.ratings.outlook.score}`).join("  ")}`);
   if (panel.split) console.error(`  SPLIT on ${panel.split.question} by ${panel.split.spread}`);
 
   const { value: summary } = await askLadder(WRITER.provider, env,
@@ -113,13 +113,13 @@ const sqlFor = (r: any) => {
     `DELETE FROM company WHERE domain = ${q(r.domain)} AND id NOT IN (SELECT company_id FROM ranking);`,
     `INSERT INTO company (domain, name, slug, logo_url, one_liner, division, category, stage, band, side, band_evidence, band_inferred, provisional)
  VALUES (${q(r.domain)}, ${q(r.identity.name)}, ${q(r.slug)}, ${q(r.logo)}, ${q(r.identity.oneLiner)}, 'middleweight', ${q(r.category)}, ${q(r.identity.stage)}, ${q(r.placement.band)}, ${q(r.side)}, ${q(r.placement.bandEvidence)}, ${r.placement.bandInferred ? 1 : 0}, ${r.thin ? 1 : 0});`,
-    `INSERT INTO ranking (company_id, total, innovation, difficulty, investability, split_question, split_spread, summary, stack_json)
- VALUES ((SELECT id FROM company WHERE domain = ${q(r.domain)}), ${r.panel.total}, ${r.panel.means.innovation}, ${r.panel.means.difficulty}, ${r.panel.means.investability}, ${q(r.panel.split?.question ?? null)}, ${r.panel.split?.spread ?? 0}, ${q(r.summary)}, ${q(JSON.stringify(r.stack))});`,
+    `INSERT INTO ranking (company_id, total, innovation, difficulty, outlook, split_question, split_spread, summary, stack_json)
+ VALUES ((SELECT id FROM company WHERE domain = ${q(r.domain)}), ${r.panel.total}, ${r.panel.means.innovation}, ${r.panel.means.difficulty}, ${r.panel.means.outlook}, ${q(r.panel.split?.question ?? null)}, ${r.panel.split?.spread ?? 0}, ${q(r.summary)}, ${q(JSON.stringify(r.stack))});`,
   ];
   for (const t of r.panel.takes) {
     lines.push(
-      `INSERT INTO panel_take (ranking_id, panelist_id, model_used, innovation, difficulty, investability, ratings_json, adjective)
- VALUES ((SELECT r.id FROM ranking r JOIN company c ON c.id = r.company_id WHERE c.domain = ${q(r.domain)}), ${q(t.panelistId)}, ${q(t.modelUsed)}, ${t.ratings.innovation.score}, ${t.ratings.difficulty.score}, ${t.ratings.investability.score}, ${q(JSON.stringify(t.ratings))}, ${q(t.adjective)});`,
+      `INSERT INTO panel_take (ranking_id, panelist_id, model_used, innovation, difficulty, outlook, ratings_json, adjective)
+ VALUES ((SELECT r.id FROM ranking r JOIN company c ON c.id = r.company_id WHERE c.domain = ${q(r.domain)}), ${q(t.panelistId)}, ${q(t.modelUsed)}, ${t.ratings.innovation.score}, ${t.ratings.difficulty.score}, ${t.ratings.outlook.score}, ${q(JSON.stringify(t.ratings))}, ${q(t.adjective)});`,
     );
   }
   return lines.join("\n");

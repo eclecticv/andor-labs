@@ -18,7 +18,7 @@ const take = (id: string, scores: [number, number, number]): PanelistTake =>
     {
       innovation: { score: scores[0], summary: "x".repeat(80), adjective: "brisk" },
       difficulty: { score: scores[1], summary: "x".repeat(80), adjective: "gnarly" },
-      investability: { score: scores[2], summary: "x".repeat(80), adjective: "maybe" },
+      outlook: { score: scores[2], summary: "x".repeat(80), adjective: "maybe" },
       adjective: "curious",
     },
     id,
@@ -52,7 +52,7 @@ describe("aggregation", () => {
     const result = aggregate([take("a", [8, 6, 7]), take("b", [7, 6, 6]), take("c", [6, 6, 5])]);
     expect(result.means.innovation).toBe(7);
     expect(result.means.difficulty).toBe(6);
-    expect(result.means.investability).toBe(6);
+    expect(result.means.outlook).toBe(6);
     expect(result.total).toBe(19);
   });
 
@@ -89,7 +89,7 @@ describe("usability", () => {
       {
         innovation: { score: 7, summary: "Good.", adjective: "fine" },
         difficulty: { score: 7, summary: "x".repeat(80), adjective: "hard" },
-        investability: { score: 7, summary: "x".repeat(80), adjective: "yes" },
+        outlook: { score: 7, summary: "x".repeat(80), adjective: "yes" },
         adjective: "solid",
       },
       "a",

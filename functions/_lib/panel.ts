@@ -57,7 +57,7 @@ export interface Panelist {
    *
    * A seat is a person, not a hat that gets swapped per question. The three
    * fields below are what hold that: `lens` is how they read anything, and it
-   * does not change between innovation and investability; `disqualifier` is the
+   * does not change between innovation and outlook; `disqualifier` is the
    * specific thing that makes them say no; `forbidden` is what they will not do
    * even when the question invites it.
    *
@@ -246,7 +246,7 @@ export interface Question {
   anchors: string;
 }
 
-export type QuestionKey = "innovation" | "difficulty" | "investability";
+export type QuestionKey = "innovation" | "difficulty" | "outlook";
 
 /**
  * The rubric. Identical for every seat, and carrying no persona.
@@ -289,15 +289,38 @@ export const QUESTIONS: Question[] = [
  0 — this is a prompt`,
   },
   {
-    key: "investability",
-    label: "Would you invest",
-    ask: "Would you invest in this?",
-    anchors: `10 — would fight to get into the round
- 8 — would take the meeting and probably write a cheque
- 6 — genuinely interesting; would watch and stay in touch
- 4 — would pass politely and mean it kindly
- 2 — would pass
- 0 — would forward it to a friend as a joke`,
+    key: "outlook",
+    label: "Future outlook",
+    /**
+     * Replaces "Would you invest in this?", which was measuring the wrong
+     * thing and measuring it against the wrong companies.
+     *
+     * That question asked a juror to imagine a transaction, so anything that
+     * made the transaction impossible read as a defect in the COMPANY:
+     * already acquired, bootstrapped and not raising, too mature to have a
+     * round open. It was a liquidity question wearing a quality question's
+     * clothes, and on a board of private adtech it systematically punished the
+     * companies with the best outcomes.
+     *
+     * Outlook asks about the company's future rather than the reader's. It
+     * also widens what "survives" means: durability alone is the pessimistic
+     * half of the question, so a juror could only ever fail to mark a company
+     * down. Weighing the direction of the need and the size of the market
+     * alongside the headwinds means a tailwind can raise a score.
+     */
+    ask: "Where does this sit in three years? Weigh three things and say which dominates: the DIRECTION of the need it serves (growing, evergreen, or past its prime), the SIZE of the market it can address, and whether the company sits in a tailwind or a headwind — a platform deprecation, a regulatory shift, a buyer consolidating. Point at what on the pages tells you.",
+    anchors: `Acquisition is an OUTCOME, not a verdict. A company absorbed and still
+shipping under its own name scores HIGH — someone with money concluded it would
+keep mattering. A company absorbed and quietly folded into a suite scores low.
+Never score down merely because a company was acquired, and never score up
+merely because a company is independent.
+
+10 — an evergreen or growing need, a large addressable market, and a tailwind
+ 8 — a durable need with one identifiable headwind
+ 6 — depends on the category staying roughly as it is
+ 4 — a real headwind, or a market narrowing around it
+ 2 — one platform decision away from irrelevance
+ 0 — the need is being absorbed into a platform default, or is past its prime`,
   },
 ];
 
@@ -385,11 +408,11 @@ You will not:
 ${p.forbidden.map((f) => `  - ${f}`).join("\n")}
 
 You hold this lens for EVERY question you are asked, including the ones that
-seem addressed to somebody else. When you are asked whether you would invest,
-you answer as ${p.character} — not as an investor. When you are asked how hard
-something is to build, you answer as ${p.character} — not as an engineer. The
-other two judges have their own lenses and will disagree with you. That is the
-design. Do not move toward them.
+seem addressed to somebody else. When you are asked where a company sits in
+three years, you answer as ${p.character} — not as an analyst. When you are
+asked how hard something is to build, you answer as ${p.character} — not as an
+engineer. The other two judges have their own lenses and will disagree with
+you. That is the design. Do not move toward them.
 
 Two other models, from two other labs, are answering the same questions about
 the same company right now. You cannot see their answers and they cannot see
@@ -426,7 +449,7 @@ export const PANEL_RESPONSE_SCHEMA = {
     case_against: { type: "array", items: { type: "string" } },
     innovation: RATING_SCHEMA,
     difficulty: RATING_SCHEMA,
-    investability: RATING_SCHEMA,
+    outlook: RATING_SCHEMA,
     adjective: { type: "string" },
     category: { type: "string" },
     funding: {
@@ -440,7 +463,7 @@ export const PANEL_RESPONSE_SCHEMA = {
     },
   },
   required: [
-    "case_against", "innovation", "difficulty", "investability",
+    "case_against", "innovation", "difficulty", "outlook",
     "adjective", "category", "funding",
   ],
 };
@@ -532,7 +555,7 @@ because you must write it first:
 {"case_against":[str,str,str],
  "innovation":{"score":int,"summary":str,"adjective":str},
  "difficulty":{"score":int,"summary":str,"adjective":str},
- "investability":{"score":int,"summary":str,"adjective":str},
+ "outlook":{"score":int,"summary":str,"adjective":str},
  "adjective":str,
  "category":str,
  "funding":{"round":str,"year":int,"investor":str}}

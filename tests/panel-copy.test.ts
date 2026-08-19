@@ -13,7 +13,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { PANELISTS, WRITER, panelLabs, panelLoadingMessages } from "../src/lib/rankings";
+import { PANELISTS, WRITER, QUESTIONS, panelLabs, panelLoadingMessages } from "../src/lib/rankings";
 import { buildIdentifyPrompt, CATEGORIES, CATEGORY_NOT } from "../functions/_lib/classify";
 import { buildPanelPrompt } from "../functions/_lib/panel";
 import { buildWriterPrompt } from "../functions/_lib/writer";
@@ -66,6 +66,54 @@ describe("panel copy does not drift from the panel", () => {
     expect(offences, offences.join("\n")).toEqual([]);
   });
 
+  /**
+   * A retired question is a lab that changed seat, in slower motion.
+   *
+   * `investability` became `outlook` and every identifier renamed cleanly,
+   * because identifiers are what a rename tool can see. The prose did not:
+   * the system prompt still told each juror how to answer "whether you would
+   * invest", the panel strip and llms.txt still explained that the engineer
+   * answers "the investment question" as an engineer, and the OG share card
+   * still drew a bar labelled WOULD YOU INVEST — a string literal, invisible
+   * to both the compiler and the rename.
+   *
+   * Every one of those surfaces described a question the panel is no longer
+   * asked, which is the same failure this file was written for.
+   */
+  const RETIRED_QUESTION_COPY = [
+    /would you invest/i,
+    /whether they would invest/i,
+    /investment question/i,
+    /put money in/i,
+  ];
+
+  it("never describes a question the panel no longer asks", () => {
+    const offences: string[] = [];
+    // The OG card is a Function, so it is outside the src/ walk that catches
+    // everything else — and it is exactly where the label survived.
+    const surfaces = [...files, "functions/og/rank/[slug].ts", "functions/_lib/panel.ts",
+                      "src/lib/rankings.ts", "src/pages/llms.txt.ts"];
+    for (const file of surfaces) {
+      const src = stripComments(readFileSync(file, "utf8"));
+      for (const pattern of RETIRED_QUESTION_COPY) {
+        const hit = pattern.exec(src);
+        if (hit) offences.push(`${file} still says "${hit[0]}"`);
+      }
+    }
+    expect(offences, offences.join("\n")).toEqual([]);
+  });
+
+  it("renders every question's label somewhere a reader can see it", () => {
+    // The counterpart check: a question that exists in the rubric but appears
+    // on no surface is a scored axis the board never explains.
+    const rendered = files.map((f) => readFileSync(f, "utf8")).join("\n")
+      + readFileSync("functions/og/rank/[slug].ts", "utf8");
+    for (const q of QUESTIONS) {
+      expect(rendered.toLowerCase(), `no surface renders "${q.label}"`)
+        .toContain(q.label.toLowerCase());
+    }
+  });
+
   it("derives the lab sentence from the panel", () => {
     const prose = panelLabs();
     for (const p of PANELISTS) expect(prose).toContain(p.lab);
@@ -114,7 +162,7 @@ describe("panel copy does not drift from the panel", () => {
       adjective: "brisk",
       caseAgainst: [],
       ratings: Object.fromEntries(
-        ["innovation", "difficulty", "investability"].map((k) => [
+        ["innovation", "difficulty", "outlook"].map((k) => [
           k, { score: 6, summary: "x".repeat(80), adjective: "brisk" },
         ]),
       ),
@@ -129,7 +177,7 @@ describe("panel copy does not drift from the panel", () => {
       panel: {
         takes,
         total: 18,
-        means: { innovation: 6, difficulty: 6, investability: 6 },
+        means: { innovation: 6, difficulty: 6, outlook: 6 },
         split: null,
       },
     } as any);

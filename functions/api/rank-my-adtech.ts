@@ -491,12 +491,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
   if (!companyRow?.id) return json({ error: "Could not save that ranking." }, 500);
 
   const rankingRow = await env.RANKINGS.prepare(
-    `INSERT INTO ranking (company_id, total, innovation, difficulty, investability,
+    `INSERT INTO ranking (company_id, total, innovation, difficulty, outlook,
                           split_question, split_spread, summary, stack_json)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
   ).bind(
     companyRow.id, panel.total,
-    panel.means.innovation, panel.means.difficulty, panel.means.investability,
+    panel.means.innovation, panel.means.difficulty, panel.means.outlook,
     panel.split?.question ?? null, panel.split?.spread ?? 0,
     summary, JSON.stringify(byCategory(detected)),
   ).first<{ id: number }>();
@@ -510,12 +510,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
     panel.takes.map((take) =>
       env.RANKINGS.prepare(
         `INSERT INTO panel_take (ranking_id, panelist_id, model_used,
-                                 innovation, difficulty, investability, ratings_json, adjective)
+                                 innovation, difficulty, outlook, ratings_json, adjective)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       ).bind(
         rankingRow.id, take.panelistId, take.modelUsed,
         take.ratings.innovation.score, take.ratings.difficulty.score,
-        take.ratings.investability.score,
+        take.ratings.outlook.score,
         JSON.stringify(take.ratings), take.adjective,
       ),
     ),

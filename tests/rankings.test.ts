@@ -17,7 +17,7 @@ const entry = (over: Partial<Entry> = {}): Entry => ({
   slug: "acme", name: "Acme", domain: "acme.com", logo_url: null, one_liner: null,
   provisional: 0, category: "ssp", band: "growth", side: "sell",
   band_evidence: null, band_inferred: 1,
-  total: 20, innovation: 7, difficulty: 7, investability: 6,
+  total: 20, innovation: 7, difficulty: 7, outlook: 6,
   split_question: null, split_spread: 0, summary: "",
   created_at: "", takes: [], ...over,
 });
@@ -214,9 +214,9 @@ describe("presentation", () => {
     // carry, but rendered literally it reads as a duplication bug.
     const e = entry({
       takes: [
-        { panelist_id: "a", model_used: "m", innovation: 0, difficulty: 0, investability: 0, ratings: {} as any, adjective: "credible" },
-        { panelist_id: "b", model_used: "m", innovation: 0, difficulty: 0, investability: 0, ratings: {} as any, adjective: "credible" },
-        { panelist_id: "c", model_used: "m", innovation: 0, difficulty: 0, investability: 0, ratings: {} as any, adjective: "reskinned" },
+        { panelist_id: "a", model_used: "m", innovation: 0, difficulty: 0, outlook: 0, ratings: {} as any, adjective: "credible" },
+        { panelist_id: "b", model_used: "m", innovation: 0, difficulty: 0, outlook: 0, ratings: {} as any, adjective: "credible" },
+        { panelist_id: "c", model_used: "m", innovation: 0, difficulty: 0, outlook: 0, ratings: {} as any, adjective: "reskinned" },
       ],
     });
     expect(adjectivesFor(e)).toEqual([

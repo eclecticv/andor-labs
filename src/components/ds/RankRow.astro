@@ -27,7 +27,7 @@ const adjectives = adjectivesFor(entry);
 // Each panelist's own total /30, for the spread figure. Three ticks clustered
 // is agreement; three ticks scattered is the split, drawn instead of labeled.
 const takeTotals = (entry.takes ?? []).map(
-  (t) => (t.innovation ?? 0) + (t.difficulty ?? 0) + (t.investability ?? 0),
+  (t) => (t.innovation ?? 0) + (t.difficulty ?? 0) + (t.outlook ?? 0),
 );
 const isSplit = entry.split_spread >= 3;
 ---

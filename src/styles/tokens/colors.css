@@ -71,6 +71,13 @@
   --green-600: #1B6E45;
   --green-100: #DCEEE2;
   --amber-600: #9A6400;
+  /* A GRAPHIC amber, for fills only — never for text.
+     600 is the amber that passes AA as type on paper, which is why it is dark
+     enough to read brown the moment it is used as a large area of colour. The
+     status ramp had no true amber because until now nothing needed one that was
+     not text. 400 is that colour: it fails as body type on paper by design and
+     must not be used for any. */
+  --amber-400: #F5A623;
   /* Border tint for the warning callout, mirroring how --blue-200 borders the
      info callout. Was an inline #E8CE8A, the only off-palette hex on the site. */
   --amber-200: #E8CE8A;

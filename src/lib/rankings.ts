@@ -123,8 +123,8 @@ export const QUESTIONS = [
     question: "How innovative is this, really?" },
   { key: "difficulty", label: "Hard to build", icon: "laptop-code",
     question: "What is the single hardest thing here to replicate?" },
-  { key: "investability", label: "Would you invest", icon: "handshake",
-    question: "Would you put money in?" },
+  { key: "outlook", label: "Future outlook", icon: "bank",
+    question: "Where does this sit in three years?" },
 ] as const;
 
 export type QuestionKey = (typeof QUESTIONS)[number]["key"];
@@ -139,7 +139,7 @@ export type QuestionKey = (typeof QUESTIONS)[number]["key"];
  *
  * Each seat is a CHARACTER holding one fixed lens across all three questions.
  * The character is not decoration: it is what stops a juror answering the
- * investment question as a generic investor and the engineering question as a
+ * outlook question as a generic analyst and the engineering question as a
  * generic engineer, which is what the old per-question personas produced.
  */
 export const PANELISTS = [
@@ -352,7 +352,7 @@ export interface Take {
   model_used: string;
   innovation: number;
   difficulty: number;
-  investability: number;
+  outlook: number;
   ratings: Record<QuestionKey, Rating>;
   adjective: string;
 }
@@ -375,7 +375,7 @@ export interface Entry {
   total: number;
   innovation: number;
   difficulty: number;
-  investability: number;
+  outlook: number;
 
   split_question: string | null;
   split_spread: number;
@@ -470,7 +470,7 @@ interface TakeRow {
   model_used: string;
   innovation: number;
   difficulty: number;
-  investability: number;
+  outlook: number;
   ratings_json: string;
   adjective: string;
 }
@@ -478,7 +478,7 @@ interface TakeRow {
 const ENTRY_SELECT = `
   SELECT c.slug, c.name, c.domain, c.logo_url, c.one_liner, c.provisional,
          c.category, c.band, c.side, c.band_evidence, c.band_inferred,
-         r.id AS ranking_id, r.total, r.innovation, r.difficulty, r.investability,
+         r.id AS ranking_id, r.total, r.innovation, r.difficulty, r.outlook,
          r.split_question, r.split_spread, r.summary, r.created_at
   FROM company c
   JOIN ranking r ON r.company_id = c.id
@@ -524,7 +524,7 @@ export async function getEntries(): Promise<Entry[]> {
   }
 
   const takes = await query<TakeRow>(
-    `SELECT ranking_id, panelist_id, model_used, innovation, difficulty, investability,
+    `SELECT ranking_id, panelist_id, model_used, innovation, difficulty, outlook,
             ratings_json, adjective
      FROM panel_take WHERE ranking_id IN (${rows.map(() => "?").join(",")})`,
     rows.map((r) => r.ranking_id),

@@ -35,7 +35,7 @@ interface Row {
   total: number;
   innovation: number;
   difficulty: number;
-  investability: number;
+  outlook: number;
   /** The three panelists' words, comma-joined by the query. */
   adjectives: string | null;
 }
@@ -102,7 +102,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env, request })
 
   const row = await env.RANKINGS.prepare(
     `SELECT c.name, c.domain, c.one_liner, c.side, c.category, c.provisional,
-            r.total, r.innovation, r.difficulty, r.investability,
+            r.total, r.innovation, r.difficulty, r.outlook,
             (SELECT group_concat(p.adjective, ', ') FROM panel_take p
               WHERE p.ranking_id = r.id) AS adjectives
      FROM company c JOIN ranking r ON r.company_id = c.id
@@ -176,7 +176,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env, request })
       <div style="display:flex;flex-direction:column;width:100%">
         ${axis("INNOVATION", row.innovation, 10)}
         ${axis("HARD TO BUILD", row.difficulty, 10)}
-        ${axis("WOULD YOU INVEST", row.investability, 10)}
+        ${axis("FUTURE OUTLOOK", row.outlook, 10)}
       </div>
 
       <div style="display:flex;justify-content:space-between;width:100%;margin-top:auto;font-size:18px;color:#6D717B">
