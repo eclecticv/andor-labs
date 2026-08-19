@@ -886,17 +886,34 @@
 }
 /* One vertical rhythm for all three sections — the old 64/48 · 64/64 · 64/80
    mix made each band sit differently for no reason a reader could see. */
-.aol-rma__hero{ background:var(--paper); padding:var(--space-16) 0; }
-.aol-rma__axes{ background:var(--surface-card); padding:var(--space-16) 0; }
-.aol-rma__board{ background:var(--paper); padding:var(--space-16) 0 var(--space-20); }
+/* ---- Section bands -------------------------------------------------------
+   One rhythm, and it is the site's rhythm rather than this tool's own.
+
+   These carried 64/64/64-80 in `--space-16`, which is close enough to the
+   system's `--section-pad-y` to look like a decision and far enough to break
+   the alignment with every other page. Three different bottom paddings across
+   three adjacent bands was not a decision either.
+
+   The hairline and the grid texture are the other half. Every top-level band on
+   this site closes with `border-bottom:1px solid var(--ink-200)` and alternates
+   grid↔paper down the page — see Capabilities.astro, which documents the
+   alternation as belonging to the POSITION rather than to the section. The tool
+   pages did neither, which is most of why they read as a different site: flat
+   white and pink, no separators, no texture. */
+.aol-rma__hero,
+.aol-rma__axes,
+.aol-rma__board{ padding:var(--section-pad-y) 0; border-bottom:1px solid var(--ink-200); }
+.aol-rma__hero{ background:var(--paper); }
+/* Grid, because the hero above it is paper — the alternation restarts here. */
+.aol-rma__board{ background:transparent; }
+.aol-rma__axes{ background:var(--surface-card); }
 
 .aol-rma__eyebrow{
   display:flex; align-items:center; gap:6px; margin:0 0 var(--space-4);
   font-family:var(--font-mono); font-size:var(--text-2xs);
-  text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted);
+  text-transform:uppercase; letter-spacing:var(--tracking-label); color:var(--text-muted);
 }
-.aol-rma__h1{ text-wrap:balance;
-  font-family:var(--font-display); font-weight:var(--weight-regular);
+.aol-rma__h1{ font-family:var(--font-display); font-weight:var(--weight-regular);
   font-size:var(--text-3xl); line-height:var(--leading-tight);
   margin:0 0 var(--space-4); color:var(--text-strong);
 }
@@ -907,8 +924,7 @@
   max-width:var(--measure); margin:0 0 var(--space-8);
   font-size:var(--text-md); line-height:var(--leading-normal); color:var(--text-body);
 }
-.aol-rma__h2{ text-wrap:balance;
-  font-family:var(--font-display); font-weight:var(--weight-regular);
+.aol-rma__h2{ font-family:var(--font-display); font-weight:var(--weight-regular);
   font-size:var(--text-2xl); line-height:var(--leading-snug);
   /* 12px under a 36px display line read as a collision. */
   margin:var(--space-8) 0 var(--space-4); color:var(--text-strong);
@@ -962,7 +978,13 @@
 .aol-rma__crosslink{ margin-top:var(--space-3); }
 
 /* ---- Result card, injected after a ranking ---- */
-.aol-rma__result-slot{ background:var(--surface-card); padding:var(--space-12) 0; }
+/* The injected result sits between hero and board, so it takes the band
+   treatment too — otherwise a ranking lands the page in a section that has no
+   edges while every band around it has one. */
+.aol-rma__result-slot{
+  background:var(--surface-card); padding:var(--section-pad-y) 0;
+  border-bottom:1px solid var(--ink-200);
+}
 .aol-rma__card{
   background:var(--paper); border:1px solid var(--border-hairline);
   border-radius:var(--radius-md); padding:var(--space-8);
@@ -999,18 +1021,59 @@
   margin:var(--space-3) 0 0; font-size:var(--text-sm); color:var(--text-muted);
   max-width:var(--measure);
 }
-.aol-rma__quotes{ list-style:none; margin:var(--space-6) 0 0; padding:0; display:grid; gap:var(--space-3); }
-.aol-rma__quote{
-  border-left:1px solid var(--ink-300); padding-left:var(--space-4);
-  display:grid; gap:2px;
-}
-.aol-rma__quote-text{ font-size:var(--text-sm); color:var(--text-body); font-style:italic; }
-.aol-rma__quote-by{ font-family:var(--font-mono); font-size:var(--text-2xs); color:var(--text-muted); }
 .aol-rma__card-link{ margin:var(--space-6) 0 0; font-size:var(--text-sm); }
 
+/* ---- The publishing gate -------------------------------------------------
+   The verdict exists the moment the card renders; the PAGE for it does not
+   exist until a Pages build deploys. These two states share one slot: the
+   pending line while the build runs, the link once the URL answers 200.
+
+   Set as mono, because it is a status readout rather than prose — the same
+   voice the run stepper above it uses while the panel is sitting. */
+.aol-rma__publishing{
+  display:inline-flex; align-items:center; gap:8px;
+  font-family:var(--font-mono); font-size:var(--text-xs);
+  letter-spacing:var(--tracking-mono); color:var(--text-muted);
+}
+/* A 5px square, not a circle and not a spinner. The DS corners are near-square
+   and its motion is mechanical, so this ticks between two ink values rather
+   than pulsing or rotating. */
+.aol-rma__publishing-dot{
+  width:5px; height:5px; flex:none; background:var(--signal);
+  animation:aol-rma-tick 1.1s steps(1, end) infinite;
+}
+@keyframes aol-rma-tick{ 0%,50%{ opacity:1 } 50.01%,100%{ opacity:.25 } }
+@media (prefers-reduced-motion: reduce){
+  .aol-rma__publishing-dot{ animation:none; opacity:.6; }
+}
+
+/* The one action on the result card, so it is a button rather than the global
+   wavy link — this is the moment the tool has the reader's whole attention.
+   Secondary weight: it presses into its shadow, per the DS. */
+.aol-rma__card-cta{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:10px 16px; background:var(--paper);
+  border:1px solid var(--ink-900); border-radius:var(--radius-md);
+  box-shadow:var(--shadow-hard-sm);
+  font-family:var(--font-mono); font-size:var(--text-xs);
+  letter-spacing:var(--tracking-mono); color:var(--text-strong);
+  text-decoration:none;
+  transition:transform var(--dur-fast) var(--ease-out),
+             box-shadow var(--dur-fast) var(--ease-out);
+}
+.aol-rma__card-cta:hover{ color:var(--signal); border-color:var(--signal); }
+.aol-rma__card-cta:active{ transform:translate(2px, 2px); box-shadow:none; }
+
+/* The three question blocks on a company page. A wrapper with no rules meant
+   the panel's three sections ran together with only their heading rows to
+   separate them. Hairline-ruled, like every other stacked list on this site. */
+.aol-rmc__question + .aol-rmc__question{
+  margin-top:var(--space-10); padding-top:var(--space-10);
+  border-top:1px solid var(--border-hairline);
+}
+
 @media (max-width:640px){
-  .aol-rma__fields{ grid-template-columns:1fr; }
-  .aol-rma__h1{ text-wrap:balance; font-size:var(--text-2xl); }
+  .aol-rma__h1{ font-size:var(--text-2xl); }
   .aol-rma__card{ padding:var(--space-5); }
   .aol-rma__card-head{ grid-template-columns:40px minmax(0,1fr); }
   .aol-rma__card-score{ grid-column:2; margin-top:var(--space-2); }
@@ -1028,8 +1091,7 @@
 }
 .aol-rmc__logo{ width:56px; height:56px; object-fit:contain; margin-top:5px; }
 .aol-rmc__id{ min-width:0; }
-.aol-rmc__name{ text-wrap:balance;
-  font-family:var(--font-display); font-weight:var(--weight-regular);
+.aol-rmc__name{ font-family:var(--font-display); font-weight:var(--weight-regular);
   /* 48px — every other page's H1 size. 36 made the company subordinate to its
      own section headings. */
   font-size:var(--text-3xl); line-height:var(--leading-tight);
@@ -1046,7 +1108,6 @@
   font-size:var(--text-2xs); text-transform:uppercase; letter-spacing:.04em;
   color:var(--text-muted);
 }
-.aol-rmc__division{ display:inline-flex; align-items:center; gap:5px; }
 .aol-rmc__score{ display:grid; grid-template-columns:auto auto auto; align-items:baseline; gap:0 4px; justify-items:end; }
 .aol-rmc__band{ color:var(--ink-600); align-self:center; }
 .aol-rmc__total{
@@ -1067,8 +1128,7 @@
 }
 .aol-rmc__band-word--solid{ color:var(--signal); }
 
-.aol-rmc__h2{ text-wrap:balance;
-  font-family:var(--font-display); font-weight:var(--weight-regular);
+.aol-rmc__h2{ font-family:var(--font-display); font-weight:var(--weight-regular);
   font-size:var(--text-xl); margin:var(--space-10) 0 var(--space-3);
   color:var(--text-strong);
 }
@@ -1098,7 +1158,7 @@
   .aol-rmc__head{ grid-template-columns:44px minmax(0,1fr); }
   .aol-rmc__logo{ width:44px; height:44px; }
   .aol-rmc__score{ grid-column:2; margin-top:var(--space-3); justify-items:start; }
-  .aol-rmc__name{ text-wrap:balance; font-size:var(--text-xl); }
+  .aol-rmc__name{ font-size:var(--text-xl); }
   .aol-rmc__total{ font-size:var(--text-2xl); }
 }
 
@@ -1280,7 +1340,7 @@
 /* ---- Panel keywords on a row ----
    Outlined, near-square, no fill: the filled pill failed AA by 0.02 (#6D717B
    on #F4F5F7 = 4.48:1) and pills are for pressable things — these are data.
-   The outline pattern is the same one .aol-rmc__duty-item already uses. */
+   Outline rather than fill is the house pattern for non-pressable data. */
 .aol-rb__keywords{ display:flex; flex-wrap:wrap; gap:8px; }
 .aol-rb__keyword{
   font-family:var(--font-mono); font-size:var(--text-xs);
