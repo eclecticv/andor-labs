@@ -327,8 +327,57 @@ const RESERVED_SLUGS = new Set(["leaderboard", "index", "api", "og"]);
  * The client polls this instead of guessing, and answering also drains any
  * build the throttle swallowed.
  */
+/**
+ * A run is abandoned rather than slow after this long.
+ *
+ * waitUntil() keeps the pipeline alive past the response, but it is not a
+ * promise the platform makes forever — an eviction mid-run would leave a row
+ * sitting at "running" and a client polling something that will never answer.
+ * The longest real run measured on this board is ~262s including a retried
+ * seat, so anything past six minutes is dead rather than thinking.
+ */
+const JOB_STALE_SECONDS = 360;
+
 export const onRequestGet: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
   const url = new URL(request.url);
+
+  /**
+   * Poll a backgrounded ranking.
+   *
+   * Answers with the stored payload once the pipeline has finished, and with
+   * `{status:"running"}` while it has not. A job that has been running past the
+   * staleness window is reported as failed — the alternative is a spinner that
+   * never resolves, which is the one outcome worse than a stated failure.
+   */
+  const job = (url.searchParams.get("job") ?? "").trim().toLowerCase();
+  if (job) {
+    if (!/^[a-f0-9]{32}$/.test(job)) return json({ error: "Bad job id." }, 400);
+    const row = await env.RANKINGS.prepare(
+      `SELECT status, payload,
+              CAST((julianday('now') - julianday(created_at)) * 86400 AS INTEGER) AS age
+         FROM rank_job WHERE id = ?`,
+    ).bind(job).first<{ status: string; payload: string | null; age: number }>();
+
+    if (!row) return json({ error: "No such job." }, 404);
+
+    if (row.status === "running") {
+      if (row.age > JOB_STALE_SECONDS) {
+        await env.RANKINGS.prepare(
+          "UPDATE rank_job SET status = 'failed', payload = ?, finished_at = CURRENT_TIMESTAMP WHERE id = ?",
+        ).bind(JSON.stringify(failure("panel")), job).run();
+        return json(failure("panel"), 200);
+      }
+      return json({ status: "running", age: row.age }, 200);
+    }
+
+    // Stored verbatim by runJob, so this stays a thin read.
+    try {
+      return json(JSON.parse(row.payload ?? "{}"), 200);
+    } catch {
+      return json(failure("write"), 200);
+    }
+  }
+
   const slug = (url.searchParams.get("slug") ?? "").trim().toLowerCase();
   // The shape slugify() produces, and nothing else — this string goes into a
   // subrequest path.
@@ -413,6 +462,81 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
   ).bind(domain).first<{ slug: string }>();
   if (existing) return json({ status: "already-ranked", slug: existing.slug, domain }, 200);
 
+  /**
+   * From here the work outlives the response.
+   *
+   * Everything above this line is fast — parse, rate limit, dedup — and every
+   * answer it can give is immediate. Everything below is the pipeline: a crawl,
+   * a classify call, three panel calls and a writer, which on the real board
+   * runs between 60 and 140 seconds and occasionally longer.
+   *
+   * That used to happen inside this request, and Cloudflare's edge cuts a
+   * request at roughly 120 seconds. It is not a setting a Function can raise:
+   * measured on this board, a 119s run returned cleanly and a 125s run was
+   * killed with a 524 and nothing written. Ezoic needs ~137s. So the ceiling
+   * was a coin flip on every slow company, and it landed in the worst possible
+   * place — after three labs had been paid for and before anything was saved.
+   *
+   * waitUntil() keeps the pipeline alive after the response is on the wire, and
+   * rank_job is where it reports back. The client gets an id straight away and
+   * polls for the verdict, which also means the browser is no longer holding an
+   * open connection for two minutes to find out.
+   */
+  const jobId = crypto.randomUUID().replace(/-/g, "");
+  await env.RANKINGS.prepare("INSERT INTO rank_job (id, domain) VALUES (?, ?)")
+    .bind(jobId, domain).run();
+  waitUntil(runJob(env, waitUntil, domain, jobId));
+  return json({ status: "queued", job: jobId, domain }, 200);
+};
+
+/**
+ * Run the pipeline and record whatever it came to.
+ *
+ * Nothing here throws to a caller — there is no caller left to catch it. An
+ * unexpected error has to become a stored failure or the job sits at "running"
+ * forever and the client polls a corpse.
+ */
+async function runJob(
+  env: Env,
+  waitUntil: (p: Promise<unknown>) => void,
+  domain: string,
+  jobId: string,
+): Promise<void> {
+  let payload: Record<string, unknown>;
+  let status: "ranked" | "failed" | "refused";
+  try {
+    payload = await runPipeline(env, waitUntil, domain);
+    status =
+      payload.status === "failed" ? "failed"
+      : payload.status === "not-eligible" ? "refused"
+      : "ranked";
+  } catch (err) {
+    console.error(`[rank] ${domain} job ${jobId} threw:`, err);
+    payload = failure("panel");
+    status = "failed";
+  }
+  try {
+    await env.RANKINGS.prepare(
+      "UPDATE rank_job SET status = ?, payload = ?, finished_at = CURRENT_TIMESTAMP WHERE id = ?",
+    ).bind(status, JSON.stringify(payload), jobId).run();
+  } catch (err) {
+    // Nothing left to tell. The staleness rule on the read side is what stops
+    // this becoming a job that polls forever.
+    console.error(`[rank] ${domain} job ${jobId} could not be recorded:`, err);
+  }
+}
+
+/**
+ * The pipeline itself: crawl, identify, place, panel, write, persist.
+ *
+ * Returns the payload the client will eventually receive rather than a
+ * Response, because by the time this finishes the response is long gone.
+ */
+async function runPipeline(
+  env: Env,
+  waitUntil: (p: Promise<unknown>) => void,
+  domain: string,
+): Promise<Record<string, unknown>> {
   // ── Read ──────────────────────────────────────────────────────────────────
   // context.dev is a fallback only — called by readSite() solely when the
   // direct fetch already came back thin (client-rendered shell, WAF block).
@@ -420,7 +544,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
   // .pages, not .html — a context.dev rescue can return prose with no raw
   // markup (stack detection just finds nothing, which is already how the page
   // describes a warehouse-native setup).
-  if (!site.pages) return json(failure("read"), 200);
+  if (!site.pages) return failure("read");
 
   /**
    * Hard floor, not a flag. `thin` used to publish anyway (as "provisional"),
@@ -431,7 +555,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
    */
   const corpus = site.pages.replace(/^## .*$/gm, "").replace(/\s+/g, " ").trim();
   if (corpus.length < 1_500) {
-    return json(failure("read"), 200);
+    return failure("read");
   }
 
   const detected = detectStack(site.html);
@@ -457,15 +581,15 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
       console.error(`[rank] identify: ${provider} exhausted:`, err);
     }
   }
-  if (!identity) return json(failure("identify"), 200);
+  if (!identity) return failure("identify");
 
   if (!identity.eligible) {
-    return json({
+    return {
       status: "not-eligible",
       domain,
       name: identity.name,
       verdict: identity.ineligibleReason || "We could not find an adtech company here.",
-    }, 200);
+    };
   }
 
   /**
@@ -478,12 +602,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
    */
   const markup = placeFromMarkup(site.html, site.pages);
   if (markup.isPublic) {
-    return json({
+    return {
       status: "not-eligible",
       domain,
       name: identity.name,
       verdict: `This is a public company — it ${markup.isPublic}. The board is for startups, and a startup with a ticker symbol is just a company.`,
-    }, 200);
+    };
   }
 
   // ── The panel ─────────────────────────────────────────────────────────────
@@ -514,7 +638,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
     });
   } catch (err) {
     console.error(`[rank] ${domain}: ${err instanceof Error ? err.message : err}`);
-    return json(failure("panel"), 200);
+    return failure("panel");
   }
 
   /**
@@ -532,7 +656,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
 
   const placement = place(site.html, site.pages, identity.stage, recall);
   if (!placement.eligible) {
-    return json({ status: "not-eligible", domain, name: identity.name, verdict: placement.reason }, 200);
+    return { status: "not-eligible", domain, name: identity.name, verdict: placement.reason };
   }
   const side = sideFor(category);
   const cohort = cohortLabel(placement.band, side);
@@ -576,7 +700,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
     summary = value;
   } catch (err) {
     console.error(`[rank] writer failed:`, err);
-    return json(failure("write"), 200);
+    return failure("write");
   }
 
   // ── Persist ───────────────────────────────────────────────────────────────
@@ -629,7 +753,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
     site.thin ? 1 : 0,
   ).first<{ id: number }>();
 
-  if (!companyRow?.id) return json({ error: "Could not save that ranking." }, 500);
+  if (!companyRow?.id) return failure("write");
 
   const rankingRow = await env.RANKINGS.prepare(
     `INSERT INTO ranking (company_id, total, innovation, difficulty, outlook,
@@ -642,7 +766,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
     summary, JSON.stringify(byCategory(detected)),
   ).first<{ id: number }>();
 
-  if (!rankingRow?.id) return json({ error: "Could not save that ranking." }, 500);
+  if (!rankingRow?.id) return failure("write");
 
   // One row per panelist. Batched so three takes land together or not at all —
   // a ranking with two of its three takes written would render as a short panel
@@ -677,7 +801,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
    */
   waitUntil(triggerRebuild(env));
 
-  return json({
+  return {
     status: "ranked",
     slug, domain,
     name: identity.name,
@@ -704,5 +828,5 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
     })),
     summary,
     stack: byCategory(detected),
-  }, 200);
-};
+  };
+}

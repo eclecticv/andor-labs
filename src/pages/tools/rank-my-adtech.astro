@@ -345,6 +345,37 @@ const description =
       pending.hidden = true;
       link.hidden = false;
     };
+    /**
+     * Poll a backgrounded ranking until it resolves.
+     *
+     * Every 3s, which is cheap — the endpoint is one indexed row read — and
+     * frequent enough that the verdict appears the moment it exists. Returns
+     * null rather than throwing if the run never lands, so the caller can say
+     * so plainly instead of blaming a component it cannot see.
+     *
+     * The deadline matches the server's own staleness window (six minutes)
+     * plus slack: past that the server has already marked the job failed, so
+     * polling further would only be waiting for an answer already given.
+     */
+    const pollJob = async (id: string): Promise<any | null> => {
+      const DEADLINE = Date.now() + 400_000;
+      while (Date.now() < DEADLINE) {
+        await new Promise((r) => setTimeout(r, 3_000));
+        try {
+          const res = await fetch(`/api/rank-my-adtech?job=${encodeURIComponent(id)}`, {
+            headers: { accept: "application/json" },
+          });
+          if (!res.ok) continue;
+          const data = await res.json();
+          if (data?.status && data.status !== "running") return data;
+        } catch {
+          // A dropped poll is not a dropped ranking — the pipeline is running
+          // on the server either way. Keep asking.
+        }
+      }
+      return null;
+    };
+
     const flag = (bad: boolean) => {
       if (input) input.setAttribute("aria-invalid", bad ? "true" : "false");
     };
@@ -407,23 +438,24 @@ const description =
       runSteps();
 
       try {
+        /* Submit, then POLL.
+           The request no longer carries the pipeline: the endpoint answers in
+           under a second with a job id and runs the panel in waitUntil(). It
+           had to — Cloudflare's edge cuts a request at roughly 120 seconds and
+           a real run is 60 to 140, so the old shape lost a completed panel to a
+           524 whenever a company ran long. */
         const res = await fetch("/api/rank-my-adtech", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ domain: url }),
         });
-        const data = await res.json();
+        const started = await res.json();
 
-        if (data?.status === "failed") { renderFail(data); return; }
-        if (!res.ok) { say(data?.error ?? "That did not work. Try again shortly."); return; }
-        if (data.status === "not-adtech") {
-          // The designed failure frame, not a one-line mono squint — this is
-          // the most common non-success outcome and model prose is reading
-          // text, not a label.
-          renderFail({ headline: "Not adtech, says the panel.", detail: data.verdict });
+        if (!res.ok && started?.status !== "failed") {
+          say(started?.error ?? "That did not work. Try again shortly.");
           return;
         }
-        if (data.status === "already-ranked") {
+        if (started.status === "already-ranked") {
           /* Never navigate blind. The row is in D1, but a company ranked during
              the last build window has no page yet — and redirecting into a 404
              is worse than waiting, because the visitor loses the tool as well
@@ -434,6 +466,29 @@ const description =
           } else {
             say("Already ranked, and its page is still publishing. Try again in a minute.");
           }
+          return;
+        }
+
+        /* `queued` is the normal path; anything else is the endpoint answering
+           immediately (a refusal it could make without the panel), so it is
+           already an outcome. */
+        const data = started.status === "queued" ? await pollJob(started.job) : started;
+        if (!data) {
+          say("That run did not come back in time. Nothing was published — try again shortly.");
+          return;
+        }
+        if (data.status === "failed") { renderFail(data); return; }
+        if (data.status === "not-eligible") {
+          /* The server has said "not-eligible" since the eligibility check was
+             split out of the panel; this branch still tested for "not-adtech",
+             so every refusal fell past it into render(), which reads a total
+             and nine takes that a refusal does not have. A public company or a
+             cake shop with a readable homepage got a broken card or the catch.
+
+             The designed failure frame, not a one-line mono squint — this is
+             the most common non-success outcome and model prose is reading
+             text, not a label. */
+          renderFail({ headline: "Not adtech, says the panel.", detail: data.verdict });
           return;
         }
         render(data);

@@ -88,3 +88,50 @@ describe("the designed failure actually reaches the browser", () => {
     }
   });
 });
+
+describe("the client and the endpoint agree on what happened", () => {
+  /**
+   * They did not, twice, and both times silently.
+   *
+   * The endpoint has returned `status: "not-eligible"` since the eligibility
+   * check was split out of the panel; the page went on testing for
+   * `"not-adtech"`. So every refusal — a public company, a cake shop with a
+   * readable homepage — fell past that branch into the success renderer, which
+   * reads a total and nine takes a refusal does not have. The visible symptom
+   * was a broken card or the catch-all error, neither of which points anywhere
+   * near a status string.
+   *
+   * A status is a contract between two files that never import each other.
+   * This is the only thing that can hold them together.
+   */
+  const CLIENT = new URL("../src/pages/tools/rank-my-adtech.astro", import.meta.url);
+  const SERVER = new URL("../functions/api/rank-my-adtech.ts", import.meta.url);
+
+  it("has the page handle every status the endpoint can send", async () => {
+    const server = await readFile(SERVER, "utf8");
+    const client = await readFile(CLIENT, "utf8");
+    const sent = new Set(
+      [...server.matchAll(/status:\s*"([a-z-]+)"/g)].map((m) => m[1]),
+    );
+    // Internal job bookkeeping never reaches the browser, and "ranked" is the
+    // fall-through: the page renders a result when nothing else matched, so it
+    // correctly has no branch testing for it. Everything else must be handled
+    // explicitly or it lands in the success renderer by accident, which is
+    // exactly the bug this guards.
+    for (const internal of ["running", "refused", "ranked"]) sent.delete(internal);
+    expect(sent.size).toBeGreaterThan(2);
+    for (const status of sent) {
+      expect(client, `page never handles status "${status}"`).toContain(`"${status}"`);
+    }
+  });
+
+  it("does not leave the page testing for a status nothing sends", async () => {
+    const server = await readFile(SERVER, "utf8");
+    const client = await readFile(CLIENT, "utf8");
+    const tested = [...client.matchAll(/status\s*===\s*"([a-z-]+)"/g)].map((m) => m[1]);
+    expect(tested.length).toBeGreaterThan(2);
+    for (const status of tested) {
+      expect(server, `page tests for "${status}" but nothing sends it`).toContain(`"${status}"`);
+    }
+  });
+});
