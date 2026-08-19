@@ -262,32 +262,37 @@ export const QUESTIONS: Question[] = [
     key: "innovation",
     label: "Innovation",
     ask: "How innovative is this, really?",
-    anchors: `10 — a genuinely new mechanism; changes what is possible in the category
- 8 — a real insight, executed conventionally
+    anchors: `10 — a mechanism the category did not have before this company
+ 8 — a real insight, conventionally executed
  6 — a competent take on an idea the category already had
- 4 — a known idea wearing an AI label
- 2 — indistinguishable from a dozen others on the same LUMAscape box
- 0 — the deck has been circulating since 2016`,
+ 4 — a familiar idea, restated
+ 2 — hard to tell apart from its neighbours
+ 0 — nothing here is new`,
   },
   {
     key: "difficulty",
     label: "Hard to build",
     /**
-     * "Could this be vibe-coded" was producing rave scores, because a juror
+     * "Could this be vibe-coded" produced rave scores, because a juror
      * pattern-matches a feature list to a weekend build and a feature list is
-     * mostly what a homepage is. The question underneath it is where the moat
-     * is, and in adtech the moat is almost never the UI — so the ask now
-     * demands a NAMED bottleneck from a closed list. A juror who cannot name
-     * one has found something, and says so.
+     * mostly what a homepage is. The fix for that was a closed list of six
+     * bottlenecks to choose from, and the fix was worse than the fault: a
+     * forced choice puts the first item in front of the model on every company,
+     * so jurors reached for "sustained QPS at a latency SLA" — item one — about
+     * businesses whose real constraint was commercial. Three labs naming the
+     * same bottleneck looked like agreement and was our menu coming back.
+     *
+     * The ask now demands a named bottleneck and does not say what the
+     * candidates are. Naming one is the juror's work.
      */
-    ask: `Name the single hardest thing to replicate here. Choose from: sustained QPS at a latency SLA; count and depth of OpenRTB integrations; data rights or contracts; compliance and accreditation posture; supply or demand relationships; proprietary data accumulation. Say which, and what on the pages supports it. If nothing supports any of them, say so — that is a valid and common finding, and it scores low.`,
+    ask: `Name the single hardest thing about this to replicate, and what on the pages tells you so. Be specific about the bottleneck rather than the product. If nothing on the pages supports any real barrier, say that — it is a common and legitimate finding, and it scores low.`,
     anchors: `Score the DIFFICULTY, not the ease. High means hard to reproduce.
-10 — years of systems work; distributed, latency-critical, or resting on data nobody else has
- 8 — hard engineering; a strong team would need many months
+10 — years of accumulated work, or rests on something nobody else has
+ 8 — hard; a strong team would need many months
  6 — substantial but standard; the problems are known ones
- 4 — a competent developer could approximate it in a few weeks
- 2 — a weekend, an API key, and a wrapper
- 0 — this is a prompt`,
+ 4 — a competent team could approximate it in weeks
+ 2 — days, using off-the-shelf parts
+ 0 — trivial`,
   },
   {
     key: "outlook",
@@ -319,17 +324,17 @@ export const QUESTIONS: Question[] = [
      * output tokens, and output tokens are the latency. The question survives
      * intact; the essay does not.
      */
-    ask: "Does this still matter in three years? Name the single thing that decides it — a growing or fading need, the size of the market, or one platform, regulator or buyer whose decision it rests on.",
+    ask: "Does this still matter in three years? Name the single thing that decides it, and what on the pages tells you so.",
     anchors: `Acquisition is an OUTCOME, not a verdict: absorbed and still shipping under its
 own name scores HIGH, absorbed and folded into a suite scores low. Never score
 on independence itself.
 
-10 — a growing or evergreen need, large market, and a tailwind
- 8 — a durable need with one identifiable headwind
+10 — the need is growing, the market is large, and conditions favour them
+ 8 — a durable need, with one identifiable headwind
  6 — depends on the category staying roughly as it is
- 4 — a real headwind, or a market narrowing around it
- 2 — one platform decision away from irrelevance
- 0 — being absorbed into a platform default, or past its prime`,
+ 4 — a real headwind, or a market narrowing around them
+ 2 — survival rests on one decision they do not control
+ 0 — the need itself is going away`,
   },
 ];
 
@@ -519,14 +524,18 @@ so a claim you cannot point at is not a neutral unknown — it is an absence.
   - Start each question at 4. Argue UPWARD from there with evidence, or leave
     it. Optimism costs something; vagueness does not earn anything.
   - To score ABOVE 5 on a question, your summary must point at two DIFFERENT
-    concrete things on the pages — a named integration, a documented mechanism,
-    a pricing model, a specific customer, an actual API. Two restatements of the
-    same homepage sentence is one thing, not two.
+    concrete things on the pages. Two restatements of the same sentence is one
+    thing, not two.
   - A company whose entire case is its homepage cannot go above 5. That is not
     a penalty. That is the score.
-  - Buzzwords are evidence of nothing. "AI-powered", "real-time", "end-to-end",
-    "unified" and "next-generation" are the words on every site in this
-    industry. Treat them as the absence of a mechanism, not the presence of one.
+  - Do not assume. If the pages do not settle something, say you cannot tell
+    rather than filling the gap with what is usually true of companies like this.
+  - Do not invent. No figure, customer, integration or date that is not on the
+    pages in front of you.
+  - Marketing language is not a mechanism. Where a claim describes an outcome
+    without describing how, treat it as unevidenced rather than as a finding.
+  - Answer in your own terms. Do not reach for the phrasing of the question or
+    the scale; describe what you actually found.
 ${questions}
 
 For EACH question return:
