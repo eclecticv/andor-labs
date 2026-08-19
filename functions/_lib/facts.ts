@@ -52,7 +52,16 @@ export interface CompanyFacts {
   whatTheyDo: string;
   /** Segments served, rendered as "Serves publishers, adtech platforms, …". */
   serves: string[];
-  isPubliclyTraded: boolean;
+  /**
+   * The domain the search believes this company owns — the disambiguation
+   * receipt, checked against the domain that was actually crawled.
+   *
+   * Replaced `isPubliclyTraded`, which was parsed and stored and then read by
+   * nothing: the page builds its rows explicitly and never included it, and the
+   * public-company refusal is markup-based and runs BEFORE this lookup. It was
+   * occupying one of ten schema slots to no end.
+   */
+  officialWebsite: string;
   totalFundingUsd: number;
   /** Round and year, e.g. "Series B 2023". */
   lastFunding: string;
@@ -84,7 +93,7 @@ export interface CompanyFacts {
  */
 const OUTPUT_SCHEMA = {
   type: "object",
-  required: ["founded_year", "headcount_range", "hq_country", "what_they_do", "is_publicly_traded"],
+  required: ["founded_year", "headcount_range", "hq_country", "what_they_do", "official_website"],
   properties: {
     founded_year: { type: "integer" },
     headcount_range: {
@@ -102,7 +111,10 @@ const OUTPUT_SCHEMA = {
       items: { type: "string" },
       description: "customer segments served, e.g. publishers, mobile app developers",
     },
-    is_publicly_traded: { type: "boolean" },
+    official_website: {
+      type: "string",
+      description: "the domain of the company's own website, e.g. example.com",
+    },
     total_funding_usd: { type: "integer" },
     last_funding: { type: "string", description: "round and year, e.g. Series B 2023" },
     acquired_by: { type: "string", description: "acquirer name, or empty string if independent" },
@@ -110,12 +122,164 @@ const OUTPUT_SCHEMA = {
 };
 
 const SYSTEM_PROMPT =
+  "The company in question is the one that operates the website at the domain in the query, and no other. " +
+  "If the sources describe a different company with a similar name, return empty values rather than that company's facts. " +
   "Prefer third-party sources over the company's own marketing. " +
   "If a field cannot be verified from a source, return an empty value rather than guessing. " +
   "Never infer a founding year from a copyright notice.";
 
+/**
+ * The domain is the subject of the question, not a token inside it.
+ *
+ * The first version asked `${name} ${domain} — what the company does, …`, which
+ * put the strongest retrieval signal — a proper noun — on the one part of the
+ * input that is not unique. `confiant.com` came back as "Confiant Solutions",
+ * an Indian IT-training consultancy: founded 0, headcount 1-10, country India,
+ * and a `whatTheyDo` about network certifications. Every field was internally
+ * consistent and about the wrong company. A domain is unique and a company name
+ * is not, so the domain leads, and repeats.
+ *
+ * ── Three retrieval-side constraints considered and rejected ──
+ * `includeText: [domain]` is the constraint that would actually bind, and it is
+ * NOT AVAILABLE: Exa refuses includeText, excludeText and excludeDomains under
+ * `category: "company"`. Dropping the category to buy it would trade away the
+ * parameter doing most of the retrieval work.
+ *
+ * `includeDomains: [domain]` IS permitted here, and is refused on purpose — it
+ * would source the facts block entirely from the company's own marketing, which
+ * is the one thing this module exists not to do. Note two of the five correct
+ * rows on the board (adpushup, ezoic) are grounded wholly on linkedin.com.
+ *
+ * `userLocation: "US"` would have rescued Confiant and would systematically
+ * mislead on every European vendor. Rejected as a fix that works by knowing the
+ * answer in advance.
+ *
+ * So framing is persuasion, not enforcement, and `factsProblem` is the part that
+ * actually holds.
+ */
+export const companyQuery = (domain: string, name: string) =>
+  `${domain} — the company operating the website ${domain} (${name}): ` +
+  `what it does, size, age, headquarters, funding, ownership`;
+
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 const num = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+
+/** Bare host: no scheme, no `www.`, no port, no path. */
+export const host = (v: string) =>
+  v.trim().toLowerCase().replace(/^[a-z]+:\/\//, "").replace(/^www\./, "").split(/[/?#:]/)[0];
+
+/**
+ * The same site, tolerating a subdomain in either direction.
+ *
+ * Deliberately loose. `go.acme.com` and `acme.com` are one company, and this
+ * check exists to catch a DIFFERENT company, not to audit DNS. A strict equality
+ * here would reject correct answers for cosmetic reasons and teach whoever hits
+ * it to remove the check.
+ */
+export const sameSite = (a: string, b: string) => {
+  const [x, y] = [host(a), host(b)];
+  if (!x || !y) return false;
+  return x === y || x.endsWith(`.${y}`) || y.endsWith(`.${x}`);
+};
+
+/**
+ * The response body, mapped. No judgement — that is `factsProblem`'s job.
+ *
+ * Split out from the fetch so the gate below can be tested against the six real
+ * payloads without a network or a key. No test in this repo mocks `fetch`, and
+ * this is the same normalize/assert split `classify.ts` and `panel.ts` already
+ * use — except these return null rather than throwing, because this module's
+ * contract is to fail soft.
+ */
+export function normalizeFacts(body: any): CompanyFacts | null {
+  const content = body?.output?.content;
+  if (!content || typeof content !== "object") return null;
+
+  const confidence: Record<string, Confidence> = {};
+  const sources: Record<string, string[]> = {};
+  for (const g of body?.output?.grounding ?? []) {
+    const field = str(g?.field);
+    if (!field) continue;
+    if (g?.confidence) confidence[field] = g.confidence as Confidence;
+    const urls = (g?.citations ?? []).map((c: any) => str(c?.url)).filter(Boolean);
+    if (urls.length) sources[field] = urls.slice(0, 3);
+  }
+
+  return {
+    foundedYear: num(content.founded_year),
+    headcountRange: str(content.headcount_range),
+    hqCity: str(content.hq_city),
+    hqCountry: str(content.hq_country),
+    whatTheyDo: str(content.what_they_do),
+    serves: Array.isArray(content.serves) ? content.serves.map(str).filter(Boolean).slice(0, 6) : [],
+    officialWebsite: str(content.official_website),
+    totalFundingUsd: num(content.total_funding_usd),
+    lastFunding: str(content.last_funding),
+    acquiredBy: str(content.acquired_by),
+    confidence,
+    sources,
+    costUsd: num(body?.costDollars?.total),
+  };
+}
+
+/**
+ * Why this payload must not be trusted, or null when it may be.
+ *
+ * ── The grounding gate ──
+ * Measured across the six companies on the board, counting fields with at least
+ * one citation behind them:
+ *
+ *   blockthrough.com   9   founded 2015   cites blockthrough.com
+ *   adpushup.com      10   founded 2014   cites www.linkedin.com
+ *   mediatrust.com    10   founded 2005   cites mediatrust.com
+ *   useadmesh.com      7   founded    0   cites useadmesh.com
+ *   ezoic.com         10   founded 2010   cites www.linkedin.com
+ *   confiant.com       0   founded    0   cites NOTHING
+ *
+ * Zero is not the low end of that distribution, it is off it — and it was the
+ * one row describing a different company. The threshold sits at one citation
+ * because that is where the gap is: useadmesh answered SPARSELY, with no
+ * founding year at all, and still grounded seven fields. Sparse and ungrounded
+ * are separable, and this gate catches only the second.
+ *
+ * The gate reads CITATIONS, not confidence. A confidence label with no citation
+ * under it is precisely the failure already recorded above OUTPUT_SCHEMA:
+ * `competitors` returned an HR recognition firm for The Media Trust, marked
+ * HIGH. Confidence is the model's opinion of itself; a citation is a receipt.
+ *
+ * ── Two things this deliberately does NOT do ──
+ * It does not require a citation on the crawled domain. Two of the five correct
+ * rows are grounded wholly on linkedin.com, and such a rule would reject both.
+ *
+ * It does not reject field by field. The failure here was one wrong ENTITY —
+ * every field consistent, all of them about someone else — so the gate is
+ * entity-level too. Per-field stripping would also have quietly deleted
+ * useadmesh's three ungrounded fields for no measured gain, while leaving
+ * Confiant exactly as broken. `facts_json` is the audit record of what the
+ * search actually said, and editing it at parse time makes the stored row a
+ * fiction that can never be checked back against the provider.
+ *
+ * ── What rejection costs ──
+ * A refused lookup means no facts block, a NULL founding year, and absence from
+ * the board's age- and weight-filtered views. That is worse than correct facts
+ * and strictly better than another company's, and it is the same call
+ * `ageBucketOf` in src/lib/rankings.ts already makes: a company sorted into a
+ * bucket because nothing was found would be the page asserting a fact it does
+ * not have.
+ */
+export function factsProblem(facts: CompanyFacts, domain: string): string | null {
+  if (!Object.keys(facts.sources).length) {
+    return "no citations — nothing returned was tied to a source";
+  }
+  /* Only a CONFIDENT mismatch rejects. An empty official_website is a field the
+     search declined to fill, which the citation check above already speaks to;
+     treating absence as a mismatch would let one unmeasured field veto the whole
+     lookup. */
+  if (facts.officialWebsite && !sameSite(facts.officialWebsite, domain)) {
+    return `wrong company — answered about ${host(facts.officialWebsite)}, asked about ${domain}`;
+  }
+  return null;
+}
 
 /**
  * Look a company up. Returns null on every failure, deliberately.
@@ -142,7 +306,7 @@ export async function lookupCompany(
       },
       signal: controller.signal,
       body: JSON.stringify({
-        query: `${name} ${domain} — what the company does, size, age, headquarters, funding, ownership`,
+        query: companyQuery(domain, name),
         /* `fast` measures ~450ms against `auto`'s ~1s, but outputSchema adds
            synthesis latency on top of either, so the base type is not where the
            time goes. `auto` is the accuracy default and this runs once. */
@@ -159,35 +323,15 @@ export async function lookupCompany(
       return null;
     }
 
-    const body = (await res.json()) as any;
-    const content = body?.output?.content;
-    if (!content || typeof content !== "object") return null;
+    const facts = normalizeFacts(await res.json());
+    if (!facts) return null;
 
-    const confidence: Record<string, Confidence> = {};
-    const sources: Record<string, string[]> = {};
-    for (const g of body?.output?.grounding ?? []) {
-      const field = str(g?.field);
-      if (!field) continue;
-      if (g?.confidence) confidence[field] = g.confidence as Confidence;
-      const urls = (g?.citations ?? []).map((c: any) => str(c?.url)).filter(Boolean);
-      if (urls.length) sources[field] = urls.slice(0, 3);
+    const problem = factsProblem(facts, domain);
+    if (problem) {
+      console.warn(`[facts] rejected for ${domain}: ${problem}`);
+      return null;
     }
-
-    return {
-      foundedYear: num(content.founded_year),
-      headcountRange: str(content.headcount_range),
-      hqCity: str(content.hq_city),
-      hqCountry: str(content.hq_country),
-      whatTheyDo: str(content.what_they_do),
-      serves: Array.isArray(content.serves) ? content.serves.map(str).filter(Boolean).slice(0, 6) : [],
-      isPubliclyTraded: content.is_publicly_traded === true,
-      totalFundingUsd: num(content.total_funding_usd),
-      lastFunding: str(content.last_funding),
-      acquiredBy: str(content.acquired_by),
-      confidence,
-      sources,
-      costUsd: num(body?.costDollars?.total),
-    };
+    return facts;
   } catch (err) {
     console.warn(`[facts] lookup failed for ${domain}:`, err);
     return null;
@@ -257,10 +401,30 @@ export function factsBlock(facts: CompanyFacts | null): string {
     return `  ${label.padEnd(11)}${value}${conf ? CONF_NOTE[conf] : ""}`;
   };
 
+  /**
+   * The founding year is named rather than dropped when it is missing.
+   *
+   * Every other line here may simply be absent — a juror who is not told the
+   * funding total does not go looking for one. The founding year is different,
+   * because the innovation question INSTRUCTS jurors to "judge against the
+   * category in their founding year, not today". Filtering the empty line out
+   * left that question asking for an anchor the prompt had not supplied, and
+   * nothing anywhere said so; the juror simply supplied a year from its priors.
+   *
+   * That is the fail-open shape of this whole bug in miniature. Wrong facts were
+   * survivable on confiant.com because the site corpus contradicted them loudly.
+   * An ABSENT fact is not, because nothing contradicts an absence. So an absence
+   * that the rubric depends on is stated, and the juror is told what to do with
+   * it instead of being left to improvise.
+   */
+  const founded = facts.foundedYear
+    ? line("founded", String(facts.foundedYear), "founded_year")
+    : "  founded    NOT ESTABLISHED — say so rather than assuming a year";
+
   const rows = [
     line("does", facts.whatTheyDo, "what_they_do"),
     line("serves", facts.serves.join(", "), "serves"),
-    line("founded", facts.foundedYear ? String(facts.foundedYear) : "", "founded_year"),
+    founded,
     line("size", facts.headcountRange ? `${facts.headcountRange} people` : "", "headcount_range"),
     line("based", [facts.hqCity, facts.hqCountry].filter(Boolean).join(", "), "hq_city"),
     line("funding", facts.totalFundingUsd ? `$${(facts.totalFundingUsd / 1e6).toFixed(1)}M raised` : "", "total_funding_usd"),
@@ -347,6 +511,22 @@ const EVIDENCE_ANGLES: { angle: PressItem["angle"]; ask: string }[] = [
   },
 ];
 
+/**
+ * The domain rides along as a disambiguator, not as a filter.
+ *
+ * `${name} — ${ask}` was a bare proper noun, with `excludeDomains` pushing
+ * results AWAY from the one site that would have settled which company was
+ * meant. That is the same name-collision exposure that put an Indian IT-training
+ * consultancy in `lookupCompany`'s answer for confiant.com, and here it would
+ * feed another company's press to all three jurors verbatim.
+ *
+ * Parenthesised rather than made the subject, unlike `companyQuery`: press
+ * coverage writes "Confiant", not "confiant.com", so leading with the domain
+ * would cost recall on the very sources this call exists to find.
+ */
+export const pressQuery = (name: string, domain: string, ask: string) =>
+  `${name} (${domain}) — ${ask}`;
+
 async function searchAngle(
   key: string,
   domain: string,
@@ -362,12 +542,17 @@ async function searchAngle(
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       signal: controller.signal,
       body: JSON.stringify({
-        query: `${name} — ${ask}`,
+        query: pressQuery(name, domain, ask),
         type: "auto",
         numResults: 5,
         contents: { highlights: true },
         /* The company's own site is already the panel's main input. This call
-           exists to find what everyone else published. */
+           exists to find what everyone else published.
+
+           No `category` is set on this call, and that is load-bearing rather
+           than an oversight: Exa refuses excludeDomains under
+           `category: "company"` and `"people"`. Adding one here would silently
+           stop this exclusion from applying. */
         excludeDomains: [domain],
       }),
     });
