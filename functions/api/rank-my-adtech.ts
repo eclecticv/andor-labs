@@ -353,10 +353,11 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, waitUntil
   if (job) {
     if (!/^[a-f0-9]{32}$/.test(job)) return json({ error: "Bad job id." }, 400);
     const row = await env.RANKINGS.prepare(
-      `SELECT status, payload,
-              CAST((julianday('now') - julianday(created_at)) * 86400 AS INTEGER) AS age
+      `SELECT status, payload, stage,
+              CAST((julianday('now') - julianday(created_at)) * 86400 AS INTEGER) AS age,
+              CAST((julianday('now') - julianday(COALESCE(stage_at, created_at))) * 86400 AS INTEGER) AS stageAt
          FROM rank_job WHERE id = ?`,
-    ).bind(job).first<{ status: string; payload: string | null; age: number }>();
+    ).bind(job).first<{ status: string; payload: string | null; stage: string | null; age: number; stageAt: number }>();
 
     if (!row) return json({ error: "No such job." }, 404);
 
@@ -367,7 +368,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, waitUntil
         ).bind(JSON.stringify(failure("panel")), job).run();
         return json(failure("panel"), 200);
       }
-      return json({ status: "running", age: row.age }, 200);
+      return json({ status: "running", age: row.age, stage: row.stage, stageAt: row.stageAt }, 200);
     }
 
     // Stored verbatim by runJob, so this stays a thin read.
@@ -502,10 +503,28 @@ async function runJob(
   domain: string,
   jobId: string,
 ): Promise<void> {
+  /**
+   * Checkpoint each stage as it starts.
+   *
+   * Fire-and-forget: a checkpoint write must never be on the pipeline's
+   * critical path, and losing one costs a diagnostic rather than a ranking.
+   * This exists because a backgrounded run that produces NOTHING is
+   * indistinguishable from a slow one — the first long run under waitUntil left
+   * no company row and no error, and there was no way to tell whether the
+   * platform had evicted it or the panel was still thinking.
+   */
+  const mark = (stage: string) => {
+    waitUntil(
+      env.RANKINGS.prepare(
+        "UPDATE rank_job SET stage = ?, stage_at = CURRENT_TIMESTAMP WHERE id = ?",
+      ).bind(stage, jobId).run().catch(() => {}),
+    );
+  };
+
   let payload: Record<string, unknown>;
   let status: "ranked" | "failed" | "refused";
   try {
-    payload = await runPipeline(env, waitUntil, domain);
+    payload = await runPipeline(env, waitUntil, domain, mark);
     status =
       payload.status === "failed" ? "failed"
       : payload.status === "not-eligible" ? "refused"
@@ -536,7 +555,9 @@ async function runPipeline(
   env: Env,
   waitUntil: (p: Promise<unknown>) => void,
   domain: string,
+  mark: (stage: string) => void = () => {},
 ): Promise<Record<string, unknown>> {
+  mark("read");
   // ── Read ──────────────────────────────────────────────────────────────────
   // context.dev is a fallback only — called by readSite() solely when the
   // direct fetch already came back thin (client-rendered shell, WAF block).
@@ -564,6 +585,7 @@ async function runPipeline(
   // ── Identify ──────────────────────────────────────────────────────────────
   // Any provider will do here; this is a factual question, not a judgement, so
   // it takes the first ladder that answers rather than a named seat.
+  mark("identify");
   const identifyPrompt = buildIdentifyPrompt(domain, site.pages, site.thin);
   let identity: ReturnType<typeof normalizeIdentity> | undefined;
   // OpenCode Go leads by standing preference — one subscription across ~26
@@ -632,6 +654,7 @@ async function runPipeline(
   }
 
   try {
+    mark("panel");
     panel = await runPanel(env, {
       domain, pages: site.pages, thin: site.thin, facts, press,
       categories: CATEGORIES, categoryNotes: CATEGORY_NOT,
@@ -698,6 +721,7 @@ async function runPipeline(
       },
     );
     summary = value;
+    mark("persist");
   } catch (err) {
     console.error(`[rank] writer failed:`, err);
     return failure("write");

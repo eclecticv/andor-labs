@@ -36,3 +36,10 @@ CREATE TABLE IF NOT EXISTS rank_job (
 
 -- The poller reads by id; the staleness sweep reads by status and age.
 CREATE INDEX IF NOT EXISTS idx_rank_job_status ON rank_job (status, created_at);
+
+-- Added after the first long run under waitUntil produced no company row, no
+-- error and no way to tell whether the platform had evicted the background work
+-- or the panel was still deliberating. A checkpoint per stage makes a stuck run
+-- legible: the last stage reached and when it was reached.
+ALTER TABLE rank_job ADD COLUMN stage TEXT;
+ALTER TABLE rank_job ADD COLUMN stage_at TEXT;
