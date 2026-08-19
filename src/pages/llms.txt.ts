@@ -3,8 +3,7 @@ import type { APIRoute } from "astro";
 import { sanityClient } from "sanity:client";
 import { toCategory } from "../lib/categories";
 import {
-  COHORTS, cohortKeyOf, GRADER, DIMENSIONS, getEntries, categoryLabel, fmt,
-  letterFor,
+  COHORTS, cohortKeyOf, PANELISTS, WRITER, getEntries, categoryLabel, fmt,
 } from "../lib/rankings";
 
 /**
@@ -50,28 +49,20 @@ export const GET: APIRoute = async ({ site }) => {
     // Roster and cohorts are interpolated, never typed. Typed copies of both
     // went stale here while the site itself had moved on — and an answer engine
     // quoting a stale roster is a citation nobody can check.
-    // Roster and rubric are interpolated, never typed. Typed copies went stale
-    // here while the site itself had moved on — and an answer engine quoting a
-    // stale rubric is a citation nobody can check.
-    "- What it does: grades private adtech startups 1-5 on three dimensions, from",
-    "  the company's own website and nothing else.",
-    `- Graded by a single model: ${GRADER.lab} ${GRADER.name} (${GRADER.model}), at`,
-    "  temperature 0 against published anchors. The model is PINNED — a grader",
-    "  that cannot answer fails the ranking rather than being substituted,",
-    "  because a board whose rows were graded by different models is not",
-    "  comparable to itself.",
-    `- The three dimensions: ${DIMENSIONS.map((d) => d.label.toLowerCase()).join(", ")}. Every score quotes the source page verbatim; the quote is verified against the stored crawl before publishing.`,
-    "  Each is an integer 1-5 against fixed anchors; the headline grade is their",
-    "  mean to one decimal, and letter bands sit on top (A from 4.5, B from 3.5,",
-    "  C from 2.5, D from 1.5).",
-    "- Before scoring anything the grader writes the case AGAINST the company —",
-    "  three specific weaknesses, each pointing at something on the pages. It is",
-    "  published on the company page, and it is why a grade is auditable rather",
-    "  than a vibe.",
-    "- Durability replaced an earlier investability question, which systematically",
-    "  punished acquired companies: it asked the model to imagine a transaction, so",
-    "  anything making that transaction impossible read as a defect in the company.",
-    "  Acquisition is treated as an outcome, not a verdict.",
+    "- What it does: ranks private adtech startups out of 30, judged by three",
+    `  language models from three different labs (${PANELISTS.map((p) => `${p.lab} ${p.name}`).join(", ")}),`,
+    `  with a fourth — ${WRITER.lab} ${WRITER.name} — writing the summary and scoring nothing.`,
+    "- Each judge is a fixed persona holding one lens across all three questions,",
+    "  so the engineer answers the investment question as an engineer. Seats are",
+    "  pinned to one model each: a seat that cannot answer fails the ranking",
+    "  rather than being filled by a different lab, because a board whose rows",
+    "  were judged by different juries is not comparable to itself.",
+    "- Scoring: each panelist answers three questions 0-10 against fixed anchors —",
+    "  how innovative it is, what the single hardest thing to replicate is, and",
+    "  whether they would invest. A judge writes the case against the company",
+    "  before any score exists, and a claim not grounded in the pages caps that",
+    "  question at 5. Nine ratings; each question shows the panel's mean and the",
+    "  total is the sum of the three, out of 30.",
     "- Publicly listed companies are excluded. Companies rank twice: within their",
     `  ${COHORTS.map((c) => c.label.toLowerCase()).join(" / ")} cohort, and within`,
     "  their subcategory.",
@@ -107,7 +98,7 @@ export const GET: APIRoute = async ({ site }) => {
       lines.push(`### ${cohort.label}`, "");
       rows.forEach((e, i) => {
         const provisional = e.provisional ? " (provisional — little public detail)" : "";
-        lines.push(`${i + 1}. ${e.name} (${e.domain}) — ${fmt(e.grade)}/5 (${letterFor(e.grade)})${provisional}`);
+        lines.push(`${i + 1}. ${e.name} (${e.domain}) — ${fmt(e.total)}/30${provisional}`);
         if (e.one_liner) lines.push(`   - ${e.one_liner}`);
         lines.push(`   - ${categoryLabel(e.category)}`);
       });

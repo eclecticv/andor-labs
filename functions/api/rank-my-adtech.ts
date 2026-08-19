@@ -19,12 +19,12 @@
  *             evidence (an announced round, an accelerator batch) and never
  *             from tone; side derived from subcategory by lookup, so the two
  *             can never contradict each other.
- *   grade     ONE model call. Five dimensions on anchored 1-5 scales, the
- *             classification and the verdict paragraph, in a single response.
- *             A pre-score "case against" step used to run here and was removed:
- *             measured against the same crawls it cost 0.6 of a grade on both
- *             test companies and collapsed the dimension spread to zero on one,
- *             i.e. it was priming the scorer rather than disciplining it.
+ *   panel     THREE model calls, in parallel, to three labs. Each answers all
+ *             three questions against anchored 0-10 scales. The parallelism is
+ *             the isolation: they cannot see each other by construction.
+ *   write     A fourth model, from a fourth family, reads all nine answers and
+ *             writes the paragraph. It scores nothing, which is what lets it
+ *             report a split honestly rather than defend a number.
  *
  * Three rules carried over, all learned the hard way: totals are arithmetic in
  * code and never asked of a model; a provider is a LADDER whose rung fails on an
@@ -36,10 +36,8 @@
  *                    than in a wrangler config file — Pages does not support
  *                    partial configuration, so a root wrangler.toml would take
  *                    over the namespace holding this project's secrets.
- *   NVIDIA_API_KEY   the grader runs on NIM and is pinned to one model, so this
- *                    is the only model key the ranking path needs. GEMINI and
- *                    OPENCODE keys are still read by _lib/providers for the
- *                    identify step and for local tooling.
+ *   GEMINI_API_KEY / NVIDIA_API_KEY / OPENCODE_API_KEY   one per panel seat,
+ *                    and all three are required: the panel refuses to sit short.
  *   LOOPS_API_KEY    optional; only used when a submission carries an email
  *   DEPLOY_HOOK_URL  the board is static, so a ranking is invisible until a
  *                    build runs
@@ -54,9 +52,8 @@ import {
   place, placeFromMarkup, sideFor, cohortLabel, categoryLabel, categoryFor,
   CATEGORIES, CATEGORY_NOT, BAND_LABELS, SIDE_LABELS,
 } from "../_lib/classify";
-import {
-  runGrader, recallFrom, DIMENSIONS, DIMENSION_KEYS, GRADER, rubricVersion,
-} from "../_lib/grader";
+import { runPanel, resolveRecall, QUESTIONS, WRITER, PANELISTS } from "../_lib/panel";
+import { buildWriterPrompt, normalizeSummary, assertSummaryUsable } from "../_lib/writer";
 import { askLadder, extractJson, keyFor, type Provider } from "../_lib/providers";
 
 interface Env {
@@ -141,20 +138,6 @@ export function slugify(value: string): string {
 }
 
 /**
- * The content hash of the text the grader was given.
- *
- * This is what makes a score reproducible. Stored beside the row, it answers
- * "what exactly was this graded from" with bytes rather than with a date and a
- * hope that the site has not changed — and sites change constantly, which is
- * the whole reason a score needs its input pinned.
- */
-async function hashPages(pages: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pages));
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-/**
  * Hash rather than store the address. Rate limiting needs to know two requests
  * shared an origin, which does not require knowing where that origin is.
  */
@@ -170,12 +153,12 @@ async function hashIp(ip: string): Promise<string> {
 /**
  * A ranking publishes complete or it does not publish.
  *
- * That is a deliberate trade — a row graded by a substitute model is worse than
- * an outage, because its numbers would not be comparable to any other row on
- * the board — so the failure has to read as part of the bit rather than as a
- * red box. Each stage names which part fell over.
+ * That is a deliberate trade — a page with two of three panelists on it is
+ * worse than an outage, because its numbers would not be comparable to any
+ * other row on the board — so the failure has to read as part of the bit rather
+ * than as a red box. Each stage names which part fell over.
  */
-export function failure(stage: "read" | "identify" | "grade") {
+export function failure(stage: "read" | "identify" | "panel" | "write") {
   const copy = {
     read: {
       headline: "We could not get a look at them.",
@@ -187,10 +170,15 @@ export function failure(stage: "read" | "identify" | "grade") {
       detail:
         "The pages came back and then nothing would tell us what business this is. That is usually the site's fault and occasionally ours. Try again shortly.",
     },
-    grade: {
-      headline: "The grader would not put its name to it.",
+    panel: {
+      headline: "The panel did not sit.",
       detail:
-        "The pages came back and the grader either could not answer or would not answer usably. Every row on this board is graded by the same model against the same rubric, so a substitute is not an option — there is no ranking rather than an incomparable one. Try again shortly.",
+        "Three judges are required and fewer than three turned up, so there is no ranking rather than a smaller one. A panel of two would not be comparable to anything else on this board. Try again shortly.",
+    },
+    write: {
+      headline: "The panel voted. Nobody would write it up.",
+      detail:
+        "All nine ratings came back and then the writer declined to put its name to a paragraph. Genuinely the funniest way this can fail. Try again shortly.",
     },
   }[stage];
   return { status: "failed" as const, stage, ...copy };
@@ -238,55 +226,6 @@ async function triggerRebuild(env: Env): Promise<void> {
   }
 }
 
-/**
- * Fire a build that is OWED but was never triggered.
- *
- * `pending` was written in two places above and read in none, which made the
- * throttle a queue with no consumer: rank two companies four minutes apart and
- * the second one sat in D1, correct and complete, with no build ever scheduled
- * to publish it. It surfaced only when some later, unrelated submission
- * happened to fall outside the window and swept it up.
- *
- * Pages has no cron, so there is no background sweeper to add. The consumer is
- * therefore the person actually waiting on the page: the status endpoint below
- * calls this every time it reports "not yet," which means the queue is drained
- * by whoever cares that it is full. `triggerRebuild` still owns the throttle —
- * if the window has not passed it simply re-flags pending and returns, so
- * polling cannot stampede the hook.
- */
-async function drainPendingBuild(env: Env): Promise<void> {
-  const state = await env.RANKINGS.prepare(
-    "SELECT pending FROM build_state WHERE id = 1",
-  ).first<{ pending: number }>();
-  if (!state?.pending) return;
-  await triggerRebuild(env);
-}
-
-/**
- * Has a build carrying this row actually deployed yet?
- *
- * Asking the origin for the page is the only honest answer. Comparing the
- * row's timestamp against `last_fired_at` would tell us a build was TRIGGERED,
- * which is a different claim — the hook returning 200 says Cloudflare accepted
- * the request, not that the deploy finished, and a failed build fires the hook
- * just as cheerfully as a good one.
- *
- * `/tools/...` is a static asset rather than a Function route, so this cannot
- * recurse into this Worker.
- */
-async function isPublished(origin: string, slug: string): Promise<boolean> {
-  try {
-    const res = await fetch(`${origin}/tools/rank-my-adtech/${slug}/`, {
-      method: "GET",
-      redirect: "manual",
-      headers: { "cache-control": "no-cache" },
-    });
-    return res.status === 200;
-  } catch {
-    return false;
-  }
-}
-
 // ── HTTP plumbing ───────────────────────────────────────────────────────────
 
 const json = (body: unknown, status: number) =>
@@ -308,38 +247,6 @@ const RATE_LIMIT_PER_DAY = 5;
 const RESERVED_SLUGS = new Set(["leaderboard", "index", "api", "og"]);
 
 // ── Handler ─────────────────────────────────────────────────────────────────
-
-/**
- * Is this ranking's page live yet?
- *
- * The board is static, so a ranking exists in D1 a full build before it exists
- * at a URL. The result card used to link straight at that URL and the
- * already-ranked path used to redirect to it, both within a second of the
- * deploy hook firing — so the reliable outcome of ranking a company was a 404
- * on your own result.
- *
- * The client polls this instead of guessing, and the answer also drains any
- * build the throttle swallowed.
- */
-export const onRequestGet: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
-  const url = new URL(request.url);
-  const slug = (url.searchParams.get("slug") ?? "").trim().toLowerCase();
-  // Same shape slugify() produces. Anything else is not a slug we ever wrote,
-  // and this string goes into a subrequest path.
-  if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(slug)) return json({ error: "Bad slug." }, 400);
-
-  const ready = await isPublished(url.origin, slug);
-  if (!ready) waitUntil(drainPendingBuild(env));
-
-  return new Response(JSON.stringify({ ready }), {
-    status: 200,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      // A cached "not ready" would strand the very page it is reporting on.
-      "cache-control": "no-store",
-    },
-  });
-};
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
   const origin = request.headers.get("origin") ?? "";
@@ -462,12 +369,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
   }
 
   /**
-   * Refuse public companies BEFORE the grader, not after.
+   * Refuse public companies BEFORE the panel, not after.
    *
-   * Placement proper needs the grader's recall and so has to run later, but the
+   * Placement proper needs the panel's recall and so has to run later, but the
    * public check is pure markup and costs nothing. Running it here means a
    * listed company is turned away after one small call instead of after three
-   * grader call.
+   * panel calls and a writer.
    */
   const markup = placeFromMarkup(site.html, site.pages);
   if (markup.isPublic) {
@@ -479,27 +386,28 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
     }, 200);
   }
 
-  // ── The grade ─────────────────────────────────────────────────────────────
-  let grade: Awaited<ReturnType<typeof runGrader>>;
+  // ── The panel ─────────────────────────────────────────────────────────────
+  let panel: Awaited<ReturnType<typeof runPanel>>;
   try {
-    grade = await runGrader(env, {
+    panel = await runPanel(env, {
       domain, pages: site.pages, thin: site.thin, categories: CATEGORIES, categoryNotes: CATEGORY_NOT,
     });
   } catch (err) {
     console.error(`[rank] ${domain}: ${err instanceof Error ? err.message : err}`);
-    return json(failure("grade"), 502);
+    return json(failure("panel"), 502);
   }
 
   /**
-   * ── Place, on the grader's evidence ─────────────────────────────────────
+   * ── Place, on the panel's evidence ──────────────────────────────────────
    *
-   * The majority vote is gone with the panel; see recallFrom() for what that
-   * costs and why it is affordable. The short version: band still prefers
-   * structural markup evidence over anything a model said, so a fabricated
-   * round cannot overrule an announced one.
+   * Both facts the board's structure depends on are resolved by majority
+   * across three labs rather than by any single call. Category decides which
+   * two tables a company appears in, so one model's bad afternoon used to
+   * shift every rank around it; requiring two independent models to agree is
+   * what stopped that.
    */
-  const recall = recallFrom(grade);
-  // A human correction beats the model — see CATEGORY_OVERRIDES.
+  const recall = resolveRecall(panel.takes);
+  // A human correction beats the panel — see CATEGORY_OVERRIDES.
   const category = categoryFor(domain, recall.category, identity.category);
 
   const placement = place(site.html, site.pages, identity.stage, recall);
@@ -510,21 +418,46 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
   const cohort = cohortLabel(placement.band, side);
 
   console.log(
-    `[rank] ${domain} — ${grade.grade}/5 (${grade.letter}) · ${cohort} · ${category}` +
-    ` · ${DIMENSION_KEYS.map((k) => `${k[0]}${grade.scores[k].score}`).join(" ")}` +
-    ` · round ${recall.round || "none"} · by ${grade.modelUsed}`,
+    `[rank] ${domain} — ${panel.total}/30 · ${cohort} · ${category}` +
+    ` (cat ${recall.categoryVotes}/3, round ${recall.round || "none"} ${recall.roundVotes}/3)` +
+    ` by ${panel.takes.map((t) => t.modelUsed).join(", ")}`,
   );
 
-  /**
-   * There is no write-up step any more.
-   *
-   * The writer existed because nine ratings from three models needed a fourth
-   * to synthesise them, and because a model that had scored nothing could
-   * report a split honestly rather than defend its own number. Neither applies
-   * to five grades from one grader: it returned the paragraph in the same
-   * response.
-   */
-  const summary = grade.summary;
+  // ── The write-up ──────────────────────────────────────────────────────────
+  // The writer is pinned to its own model rather than taking whatever the
+  // OpenCode ladder prefers, because the panel section names it on the page.
+  let summary: string;
+  try {
+    const { value } = await askLadder(
+      WRITER.provider,
+      env,
+      buildWriterPrompt({
+        name: identity.name,
+        oneLiner: identity.oneLiner,
+        categoryLabel: categoryLabel(category),
+        cohort,
+        panel,
+      }),
+      (text) => assertSummaryUsable(normalizeSummary(extractJson(text))),
+      {
+        preferred: WRITER.model,
+        // Pinned like the jurors: the company page states, statically, that
+        // THIS model wrote the verdict — a substituted writer makes that line
+        // false. Two attempts, since the ladder is now one rung.
+        only: [WRITER.model],
+        attempts: 2,
+        // The one call in the pipeline that is NOT at temperature 0. Scores have
+        // to be repeatable; prose does not, and a joke sampled greedily is the
+        // most obvious joke available. The numbers this paragraph describes are
+        // already fixed, so nothing rankable moves when this varies.
+        temperature: 0.8,
+      },
+    );
+    summary = value;
+  } catch (err) {
+    console.error(`[rank] writer failed:`, err);
+    return json(failure("write"), 502);
+  }
 
   // ── Persist ───────────────────────────────────────────────────────────────
   let slug = slugify(identity.name) || slugify(domain);
@@ -557,43 +490,36 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
 
   if (!companyRow?.id) return json({ error: "Could not save that ranking." }, 500);
 
-  /**
-   * Freeze the input BEFORE the score that cites it.
-   *
-   * `ranking.input_hash` is a foreign key onto this row, so the ordering is not
-   * stylistic — a score inserted first would reference a snapshot that does not
-   * exist. The upsert is a no-op when the same bytes have been graded before,
-   * which is what makes a re-grade cost nothing and read unambiguously as a
-   * re-grade rather than a re-crawl.
-   */
-  const inputHash = await hashPages(site.pages);
-  await env.RANKINGS.prepare(
-    "INSERT OR IGNORE INTO snapshot (hash, domain, pages) VALUES (?, ?, ?)",
-  ).bind(inputHash, domain, site.pages).run();
-
   const rankingRow = await env.RANKINGS.prepare(
-    `INSERT INTO ranking (company_id, grade, originality, defensibility, outlook,
-                          evidence_json, summary, stack_json,
-                          input_hash, rubric_version, model_used)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+    `INSERT INTO ranking (company_id, total, innovation, difficulty, investability,
+                          split_question, split_spread, summary, stack_json)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
   ).bind(
-    companyRow.id, grade.grade,
-    grade.scores.originality.score, grade.scores.defensibility.score,
-    grade.scores.outlook.score,
-    /* Keyed by dimension, so a column added later cannot silently reorder them
-       the way a positional array would. Each entry carries the quote that was
-       verified against the snapshot above — the reason is what the grader
-       concluded, the quote is what a reader can check it against. */
-    JSON.stringify(Object.fromEntries(DIMENSION_KEYS.map((k) => [k, {
-      reason: grade.scores[k].reason,
-      quote: grade.scores[k].quote,
-      source_url: grade.scores[k].sourceUrl,
-    }]))),
+    companyRow.id, panel.total,
+    panel.means.innovation, panel.means.difficulty, panel.means.investability,
+    panel.split?.question ?? null, panel.split?.spread ?? 0,
     summary, JSON.stringify(byCategory(detected)),
-    inputHash, rubricVersion(), grade.modelUsed,
   ).first<{ id: number }>();
 
   if (!rankingRow?.id) return json({ error: "Could not save that ranking." }, 500);
+
+  // One row per panelist. Batched so three takes land together or not at all —
+  // a ranking with two of its three takes written would render as a short panel
+  // and be indistinguishable on the page from one that legitimately sat two.
+  await env.RANKINGS.batch(
+    panel.takes.map((take) =>
+      env.RANKINGS.prepare(
+        `INSERT INTO panel_take (ranking_id, panelist_id, model_used,
+                                 innovation, difficulty, investability, ratings_json, adjective)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(
+        rankingRow.id, take.panelistId, take.modelUsed,
+        take.ratings.innovation.score, take.ratings.difficulty.score,
+        take.ratings.investability.score,
+        JSON.stringify(take.ratings), take.adjective,
+      ),
+    ),
+  );
 
   /**
    * Bug found live 2026-08-15: this used to be `await`ed here, on the critical
@@ -601,7 +527,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
    * response." The hook fetch below had no timeout, so any slowness on the
    * far end held the whole HTTP response open — a run that had already
    * succeeded (the row IS written by this point) would time out client-side
-   * as "the grader is unreachable," and the deploy that would have put it on
+   * as "the panel is unreachable," and the deploy that would have put it on
    * the board never got a clean confirmation either. admiral.com published
    * cleanly and sat invisible for hours because of exactly this.
    *
@@ -626,17 +552,15 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
     sideLabel: SIDE_LABELS[side],
     cohort,
     recall,
-    grade: grade.grade,
-    letter: grade.letter,
-    dimensions: DIMENSIONS.map((d) => ({
-      key: d.key,
-      label: d.label,
-      score: grade.scores[d.key].score,
-      reason: grade.scores[d.key].reason,
-      quote: grade.scores[d.key].quote,
-      sourceUrl: grade.scores[d.key].sourceUrl,
+    total: panel.total,
+    means: panel.means,
+    split: panel.split,
+    questions: QUESTIONS.map((q) => ({ key: q.key, label: q.label })),
+    panel: panel.takes.map((t) => ({
+      ...t,
+      name: PANELISTS.find((p) => p.id === t.panelistId)?.name ?? t.panelistId,
+      lab: PANELISTS.find((p) => p.id === t.panelistId)?.lab ?? "",
     })),
-    grader: { name: GRADER.name, lab: GRADER.lab, spec: GRADER.spec, model: grade.modelUsed },
     summary,
     stack: byCategory(detected),
   }, 200);

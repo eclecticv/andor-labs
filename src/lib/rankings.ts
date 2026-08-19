@@ -112,66 +112,201 @@ export const SIDE_LABELS: Record<string, string> =
   Object.fromEntries(SIDES.map((s) => [s.key, s.label]));
 
 /**
- * The three dimensions, mirrored from functions/_lib/grader.ts.
+ * The three questions, mirrored from functions/_lib/panel.ts.
  *
  * Duplicated rather than imported for the same reason the Loops list ids are:
  * Pages Functions bundle separately from the Astro build, and a cross-boundary
  * import is a thing to discover at deploy time. Change one, change the other.
- *
- * Was five. Traction and execution were cut after an audit of the only two rows
- * on the board: traction was scoring vendor testimonial walls as verified
- * customers, and execution graded the presence of public developer docs, which
- * caps every enterprise sales-led company in adtech at 2 no matter what it has
- * built. Both scored the same value for the same reason on both companies —
- * zero variance, and therefore nothing added to the grade but noise.
  */
-export const DIMENSIONS = [
-  { key: "originality",   label: "Originality",     icon: "lightbulb",
-    question: "Was this first, or only?" },
-  { key: "defensibility", label: "Defensibility",   icon: "laptop-code",
-    question: "Could a competent team rebuild this in a weekend?" },
-  { key: "outlook",       label: "Future outlook",  icon: "bank",
-    question: "Where does this sit in three years?" },
+export const QUESTIONS = [
+  { key: "innovation", label: "Innovation", icon: "lightbulb",
+    question: "How innovative is this, really?" },
+  { key: "difficulty", label: "Hard to build", icon: "laptop-code",
+    question: "What is the single hardest thing here to replicate?" },
+  { key: "investability", label: "Would you invest", icon: "handshake",
+    question: "Would you put money in?" },
 ] as const;
 
-export type DimensionKey = (typeof DIMENSIONS)[number]["key"];
-export const DIMENSION_KEYS = DIMENSIONS.map((d) => d.key);
+export type QuestionKey = (typeof QUESTIONS)[number]["key"];
 
 /**
- * The grader, mirrored from functions/_lib/grader.ts.
+ * The panel, mirrored from functions/_lib/panel.ts.
  *
- * Declared upfront on the page — who is grading, and what it is — because a
- * score from an unnamed "AI" is an appeal to authority with no authority
- * behind it. That argument got stronger when the panel became one model, not
- * weaker: there is no longer a spread of opinions to hide a single model's
- * limits inside.
+ * Declared upfront on the page — who is judging, and what they are — because a
+ * score from an unnamed "AI" is an appeal to authority with no authority behind
+ * it. Specs are published facts only; where a lab discloses nothing, this says
+ * so rather than inventing a parameter count.
+ *
+ * Each seat is a CHARACTER holding one fixed lens across all three questions.
+ * The character is not decoration: it is what stops a juror answering the
+ * investment question as a generic investor and the engineering question as a
+ * generic engineer, which is what the old per-question personas produced.
  */
-export const GRADER = {
-  id: "nemotron-ultra",
-  name: "Nemotron 3 Ultra",
-  lab: "NVIDIA",
-  model: "nvidia/nemotron-3-ultra-550b-a55b",
-  spec: "Mixture-of-experts, 550B total parameters with roughly 55B active per token — both numbers are published in the model's own name. Trained by the company that makes the accelerators everyone else rents, and served on NVIDIA's own inference.",
-} as const;
+export const PANELISTS = [
+  { id: "nemotron", name: "Nemotron 3 Ultra", lab: "NVIDIA",
+    model: "nvidia/nemotron-3-ultra-550b-a55b",
+    character: "Nemo", title: "Staff Engineer, Seat 1",
+    lens: "I judge by what breaks at 3am and who gets paged.",
+    bio: "Nine years on the exchange side, most of it in the part of the stack nobody demos. Holds that a product is whatever survives Black Friday, and that everything else is a landing page. Reads the careers page before the homepage.",
+    spec: "Mixture-of-experts, 550B total parameters with roughly 55B active per token — both numbers are published in the model's own name. Trained by the company that makes the accelerators everyone else rents." },
+  { id: "glm", name: "GLM 5.3", lab: "Zhipu AI",
+    model: "glm-5.3",
+    character: "Atlas", title: "Partner, Seat 2",
+    lens: "I judge by what this looks like at 10x revenue and whether anyone is left to buy it.",
+    bio: "Partner at a fund you have heard of and cannot quite name. Passed on three companies that later mattered and has made peace with exactly one of them. Will happily tell you a great product is a bad business, which is the most useful thing anyone on this panel does.",
+    spec: "Open weights with a published architecture, though the exact size of this tier is undisclosed. Built by a lab that spun out of Tsinghua and ships more than it announces." },
+  { id: "gemini", name: "Gemini 3.5 Flash Lite", lab: "Google DeepMind",
+    model: "gemini-3.5-flash-lite",
+    character: "Juno", title: "Operator-in-Residence, Seat 3",
+    lens: "I judge by whether this survives the renewal conversation eighteen months in.",
+    bio: "Three exits, two of which are not up for discussion. Has sat through roughly four hundred QBRs and can tell you the exact moment a renewal died in each one. Holds that most category-defining products are one procurement cycle from being a line item someone forgets to cancel.",
+    spec: "The smaller of Google's fast tiers. Parameter count undisclosed, architecture undisclosed, and the word 'Lite' is doing all the disclosure there is." },
+] as const;
+
+export const WRITER = {
+  name: "GPT-5.6 Luna", lab: "OpenAI", model: "gpt-5.6-luna",
+  character: "Vega", title: "Clerk of the Panel",
+  bio: "Does not score. Records. Has one job: report what the three judges actually said, including — especially — where they disagreed.",
+  mandate: "Never averages. When the panel splits, the split is the finding.",
+  spec: "Parameter count undisclosed. Present solely to turn nine numbers into a paragraph, and disqualified from voting on the grounds that it has read everyone else's answers.",
+};
 
 /**
- * A row graded by a model that is no longer the pinned grader.
+ * Who actually answered, keyed by the model id recorded on the take.
  *
- * The grader is pinned with no fallback, so in normal operation this is always
- * false and the check costs nothing. It exists for the day the pin moves: at
- * that moment every existing row was graded by a different instrument, and a
- * board that cannot say which rows those are is a board quietly comparing
- * incomparable numbers. `ranking.model_used` is stored per row precisely so
- * this question stays answerable.
+ * Seats are now PINNED — one model each, no fallback, and a seat that cannot
+ * answer fails the whole ranking rather than letting another lab sit in it.
+ * So for anything ranked since the pin, `model_used` always equals the seat's
+ * declared model and this table is a formality.
+ *
+ * It is kept, and kept complete, for rows ranked BEFORE the pin. The old open
+ * ladder let GLM and Qwen answer in DeepSeek's seat on five of the first
+ * twenty-three companies. Those rows are still in the database, and rendering
+ * a character's bio above words that character's model never wrote is exactly
+ * the lie the pin exists to prevent. Identity is resolved from the model that
+ * ANSWERED: the seat is an intention, the model id is the fact.
  */
-export const isStaleGrade = (modelUsed: string): boolean =>
-  Boolean(modelUsed) && modelUsed !== GRADER.model;
+export const MODEL_IDENTITY: Record<string, { name: string; lab: string; spec: string }> = {
+  "nvidia/nemotron-3-ultra-550b-a55b": {
+    name: "Nemotron 3 Ultra", lab: "NVIDIA",
+    spec: "Mixture-of-experts, 550B total parameters with roughly 55B active per token — both numbers are published in the model's own name. Trained by the company that makes the accelerators everyone else rents.",
+  },
+  "nvidia/nemotron-3-super-120b-a12b": {
+    name: "Nemotron 3 Super", lab: "NVIDIA",
+    spec: "Mixture-of-experts, 120B total parameters with roughly 12B active per token — the sparsity is published in the model's own name. Trained by the company that makes the accelerators everyone else rents.",
+  },
+  "nvidia/llama-3.3-nemotron-super-49b-v1.5": {
+    name: "Nemotron Super 49B", lab: "NVIDIA",
+    spec: "49B dense, derived from Llama 3.3 70B by neural architecture search — NVIDIA published both the pruning method and the result. Smaller than its sibling and noticeably quicker to commit.",
+  },
+  "deepseek-v4-pro": {
+    name: "DeepSeek V4 Pro", lab: "DeepSeek",
+    spec: "Mixture-of-experts with open weights and a published architecture, though the exact parameter count for this tier is undisclosed. Reasons at length before committing, which is either rigour or stalling depending on how the answer turns out.",
+  },
+  "qwen3.8-max": {
+    name: "Qwen 3.8 Max", lab: "Alibaba",
+    spec: "The closed top tier of the Qwen line; parameter count undisclosed. Alibaba open-weights most of this family and then declines to say anything about the biggest one.",
+  },
+  "glm-5.3": {
+    name: "GLM 5.3", lab: "Zhipu AI",
+    spec: "Open weights with a published architecture; the tier's exact size is undisclosed. Built by a lab that spun out of Tsinghua and ships more than it announces.",
+  },
+  "gemini-3.5-flash": {
+    name: "Gemini 3.5 Flash", lab: "Google DeepMind",
+    spec: "Parameter count undisclosed, architecture undisclosed. Google will tell you it is fast and will not tell you why.",
+  },
+  "gemini-3.5-flash-lite": {
+    name: "Gemini 3.5 Flash Lite", lab: "Google DeepMind",
+    spec: "The smaller Flash tier. Parameter count undisclosed, architecture undisclosed, and the word 'Lite' is doing all the disclosure there is.",
+  },
+  "gpt-5.6-luna": {
+    name: "GPT-5.6 Luna", lab: "OpenAI",
+    spec: "Parameter count undisclosed. Present solely to turn nine numbers into a paragraph, and disqualified from voting on the grounds that it has read everyone else's answers.",
+  },
+};
 
-export const graderLoadingMessages = (): string[] => [
-  `Handing the pages to ${GRADER.name}…`,
-  "Scoring three dimensions against fixed anchors…",
-  "Working out what the grade turns on…",
-];
+/**
+ * Identity of whoever filled a seat — and whether the character may be shown.
+ *
+ * The character is the load-bearing part. A juror is a person now, and a person
+ * cannot be swapped for a model from another lab and still be that person. So
+ * `character` is returned ONLY when the recorded model is the seat's pinned
+ * model. Where it is not — a row ranked before the pin — the answer is
+ * attributed to the model that actually produced it, with no character and no
+ * bio, and `stale` set so the page can say why.
+ *
+ * That asymmetry is deliberate. Attributing Qwen's words to Nemo Vasquez would
+ * be a fabricated byline, which is a worse failure than an unglamorous row.
+ */
+export function identityFor(modelUsed: string, panelistId: string, rankingStale = false) {
+  const seat = PANELISTS.find((p) => p.id === panelistId);
+  const known = MODEL_IDENTITY[modelUsed];
+  const pinned = !!seat && seat.model === modelUsed && !rankingStale;
+
+  if (pinned && seat) {
+    return {
+      name: seat.name, lab: seat.lab, spec: seat.spec,
+      character: seat.character, title: seat.title, bio: seat.bio, lens: seat.lens,
+      stale: false,
+    };
+  }
+
+  return {
+    name: known?.name ?? seat?.name ?? modelUsed,
+    lab: known?.lab ?? "",
+    spec: known?.spec ?? "",
+    character: null, title: "", bio: "", lens: "",
+    stale: true,
+  };
+}
+
+/**
+ * True when a take predates the current pinned panel.
+ *
+ * Not "a substitute was seated" — that can no longer happen. This flags a row
+ * whose scores came from a jury the board no longer uses, which is a staleness
+ * problem rather than a disclosure one. Re-rank it; do not annotate it.
+ */
+export const isStaleTake = (modelUsed: string, panelistId: string): boolean =>
+  !PANELISTS.some((p) => p.id === panelistId && p.model === modelUsed);
+
+/**
+ * Staleness belongs to the RANKING, not to the seat.
+ *
+ * A seat-by-seat check gets this wrong whenever a panel change leaves one seat
+ * untouched. It did: the Gemini seat kept `gemini-3.5-flash-lite` across the
+ * change, so on a row scored by the OLD jury two takes correctly rendered as
+ * bare models and the third rendered as "Gemma Larkspur" — one page, three
+ * jurors, two naming systems, and a character's byline over words written
+ * while she did not exist.
+ *
+ * A ranking is a single event. Either the panel that produced it is the panel
+ * the board now runs, or it is not, and every take on it inherits that answer.
+ */
+export const rankingIsStale = (takes: Take[]): boolean =>
+  takes.some((t) => isStaleTake(t.model_used, t.panelist_id));
+
+export const panelistName = (id: string) =>
+  PANELISTS.find((p) => p.id === id)?.name ?? id;
+
+/**
+ * The panel's labs as prose: "NVIDIA, Alibaba and Google DeepMind".
+ *
+ * Exists because the roster was previously written out by hand in three
+ * places, and a seat change left the landing page, the loading messages and
+ * llms.txt each naming a different set — one of them a lab that had not been
+ * on the panel for a full deploy. Any sentence naming the labs calls this.
+ */
+export function panelLabs(): string {
+  const labs = PANELISTS.map((p) => p.lab);
+  return labs.length > 1
+    ? `${labs.slice(0, -1).join(", ")} and ${labs[labs.length - 1]}`
+    : (labs[0] ?? "");
+}
+
+/** "Nemo is reading…" — one per seat, in panel order. */
+export const panelLoadingMessages = (): string[] =>
+  PANELISTS.map((p) => `${p.character} is reading…`);
 
 export const CATEGORY_LABELS: Record<string, string> = {
   "publisher-monetization": "Publisher Monetization",
@@ -206,10 +341,20 @@ export const categoryLabel = (key: string | null) => CATEGORY_LABELS[key ?? ""] 
 
 // ── Shapes ──────────────────────────────────────────────────────────────────
 
-export interface DimensionScore {
+export interface Rating {
   score: number;
-  /** What on the pages produced this band. One line. */
-  reason: string;
+  summary: string;
+  adjective: string;
+}
+
+export interface Take {
+  panelist_id: string;
+  model_used: string;
+  innovation: number;
+  difficulty: number;
+  investability: number;
+  ratings: Record<QuestionKey, Rating>;
+  adjective: string;
 }
 
 export interface Entry {
@@ -220,101 +365,27 @@ export interface Entry {
   one_liner: string | null;
   provisional: number;
 
-  /** Subcategory — one of the 22 closed keys. */
   category: string | null;
-  /** Size class. */
   band: Band;
-  /** Category, in the board's three-level taxonomy. */
   side: Side;
   band_evidence: string | null;
   band_inferred: number;
 
-  /** The mean of the three, 1-5, to one decimal. */
-  grade: number;
-  originality: number;
-  defensibility: number;
-  outlook: number;
+  /** Sum of the three means, 0-30, to one decimal. */
+  total: number;
+  innovation: number;
+  difficulty: number;
+  investability: number;
 
-  /** {dimension: {reason, quote, source_url}} — see evidenceFor(). */
-  evidence_json: string;
+  split_question: string | null;
+  split_spread: number;
 
   summary: string;
   stack_json: string;
-
-  /**
-   * What produced this number: which bytes, which rubric, which model.
-   *
-   * All three are shown on the company page. A board that averages rows graded
-   * by different instruments without saying so is not a leaderboard, it is a
-   * pile of numbers that happen to share a column.
-   */
-  input_hash: string;
-  rubric_version: string;
-  model_used: string;
   created_at: string;
-}
 
-export const scoresFor = (entry: Entry): Record<DimensionKey, number> => ({
-  originality: entry.originality,
-  defensibility: entry.defensibility,
-  outlook: entry.outlook,
-});
-
-/** One dimension's working: what the grader concluded, and the span it cited. */
-export interface Evidence {
-  reason: string;
-  quote: string;
-  sourceUrl: string;
-}
-
-/**
- * The per-dimension evidence, defended twice over.
- *
- * `JSON.parse` succeeding does not mean the result is the shape this returns —
- * `"a string"` and `[1,2]` are both valid JSON and neither is a record. The
- * type said Record and the function could hand back a string, which is the kind
- * of lie that surfaces as a blank section rather than as an error.
- *
- * A single malformed row must not take the static build down with it, so every
- * failure degrades to an empty record rather than throwing.
- */
-export function evidenceFor(entry: Entry): Record<string, Evidence> {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(entry.evidence_json || "{}");
-  } catch {
-    return {};
-  }
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return {};
-
-  const out: Record<string, Evidence> = {};
-  for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
-    if (typeof value !== "object" || value === null || Array.isArray(value)) continue;
-    const cell = value as Record<string, unknown>;
-    out[key] = {
-      reason: typeof cell.reason === "string" ? cell.reason : "",
-      quote: typeof cell.quote === "string" ? cell.quote : "",
-      sourceUrl: typeof cell.source_url === "string" ? cell.source_url : "",
-    };
-  }
-  return out;
-}
-
-export type Letter = "A" | "B" | "C" | "D" | "E";
-
-/**
- * Letter bands sit ON TOP of the mean and never replace it.
- *
- * Mirrored from grader.ts, boundaries included: 3.5 is a B, not a C. That edge
- * is reachable (4,4,4,3,3 averages exactly 3.5), so an off-by-one here would
- * misgrade real rows rather than a theoretical one.
- */
-export function letterFor(grade: number): Letter {
-  if (grade >= 4.5) return "A";
-  if (grade >= 3.5) return "B";
-  if (grade >= 2.5) return "C";
-  if (grade >= 1.5) return "D";
-  return "E";
+  /** Three rows, nine ratings. Attached by getEntries. */
+  takes: Take[];
 }
 
 /**
@@ -336,16 +407,14 @@ export interface Ranks {
 /**
  * Score bands drive the icon on each row.
  *
- * Thresholds are on the 1-5 grade and line up exactly with the letter bands, so
- * the icon and the letter can never disagree — they are two renderings of one
- * decision. `hockey-mask` at the bottom is the tonal load-bearer: a low grade
- * has to read as a judgement the company can argue with rather than a sneer.
+ * Thresholds are out of 30, not 100. `hockey-mask` at the bottom is the tonal
+ * load-bearer: the tool is a bit, and a low score has to read as a joke the
+ * company is in on rather than a verdict delivered straight.
  */
-export function scoreBand(grade: number): { icon: string; label: string; solid: boolean } {
-  if (grade >= 4.5) return { icon: "fire-solid", label: "Exceptional", solid: true };
-  if (grade >= 3.5) return { icon: "star", label: "Genuinely interesting", solid: false };
-  if (grade >= 2.5) return { icon: "face-thinking", label: "Competent", solid: false };
-  if (grade >= 1.5) return { icon: "face-thinking", label: "Thin", solid: false };
+export function scoreBand(total: number): { icon: string; label: string; solid: boolean } {
+  if (total >= 24) return { icon: "fire-solid", label: "On fire", solid: true };
+  if (total >= 19) return { icon: "star", label: "Genuinely interesting", solid: false };
+  if (total >= 12) return { icon: "face-thinking", label: "The panel is thinking", solid: false };
   return { icon: "hockey-mask", label: "Brutal", solid: false };
 }
 
@@ -392,12 +461,26 @@ async function query<T>(sql: string, params: unknown[] = []): Promise<T[]> {
   }
 }
 
+interface EntryRow extends Omit<Entry, "takes"> {
+  ranking_id: number;
+}
+
+interface TakeRow {
+  ranking_id: number;
+  panelist_id: string;
+  model_used: string;
+  innovation: number;
+  difficulty: number;
+  investability: number;
+  ratings_json: string;
+  adjective: string;
+}
+
 const ENTRY_SELECT = `
   SELECT c.slug, c.name, c.domain, c.logo_url, c.one_liner, c.provisional,
          c.category, c.band, c.side, c.band_evidence, c.band_inferred,
-         r.grade, r.originality, r.defensibility, r.outlook,
-         r.evidence_json, r.summary, r.stack_json,
-         r.input_hash, r.rubric_version, r.model_used, r.created_at
+         r.id AS ranking_id, r.total, r.innovation, r.difficulty, r.investability,
+         r.split_question, r.split_spread, r.summary, r.stack_json, r.created_at
   FROM company c
   JOIN ranking r ON r.company_id = c.id
   WHERE c.status = 'published'`;
@@ -405,41 +488,86 @@ const ENTRY_SELECT = `
 let cache: Entry[] | null = null;
 
 /**
- * Every published entry, best first.
+ * Every published entry, best first, with its panel attached.
  *
- * ONE query now. The panel needed two — ranking rows, then three takes per row,
- * stitched in memory — because a join would have repeated every company row
- * three times. With the grade and its three dimensions all on the ranking row,
- * there is nothing left to stitch. Still memoised: `getStaticPaths` and each
- * page body would otherwise re-fetch the whole board over the network for every
- * company on it.
+ * Two queries rather than a join, then stitched in memory. A join would repeat
+ * every company row three times and the stitching would happen anyway; this way
+ * the ranking rows arrive once and the takes are attached to them. Memoised
+ * because `getStaticPaths` and each page body would otherwise re-fetch the whole
+ * board over the network for every company on it.
  */
 export async function getEntries(): Promise<Entry[]> {
   if (cache) return cache;
 
   /**
-   * Tie-break, in order: defensibility, outlook, originality, then name.
+   * Tie-break, in order: innovation, difficulty, agreement, then name.
    *
-   * Ties got MORE likely with three dimensions, not less — three integers in
-   * 1-5 average onto 13 values in 0.33 steps where five gave 21 in 0.2 steps —
-   * so the tie-break matters more than it did, not less.
+   * Ties are commoner than the decimals suggest. Nine integers averaged three
+   * ways can only land on thirds, so totals collapse onto a coarse lattice —
+   * 6/6/6, 6/8/4 and 8/4/6 all total 18 — and at seven companies the board
+   * already had three rows on 17.3.
    *
    * Alphabetical alone was the worst available answer: arbitrary, but it LOOKS
    * ordered, so a reader infers a judgement that was never made. These keys are
-   * defensible instead, and the order encodes what the board is FOR: at the same
-   * grade, the company that is harder to replicate ranks above the one riding a
-   * better market, and both rank above the one whose only edge is being first.
+   * all defensible instead. Innovation leads because it is the question the
+   * tool leads with; `split_spread ASC` puts a company the panel agreed on
+   * above one it argued over at the same score, which is the honest reading of
+   * two identical numbers with different confidence behind them.
    */
-  const rows = await query<Entry>(
+  const rows = await query<EntryRow>(
     `${ENTRY_SELECT}
-     ORDER BY r.grade DESC, r.defensibility DESC, r.outlook DESC,
-              r.originality DESC, c.name ASC`,
+     ORDER BY r.total DESC, r.innovation DESC, r.difficulty DESC,
+              r.split_spread ASC, c.name ASC`,
+  );
+  if (!rows.length) {
+    cache = [];
+    return cache;
+  }
+
+  const takes = await query<TakeRow>(
+    `SELECT ranking_id, panelist_id, model_used, innovation, difficulty, investability,
+            ratings_json, adjective
+     FROM panel_take WHERE ranking_id IN (${rows.map(() => "?").join(",")})`,
+    rows.map((r) => r.ranking_id),
   );
 
-  cache = rows;
+  const byRanking = new Map<number, Take[]>();
+  for (const t of takes) {
+    let ratings: Record<QuestionKey, Rating>;
+    try {
+      ratings = JSON.parse(t.ratings_json || "{}");
+    } catch {
+      ratings = {} as Record<QuestionKey, Rating>;
+    }
+    const list = byRanking.get(t.ranking_id) ?? [];
+    list.push({ ...t, ratings });
+    byRanking.set(t.ranking_id, list);
+  }
+
+  cache = rows.map(({ ranking_id, ...entry }) => ({
+    ...entry,
+    // Ordered by the declared panel so every page reads the same way, rather
+    // than by whatever order the database handed the rows back.
+    takes: (byRanking.get(ranking_id) ?? []).sort(
+      (a, b) =>
+        PANELISTS.findIndex((p) => p.id === a.panelist_id) -
+        PANELISTS.findIndex((p) => p.id === b.panelist_id),
+    ),
+  }));
   return cache;
 }
 
+/** The board as the page renders it: one ranked list per tab. */
+export async function getBoard(): Promise<Record<string, Entry[]>> {
+  const all = await getEntries();
+  const board: Record<string, Entry[]> = {};
+  for (const cohort of COHORTS) {
+    board[cohort.key] = all.filter((e) => cohortKeyOf(e) === cohort.key);
+  }
+  return board;
+}
+
+/** Both of a company's ranks, computed against the full board. */
 export function ranksFor(entry: Entry, all: Entry[]): Ranks {
   const key = cohortKeyOf(entry);
   const cohort = all.filter((e) => cohortKeyOf(e) === key);
@@ -483,7 +611,33 @@ export function stackFor(entry: Entry): Record<string, string[]> {
   }
 }
 
+/**
+ * One adjective per panelist, in panel order, with repeats collapsed.
+ *
+ * This is a row's real payload. A score says how a company did; three words
+ * from three different labs say how much they agreed about it — and a row
+ * reading "assured / derivative / promising" tells you more at a glance than
+ * any single number can.
+ *
+ * The collapsing matters more than it looks. Two panelists independently
+ * reaching for the same word is the strongest signal a row can carry, but
+ * rendered literally it reads "credible credible reskinned", which a reader
+ * parses as a duplication bug rather than as agreement. Counting it — "credible
+ * ×2" — turns the same fact into the thing it actually is.
+ */
+export function adjectivesFor(entry: Entry): { word: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const t of entry.takes) {
+    if (t.adjective) counts.set(t.adjective, (counts.get(t.adjective) ?? 0) + 1);
+  }
+  // Insertion order is panel order, so the roster still reads left to right.
+  return [...counts].map(([word, count]) => ({ word, count }));
+}
+
+/** Scores for one question across the panel, for the per-question breakdown. */
+export const scoresFor = (entry: Entry, key: QuestionKey): number[] =>
+  entry.takes.map((t) => t[key]);
+
 /** A number like 7 renders as "7", 7.3 as "7.3". Never "7.0". */
 export const fmt = (n: number): string =>
   Number.isInteger(n) ? String(n) : n.toFixed(1);
-

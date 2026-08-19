@@ -6,21 +6,18 @@
  * ones, so this wins over a company whose slug happened to be "leaderboard";
  * the API also refuses that slug outright rather than relying on that.
  *
- * ── One table, not three tabs ──
- * The board used to split into a tab per cohort with the overflow folded into a
- * <details>, which was elegant at 28 companies and unreadable at 400. It is now
- * a single dense table: every company in one place, sortable by any column and
- * filterable by side or size class.
+ * ── Tabs are bands, sections are sides ──
+ * Which is the first of the two ranks made structural. "3rd in emerging
+ * sell-side" is literally a position in one section of one tab, so a reader who
+ * can see the shape of the board can see where the number came from without
+ * being told. The second rank — position within a subcategory — lives on the
+ * company's own page, where there is room to say which subcategory.
  *
- * The cost of that is real and worth naming: "3rd in emerging sell-side" was
- * literally a position in one section of one tab, so a reader could see where
- * the number came from without being told. That structure is gone from the
- * board and survives on the company page, which has room to say which cohort a
- * rank belongs to. What is bought is the comparison the tabs made impossible —
- * reading a dimension DOWN the whole board rather than across one company.
- *
- * Filters are enhancements, not the structure. Every row is in the HTML, so the
- * page is complete and crawlable with scripting off.
+ * The tabs are radio inputs, not JavaScript. Every band stays in the HTML and
+ * stays crawlable, the whole thing works with scripting off, and a named radio
+ * group is natively arrow-key navigable — which is the interaction a tablist is
+ * meant to have. The inputs sit before the panels because CSS can only select
+ * forward.
  */
 import Base from "../../../layouts/Base.astro";
 import SiteHeader from "../../../components/sections/SiteHeader.astro";
@@ -28,13 +25,25 @@ import SiteFooter from "../../../components/sections/SiteFooter.astro";
 import SiteMotion from "../../../components/SiteMotion.astro";
 import PixelIcon from "../../../components/ds/PixelIcon.astro";
 import DitherLine from "../../../components/ds/DitherLine.astro";
-import RankTable from "../../../components/ds/RankTable.astro";
-import { getEntries, GRADER, DIMENSIONS } from "../../../lib/rankings";
+import RankBoard from "../../../components/ds/RankBoard.astro";
+import PanelStrip from "../../../components/ds/PanelStrip.astro";
+import { getEntries, getBoard, COHORTS } from "../../../lib/rankings";
 
 const all = await getEntries();
+const board = await getBoard();
+const champion = all[0]?.slug ?? null;
 
-const title = "The Rank My AdTech leaderboard — private adtech startups, graded";
-const description = `${all.length} private adtech companies graded 1-5 on three dimensions by ${GRADER.name}, from their own websites.`;
+const countIn = (key: string) => board[key]?.length ?? 0;
+
+// The tab that opens is the fullest one, not the first.
+//
+// A board that opens on an empty tab looks broken regardless of how many
+// companies sit on the other two. Small thing, but it stops the page lying
+// about itself while the board is still filling up.
+const opening = [...COHORTS].sort((a, b) => countIn(b.key) - countIn(a.key))[0]?.key ?? COHORTS[0].key;
+
+const title = "The Rank My AdTech leaderboard — private adtech startups, ranked";
+const description = `${all.length} private adtech companies judged by three language models from three different labs, split by which side of the supply chain they sit on.`;
 ---
 
 <Base title={title} description={description}
@@ -45,56 +54,72 @@ const description = `${all.length} private adtech companies graded 1-5 on three 
     <section class="aol-rma__hero">
       <div class="aol-rma__inner">
         <p class="aol-rma__eyebrow">
-          <PixelIcon name="trophy-solid" size={12} /> The board · {all.length} graded
+          <PixelIcon name="trophy-solid" size={12} /> The board · {all.length} ranked
         </p>
         <h1 class="aol-rma__h1">The leaderboard.</h1>
         <p class="aol-rma__lede">
-          Private adtech companies, graded 1–5 on three dimensions from their own
-          websites and nothing else. Sort by any column; the interesting reading is
-          down a column rather than across a row.
+          Private adtech companies, judged by three models from three different labs.
+          Split by which side of the supply chain they sit on, because an SSP and a
+          measurement vendor are not doing the same job and should not share a table.
         </p>
         <p class="aol-rma__crosslink">
-          <a href="/tools/rank-my-adtech/">Grade your own company →</a>
+          <a href="/tools/rank-my-adtech/">Rank your own company →</a>
         </p>
       </div>
     </section>
 
+    {/* The board leads — on the page named "leaderboard", the leaderboard is
+        the content, and the panel's credentials are the footnote to it. */}
     <section class="aol-rma__board">
       <div class="aol-rma__inner">
         <h2 class="aol-rma__h2" id="board">The board.</h2>
-        <RankTable entries={all} />
+        <div class="aol-rt">
+          {/* Inputs first: CSS selects forward only. */}
+          {COHORTS.map((cohort) => (
+            <input class="aol-rt__input" type="radio" name="cohort"
+              id={`cohort-${cohort.key}`} checked={cohort.key === opening}
+              aria-label={`${cohort.label} — ${countIn(cohort.key)} companies`} />
+          ))}
+
+          <div class="aol-rt__tabs" role="group" aria-labelledby="board">
+            {COHORTS.map((cohort) => (
+              <label class="aol-rt__tab" for={`cohort-${cohort.key}`}>
+                <PixelIcon name={cohort.icon as any} size={24} />
+                <span class="aol-rt__tab-name">{cohort.label}</span>
+                <span class="aol-rt__tab-count">{countIn(cohort.key)}</span>
+              </label>
+            ))}
+          </div>
+
+          <div class="aol-rt__panels">
+            {COHORTS.map((cohort) => (
+              <div class="aol-rt__panel">
+                <p class="aol-rt__blurb">{cohort.blurb}</p>
+                <RankBoard entries={board[cohort.key] ?? []} championSlug={champion} limit={15} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* The figure's key — the row's marks, decoded once instead of hidden
+            in title= attributes nobody on a phone can reach. */}
+        <p class="aol-rt__legend">
+          On fire 24+ · Interesting 19+ · Thinking 12+ · Brutal &lt;12 ·
+          Ticks — each panelist's own total; scattered ticks are a split panel
+        </p>
 
         <DitherLine />
         <p class="aol-rma__disclosure">
-          <PixelIcon name="question-circle" size={12} /> Graded by {GRADER.name} reading
-          public pages — one model, one published rubric, temperature 0. An opinion with
-          its reasoning attached, not research. Want a row gone? Email{" "}
-          <a href="mailto:hello@andorlabs.ca?subject=Rank%20My%20AdTech%20removal">hello@andorlabs.ca</a>{" "}and it goes.
+          <PixelIcon name="question-circle" size={12} /> Judged by language models reading
+          public pages. An opinion, meant to be funny, not research. Want a row gone?
+          Email{" "}<a href="mailto:hello@andorlabs.ca?subject=Rank%20My%20AdTech%20removal">hello@andorlabs.ca</a>{" "}and it goes.
         </p>
       </div>
     </section>
 
-    {/* The rubric, published in full. A grade is only auditable if the reader
-        can see what was being asked — and with one grader there is no spread of
-        opinions to imply a method, so the method has to be stated. */}
     <section class="aol-rma__axes">
       <div class="aol-rma__inner">
-        <h2 class="aol-rma__h2">What is being graded.</h2>
-        <ul class="aol-rma__axis-list">
-          {DIMENSIONS.map((d) => (
-            <li class="aol-rma__axis">
-              <span class="aol-rma__axis-icon"><PixelIcon name={d.icon as any} size={22} /></span>
-              <div class="aol-rma__axis-body">
-                <h3 class="aol-rma__axis-name">{d.label}</h3>
-                <p class="aol-rma__axis-q">{d.question}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-        <p class="aol-rma__note">
-          Each is an integer 1–5 against fixed anchors. The grade is their mean, to one
-          decimal. Graded by {GRADER.lab} {GRADER.name} — {GRADER.spec}
-        </p>
+        <PanelStrip />
       </div>
     </section>
   </main>

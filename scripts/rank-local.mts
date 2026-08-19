@@ -19,21 +19,6 @@
  *   grep -v '^\[rank\]' /tmp/seed.sql > /tmp/seed-clean.sql
  *   npx wrangler d1 execute andor-rankings -c d1.wrangler.jsonc --remote \
  *     --file /tmp/seed-clean.sql -y
- *
- * ── Iterating without paying for it ──
- * Every network stage is cached to .scratch/rank-cache/<domain>/, keyed by a
- * fingerprint of that stage's inputs (see scripts/lib/rank-cache.ts). So the
- * first run on a domain costs four model calls and every run after it costs
- * whatever you actually changed:
- *
- *   --replay              refuse to call anything; a miss is an error, so a
- *                         replay run is provably free. This is the loop for
- *                         tuning classify.ts, the SQL, or anything on the page.
- *   --refresh=panel       re-run the three seats (rubric or model changes)
- *   --refresh=writer      re-roll the prose (the writer runs at temp 0.8, so
- *                         the same prompt legitimately gives a new answer)
- *   --refresh=crawl       re-read the site
- *   --refresh             everything, i.e. the old behaviour
  */
 import { readSite } from "../functions/_lib/crawl";
 import { detectStack, byCategory } from "../functions/_lib/stack";
@@ -44,14 +29,9 @@ import {
   place, placeFromMarkup, sideFor, cohortLabel, categoryLabel, categoryFor,
   CATEGORIES, CATEGORY_NOT,
 } from "../functions/_lib/classify";
-import { createHash } from "node:crypto";
-import {
-  runGrader, recallFrom, GRADER, DIMENSION_KEYS, rubricVersion, verifyQuotes,
-  buildGraderPrompt, buildGraderSystem,
-  type Grade, type GraderInput,
-} from "../functions/_lib/grader";
+import { runPanel, resolveRecall, WRITER } from "../functions/_lib/panel";
+import { buildWriterPrompt, normalizeSummary, assertSummaryUsable } from "../functions/_lib/writer";
 import { askLadder, extractJson, keyFor, type Provider } from "../functions/_lib/providers";
-import { stage, fingerprint, parseCacheFlags, type CacheOptions } from "./lib/rank-cache";
 
 const env = {
   GEMINI_API_KEY: process.env.GEMINI_API_KEY,
@@ -66,11 +46,9 @@ const q = (v: unknown) =>
 const slugify = (v: string) =>
   v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
 
-async function rank(domain: string, cache: CacheOptions) {
+async function rank(domain: string) {
   const t0 = Date.now();
-  // The crawl has no inputs beyond the domain, so it never self-invalidates —
-  // it refreshes when asked for by name and not otherwise.
-  const site = await stage(domain, "crawl", "*", cache, () => readSite(domain, CONTEXT_DEV_API_KEY));
+  const site = await readSite(domain, CONTEXT_DEV_API_KEY);
   if (!site.pages) throw new Error("read failed");
   // Same floor as the live Function: under 1,500 chars of real corpus, refuse
   // before the identify call rather than feed a model a page shell (or, once,
@@ -81,95 +59,69 @@ async function rank(domain: string, cache: CacheOptions) {
 
   const detected = detectStack(site.html);
 
-  const identifyPrompt = buildIdentifyPrompt(domain, site.pages, site.thin);
-  const identity = await stage(domain, "identify", fingerprint(identifyPrompt), cache, async () => {
-    // OpenCode Go leads — mirrors the Function's order so a local re-run seats
-    // the same identifier the live pipeline would.
-    for (const provider of ["opencode", "gemini", "nvidia"] as Provider[]) {
-      if (!keyFor(provider, env)) continue;
-      try {
-        const { value } = await askLadder(provider, env, identifyPrompt,
-          (t) => assertIdentityUsable(normalizeIdentity(extractJson(t))));
-        return value;
-      } catch (e) { console.error(`  identify ${provider}: ${e}`); }
-    }
-    throw new Error("identify failed");
-  });
+  let identity;
+  // OpenCode Go leads — mirrors the Function's order so a local re-run seats
+  // the same identifier the live pipeline would.
+  for (const provider of ["opencode", "gemini", "nvidia"] as Provider[]) {
+    if (!keyFor(provider, env)) continue;
+    try {
+      const { value } = await askLadder(provider, env, buildIdentifyPrompt(domain, site.pages, site.thin),
+        (t) => assertIdentityUsable(normalizeIdentity(extractJson(t))));
+      identity = value;
+      break;
+    } catch (e) { console.error(`  identify ${provider}: ${e}`); }
+  }
+  if (!identity) throw new Error("identify failed");
   if (!identity.eligible) return { refused: identity.ineligibleReason, domain };
   console.error(`  ${identity.name} — ${identity.category} — model stage "${identity.stage}"`);
 
   const markup = placeFromMarkup(site.html, site.pages);
   if (markup.isPublic) return { refused: `Public company — ${markup.isPublic}.`, domain };
 
-  const graderInput: GraderInput = {
+  const panel = await runPanel(env, {
     domain, pages: site.pages, thin: site.thin, categories: CATEGORIES, categoryNotes: CATEGORY_NOT,
-  };
-  /**
-   * The whole grade is cached as one unit, because it arrives as one.
-   *
-   * Under the panel this stage cached RAW takes and recomputed the aggregate on
-   * replay, so tuning how scores combined cost nothing. There is no aggregation
-   * step left — one model returns the five grades already decided — so the
-   * fingerprint below covers the prompt, the pinned model and the system
-   * message, and any change to the rubric correctly re-grades.
-   */
-  const grade = await stage<Grade>(
-    domain, "grade",
-    fingerprint(buildGraderPrompt(graderInput), [GRADER.model, buildGraderSystem()]),
-    cache,
-    async () => runGrader(env, graderInput),
-  );
+  });
 
-  const recall = recallFrom(grade);
+  const recall = resolveRecall(panel.takes);
   const category = categoryFor(domain, recall.category, identity.category);
   const placement = place(site.html, site.pages, identity.stage, recall);
   if (!placement.eligible) return { refused: placement.reason, domain };
   const side = sideFor(category);
   const cohort = cohortLabel(placement.band, side);
-  console.error(`  ${cohort} · ${category} · round ${recall.round || "none"} — ${placement.bandEvidence}`);
-  console.error(
-    `  ${grade.grade}/5 (${grade.letter}) — ` +
-    DIMENSION_KEYS.map((k) => `${k}=${grade.scores[k].score}`).join("  "),
-  );
-  /* Print the audit, not just the result. runGrader already refuses an
-     unverifiable answer; showing each quote is how a human spot-checks that the
-     matcher is matching real spans rather than trivially short ones. */
-  for (const c of verifyQuotes(grade, site.pages)) {
-    console.error(`  ${c.ok ? "✓" : "✗"} ${c.key.padEnd(14)} "${c.quote.slice(0, 88)}"`);
-  }
+  console.error(`  ${cohort} · ${category} (cat ${recall.categoryVotes}/3, round ${recall.round||"none"} ${recall.roundVotes}/3) — ${placement.bandEvidence}`);
+  console.error(`  ${panel.total}/30 — ${panel.takes.map((t) => `${t.panelistId} ${t.ratings.innovation.score}/${t.ratings.difficulty.score}/${t.ratings.investability.score}`).join("  ")}`);
+  if (panel.split) console.error(`  SPLIT on ${panel.split.question} by ${panel.split.spread}`);
 
-  /* No writer stage. The verdict came back in the same response as the grades,
-     which is the whole point of the change — there is nothing left to re-roll
-     independently, and `--refresh=grade` re-rolls prose and numbers together
-     because they were always one decision. */
-  const summary = grade.summary;
+  const { value: summary } = await askLadder(WRITER.provider, env,
+    buildWriterPrompt({ name: identity.name, oneLiner: identity.oneLiner,
+      categoryLabel: categoryLabel(category), cohort, panel }),
+    (t) => assertSummaryUsable(normalizeSummary(extractJson(t))),
+    { preferred: WRITER.model, temperature: 0.8 });
 
-  const logo = await stage(domain, "logo", "*", cache,
-    async () => (await resolveLogo(site.html, site.finalUrl))?.url ?? null);
+  const logo = (await resolveLogo(site.html, site.finalUrl))?.url ?? null;
   const slug = slugify(identity.name) || slugify(domain);
   console.error(`  done in ${Math.round((Date.now() - t0) / 1000)}s\n`);
 
   return {
-    domain, slug, identity, placement, side, cohort, grade, summary, logo, category,
+    domain, slug, identity, placement, side, cohort, panel, summary, logo, category,
     stack: byCategory(detected), thin: site.thin,
-    pages: site.pages, inputHash: sha256(site.pages),
   };
 }
-
-/** Same digest the Function computes with crypto.subtle, so hashes match. */
-const sha256 = (text: string) => createHash("sha256").update(text, "utf8").digest("hex");
 
 const sqlFor = (r: any) => {
   const lines = [
     `DELETE FROM company WHERE domain = ${q(r.domain)} AND id NOT IN (SELECT company_id FROM ranking);`,
     `INSERT INTO company (domain, name, slug, logo_url, one_liner, division, category, stage, band, side, band_evidence, band_inferred, provisional)
  VALUES (${q(r.domain)}, ${q(r.identity.name)}, ${q(r.slug)}, ${q(r.logo)}, ${q(r.identity.oneLiner)}, 'middleweight', ${q(r.category)}, ${q(r.identity.stage)}, ${q(r.placement.band)}, ${q(r.side)}, ${q(r.placement.bandEvidence)}, ${r.placement.bandInferred ? 1 : 0}, ${r.thin ? 1 : 0});`,
-    /* The snapshot first — ranking.input_hash is a foreign key onto it. */
-    `INSERT OR IGNORE INTO snapshot (hash, domain, pages) VALUES (${q(r.inputHash)}, ${q(r.domain)}, ${q(r.pages)});`,
-    `INSERT INTO ranking (company_id, grade, originality, defensibility, outlook, evidence_json, summary, stack_json, input_hash, rubric_version, model_used)
- VALUES ((SELECT id FROM company WHERE domain = ${q(r.domain)}), ${r.grade.grade}, ${r.grade.scores.originality.score}, ${r.grade.scores.defensibility.score}, ${r.grade.scores.outlook.score}, ${q(JSON.stringify(Object.fromEntries(DIMENSION_KEYS.map((k) => [k, { reason: r.grade.scores[k].reason, quote: r.grade.scores[k].quote, source_url: r.grade.scores[k].sourceUrl }]))))}, ${q(r.summary)}, ${q(JSON.stringify(r.stack))}, ${q(r.inputHash)}, ${q(rubricVersion())}, ${q(r.grade.modelUsed)});`,
+    `INSERT INTO ranking (company_id, total, innovation, difficulty, investability, split_question, split_spread, summary, stack_json)
+ VALUES ((SELECT id FROM company WHERE domain = ${q(r.domain)}), ${r.panel.total}, ${r.panel.means.innovation}, ${r.panel.means.difficulty}, ${r.panel.means.investability}, ${q(r.panel.split?.question ?? null)}, ${r.panel.split?.spread ?? 0}, ${q(r.summary)}, ${q(JSON.stringify(r.stack))});`,
   ];
-  /* No per-juror rows to emit: one grader has a byline, not a seat. */
+  for (const t of r.panel.takes) {
+    lines.push(
+      `INSERT INTO panel_take (ranking_id, panelist_id, model_used, innovation, difficulty, investability, ratings_json, adjective)
+ VALUES ((SELECT r.id FROM ranking r JOIN company c ON c.id = r.company_id WHERE c.domain = ${q(r.domain)}), ${q(t.panelistId)}, ${q(t.modelUsed)}, ${t.ratings.innovation.score}, ${t.ratings.difficulty.score}, ${t.ratings.investability.score}, ${q(JSON.stringify(t.ratings))}, ${q(t.adjective)});`,
+    );
+  }
   return lines.join("\n");
 };
 
@@ -181,7 +133,7 @@ const sqlFor = (r: any) => {
  * failure at company twenty throws away nineteen good rankings and an hour of
  * model calls.
  */
-const { opts: cache, rest: fromArgs } = parseCacheFlags(process.argv.slice(2));
+const fromArgs = process.argv.slice(2);
 const domains = fromArgs.length
   ? fromArgs
   : (await new Response(process.stdin as any).text())
@@ -191,7 +143,7 @@ let ranked = 0, refused = 0, failed = 0;
 for (const d of domains) {
   console.error(`── ${d}`);
   try {
-    const r: any = await rank(d, cache);
+    const r: any = await rank(d);
     if (r.refused) { console.error(`  REFUSED: ${r.refused}\n`); refused++; continue; }
     console.error(`  "${r.summary}"\n`);
     console.log(sqlFor(r));

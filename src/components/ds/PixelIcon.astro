@@ -13,7 +13,7 @@ interface Props {
   name:
     | "pencil-ruler" | "analytics" | "newspaper" | "trending" | "robot"
     | "seedlings" | "refresh" | "users-crown" | "handshake" | "bolt"
-    | "reddit" | "anthropic" | "open-ai" | "x" | "linkedin"
+    | "reddit" | "anthropic" | "open-ai"
     | "flag-checkered" | "play-solid"
     // Rank My AdTech. Solid weight is reserved for the three celebratory marks
     // so a leaderboard row has one loud note rather than a wall of blue.
@@ -44,9 +44,6 @@ const PATHS: Record<string, string> = {
   reddit: `<rect x="14" y="15" width="1" height="1"/><rect x="13" y="12" width="2" height="2"/><rect x="9" y="12" width="2" height="2"/><rect x="9" y="15" width="1" height="1"/><path d="m22,9v-2h-1v-2h-1v-1h-1v-1h-2v-1h-2v-1h-6v1h-2v1h-2v1h-1v1h-1v2h-1v2h-1v6h1v2h1v2h1v1h1v1h2v1h2v1h6v-1h2v-1h2v-1h1v-1h1v-2h1v-2h1v-6h-1Zm-3,5h-1v1h-1v2h-1v1h-2v1h-4v-1h-2v-1h-1v-3h-1v-1h-1v-2h1v-1h2v1h1v-1h3v-5h2v1h3v2h-2v-1h-2v3h2v1h1v-1h2v1h1v3Z"/><rect x="10" y="16" width="4" height="1"/>`,
   anthropic: `<path d="M16,17V15H15V12H14V10H13V8H12V6H11V4H7V6H6V8H5v2H4v2H3v3H2v2H1v2H4V17H5V15h8v2h1v2h3V17Zm-5-5H7V10H8V8h2v2h1Z"/><polygon points="23 17 23 19 20 19 20 17 19 17 19 15 18 15 18 13 17 13 17 10 16 10 16 8 15 8 15 6 14 6 14 4 17 4 17 6 18 6 18 8 19 8 19 10 20 10 20 13 21 13 21 15 22 15 22 17 23 17"/>`,
   "open-ai": `<path d="M22,8V7H21V6H19V4H18V3H17V2H16V1H11V2H10V3H9V2H6V3H4V4H3V6H2v5H1v5H2v1H3v1H5v2H6v1H7v1H8v1h5V22h1V21h1v1h3V21h2V20h1V18h1V13h1V8ZM9,6h1V4h1V3h5V4h1V5H12V6H11V7H10V9H9v2H8V8H9ZM5,17V16H4V15H3V11H4v2H5v2h8v1H12v1Zm10,1H14v2H13v1H8V20H7V19h5V18h1V17h1V15h1V13h1v3H15Zm5,0H19v1H18v1H16V18h1V16h1V14H17V12H16V11H15v1H14v2H10V13H9v1H7V13H6V12H5V10H4V6H5V5H6V4H8V6H7V8H6v2H7v2H8v1H9V12h1V10h4v1h1V10h2v1h1v1h1v2h1Zm1-5H20V11H19V9H11V8h1V7h7V8h1V9h1Z"/>`,
-  // Verbatim from @hackernoon/pixel-icon-library@1.1.0, icons/SVG/brands.
-  x: `<path d="m15.5,10v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h-3v1h-1v1h-1v1h-1v1h-1v1h-1v1h-2v-1h-1v-1h-1v-2h-1v-1h-1v-1H1.5v1h1v1h1v1h1v2h1v1h1v2h1v1h1v2h1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h3v-1h1v-1h1v-1h1v-1h1v-1h1v-1h2v1h1v1h1v2h1v1h1v1h7v-1h-1v-1h-1v-1h-1v-2h-1v-1h-1v-2h-1v-1h-1v-2h-1v-1h1Zm0,4v1h1v2h1v1h1v2h-3v-2h-1v-1h-1v-1h-1v-2h-1v-1h-1v-1h-1v-2h-1v-1h-1v-2h-1v-1h-1v-2h3v1h1v2h1v1h1v2h1v1h1v1h1v2h1Z"/>`,
-  linkedin: `<path d="m22,2v-1H2v1h-1v20h1v1h20v-1h1V2h-1Zm-9,10v8h-3v-11h3v1h1v-1h4v1h1v10h-3v-8h-3Zm-9-4v-3h3v3h-3Zm3,1v11h-3v-11h3Z"/>`,
   "flag-checkered": `<path d="m21,4v1h-2v1h-6v-1h-7v1h-1v-1h1v-2h-1v-1h-2v1h-1v2h1v17h2v-4h1v-1h7v1h6v-1h2v-1h1V4h-1Zm-9,11h-6v1h-1v-3h1v-1h6v3Zm0-5h-6v1h-1v-3h1v-1h6v3Zm8,5h-1v1h-5v-3h5v-1h1v3Zm0-5h-1v1h-5v-3h5v-1h1v3Z"/>`,
   "play-solid": `<polygon points="22 11 22 13 21 13 21 14 20 14 20 15 18 15 18 16 16 16 16 17 15 17 15 18 13 18 13 19 11 19 11 20 10 20 10 21 8 21 8 22 6 22 6 23 3 23 3 22 2 22 2 2 3 2 3 1 6 1 6 2 8 2 8 3 10 3 10 4 11 4 11 5 13 5 13 6 15 6 15 7 16 7 16 8 18 8 18 9 20 9 20 10 21 10 21 11 22 11"/>`,
 

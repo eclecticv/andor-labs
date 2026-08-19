@@ -14,10 +14,10 @@
  * a short preview so a first-time visitor can see the thing is alive without
  * paying for the whole table in vertical space.
  *
- * A run takes 60-90 seconds: one crawl, one cheap identify call and one grader
- * call that writes three quoted scores and a verdict. The progress line is a
- * pacing device rather than real telemetry (same device as Scout) — but here it
- * earns its keep twice over, because a grader that reads for a minute is the
+ * A run takes 60-90 seconds, because three models each write several sentences
+ * of argument before a fourth writes the verdict. The progress line is a pacing
+ * device rather than real telemetry (same device as Scout) — but here it earns
+ * its keep twice over, because a jury that deliberates for a minute is the
  * premise rather than an apology for it.
  *
  * Results are rendered by cloning templates and setting textContent, NEVER
@@ -32,42 +32,45 @@ import Button from "../../components/ds/Button.astro";
 import Input from "../../components/ds/Input.astro";
 import PixelIcon from "../../components/ds/PixelIcon.astro";
 import DitherLine from "../../components/ds/DitherLine.astro";
-import RankTable from "../../components/ds/RankTable.astro";
-import { getEntries, DIMENSIONS, GRADER, graderLoadingMessages } from "../../lib/rankings";
+import RankBoard from "../../components/ds/RankBoard.astro";
+import PanelStrip from "../../components/ds/PanelStrip.astro";
+import { getEntries, QUESTIONS, panelLabs, panelLoadingMessages } from "../../lib/rankings";
 
 const all = await getEntries();
 const preview = all.slice(0, 5);
 const ranked = all.length;
 
 /**
- * Pacing lines. Deliberately name the grader — that IS the product.
+ * Pacing lines. Deliberately name the panel — that IS the product.
  *
- * Generated rather than typed. Typed once, these went on announcing a lab that
- * was no longer grading while the profile pages named the current one. Naming
- * the grader is the whole point of these lines, so naming it wrongly is worse
- * than not naming it at all.
+ * Generated from PANELISTS rather than typed. These were typed once, and when
+ * a seat changed the loading state went on announcing "DeepSeek is reading…"
+ * for a lab that was no longer on the panel — while the profile pages named
+ * the new one. Naming the jurors is the whole point of these lines, so naming
+ * them wrongly is worse than not naming them.
  */
 const STEPS = [
   "Reading the site…",
   "Working out what you are…",
-  ...graderLoadingMessages(),
-  "Putting a grade on it…",
+  ...panelLoadingMessages(),
+  "Counting the votes…",
+  "Writing it up…",
 ];
 
 const HOW = [
   { icon: "newspaper", title: "We read the site",
     body: "Up to six pages. The about and press pages, not just the homepage." },
-  { icon: "vote-yeah", title: `${GRADER.lab} ${GRADER.name} grades it`,
-    body: "One model, temperature 0, against a rubric published in full below." },
-  { icon: "shapes", title: "Every score quotes your site",
-    body: "Each grade cites a verbatim line from your pages. The quote is string-matched against the crawl — anything the grader cannot quote is thrown out." },
-  { icon: "trophy-solid", title: "Three grades and a verdict",
+  { icon: "vote-yeah", title: "Three labs judge it",
+    body: `${panelLabs()}, at the same moment, unable to see each other.` },
+  { icon: "shapes", title: "Nine ratings",
+    body: "Three questions times three judges, scored against a fixed scale rather than a feeling." },
+  { icon: "trophy-solid", title: "A fourth writes it up",
     body: "Then it goes on the public board, ranked against its own corner of adtech." },
 ];
 
-const title = "Rank My AdTech — private adtech startups, graded on three dimensions";
+const title = "Rank My AdTech — private adtech startups, judged by four labs";
 const description =
-  "One model grades your adtech company 1-5 on three dimensions — originality, defensibility and future outlook — from your own website, and quotes the line it read for every number. Free, and it goes on a public board.";
+  "Three language models from three different labs score your adtech company on innovation, how hard it is to build, and whether they would invest. A fourth writes the verdict. Free, and it goes on a public board.";
 ---
 
 <Base
@@ -76,7 +79,7 @@ const description =
   ogImage="/og-rank-my-adtech.png"
   ogImageWidth={2400}
   ogImageHeight={1200}
-  ogImageAlt="Rank My AdTech — a free And/or Labs tool that grades your adtech company 1-5 on three dimensions and publishes the verdict to a public leaderboard."
+  ogImageAlt="Rank My AdTech — a free And/or Labs tool where three language models score your adtech company on innovation and publish the verdict to a public leaderboard."
 >
   <SiteHeader />
   <main>
@@ -90,14 +93,14 @@ const description =
           </p>
           <h1 class="aol-rma__h1 aol-rma__h1--display">Rank My AdTech.</h1>
           <p class="aol-rma__lede">
-            One model reads your site and grades you 1&ndash;5 on three dimensions,
-            quoting the line it read for every number. You get the grade, the
-            working, and an opinion you didn't ask for.
+            Three models from three different labs read your site and answer the same
+            three questions about it. A fourth reads all nine answers and writes the
+            verdict. Everyone gets an opinion they didn't ask for.
           </p>
           <p class="aol-rma__trust">
             <PixelIcon name="handshake" size={12} /> We sell go-to-market work and this
-            grades none of it. Nothing here is a pitch — every score is published
-            with the sentence it was drawn from.
+            scores none of it. Nothing here is a pitch — where the panel disagrees, the
+            page says so.
           </p>
         </div>
 
@@ -120,7 +123,7 @@ const description =
             <div class="aol-rma__step" id="rank-step" data-state="idle"
               data-steps={JSON.stringify(STEPS)} role="status" aria-live="polite">
               <span class="aol-rma__step-n" id="rank-step-n">00/07</span>
-              <span class="aol-rma__step-text" id="rank-step-text">Takes about a minute. The grader is thorough.</span>
+              <span class="aol-rma__step-text" id="rank-step-text">Takes about a minute. The panel is thorough.</span>
             </div>
 
             <p class="aol-rma__notice">
@@ -131,7 +134,7 @@ const description =
             </p>
             <noscript>
               <p class="aol-rma__notice">
-                This one needs JavaScript — the grader is called from your browser.
+                This one needs JavaScript — the panel is called from your browser.
                 The board below works either way.
               </p>
             </noscript>
@@ -155,11 +158,11 @@ const description =
             The full leaderboard <span aria-hidden="true">→</span>
           </a>
         </div>
-        <RankTable entries={preview} caption={`Top ${preview.length} of ${ranked}`} />
+        <RankBoard entries={preview} championSlug={all[0]?.slug ?? null} />
 
         <p class="aol-rma__disclosure">
-          <PixelIcon name="question-circle" size={12} /> Graded by a language model reading
-          public pages. An opinion with its reasoning attached, not research. Want a row gone?
+          <PixelIcon name="question-circle" size={12} /> Scored by a language model reading
+          public pages. An opinion, meant to be funny, not research. Want a row gone?
           Email{" "}<a href="mailto:hello@andorlabs.ca?subject=Rank%20My%20AdTech%20removal">hello@andorlabs.ca</a>{" "}and it goes.
         </p>
       </div>
@@ -184,26 +187,24 @@ const description =
 
         <DitherLine />
 
-        <h2 class="aol-rma__h2">The three dimensions.</h2>
+        <h2 class="aol-rma__h2">The three questions.</h2>
         <ul class="aol-rma__axis-row">
           {
-            DIMENSIONS.map((d) => (
+            QUESTIONS.map((q) => (
               <li class="aol-rma__axis-cell">
                 <span class="aol-rma__axis-label">
-                  <PixelIcon name={d.icon as any} size={12} />
-                  {d.label}<em>1–5</em>
+                  <PixelIcon name={q.icon as any} size={12} />
+                  {q.label}<em>0–10</em>
                 </span>
-                <span class="aol-rma__axis-q">{d.question}</span>
+                <span class="aol-rma__axis-q">{q.question}</span>
               </li>
             ))
           }
         </ul>
 
-        <p class="aol-rma__note">
-          The grade is the mean of the three, to one decimal. Letters sit on top: A from
-          4.5, B from 3.5, C from 2.5, D from 1.5.
-          {" "}Graded by {GRADER.lab} {GRADER.name} — {GRADER.spec}
-        </p>
+        <DitherLine />
+
+        <PanelStrip questions={false} />
       </div>
     </section>
   </main>
@@ -220,24 +221,13 @@ const description =
           </div>
           <div class="aol-rma__card-score">
             <span class="aol-rma__card-total" data-total></span>
-            <span class="aol-rma__card-out">/5</span>
+            <span class="aol-rma__card-out">/30</span>
           </div>
         </header>
         <p class="aol-rma__card-meta"><span data-cohort></span> <span data-provisional></span></p>
         <p class="aol-rma__card-verdict" data-summary></p>
-        {/*
-          Two states, one slot. The grade exists the moment this card renders;
-          the PAGE for it does not exist until a build deploys, which is why
-          this used to be a live link to a 404. The link is withheld until the
-          URL actually answers 200.
-        */}
-        <p class="aol-rma__card-link">
-          <span class="aol-rma__publishing" data-publishing>
-            <span class="aol-rma__publishing-dot" aria-hidden="true"></span>
-            Publishing to the board — about a minute.
-          </span>
-          <a class="aol-rma__card-cta" data-permalink href="#" hidden>See the full grade →</a>
-        </p>
+        <p class="aol-rma__card-split" data-split></p>
+        <p class="aol-rma__card-link"><a data-permalink href="#">See the full panel →</a></p>
       </article>
     </div>
   </template>
@@ -271,7 +261,7 @@ const description =
 
   if (form && statusEl && resultEl && stepEl && stepText && stepN && cardTpl && failTpl) {
     const STEPS: string[] = JSON.parse(stepEl.dataset.steps ?? "[]");
-    const IDLE = "Takes about a minute. The grader is thorough.";
+    const IDLE = "Takes about a minute. The panel is thorough.";
     const input = document.getElementById("rank-url") as HTMLInputElement | null;
     // Cheap shape gate — "asdf" would otherwise cost the visitor 90 seconds
     // and cost us three model calls before the server says the same thing.
@@ -280,47 +270,6 @@ const description =
     let running = false;
 
     const say = (text: string) => { statusEl.textContent = text; };
-
-    /**
-     * Ask whether a ranking's page has actually deployed.
-     *
-     * The endpoint answers from the origin rather than from the database, so a
-     * true here means the URL really resolves — and asking also drains any
-     * build the server-side throttle swallowed.
-     */
-    const isLive = async (slug: string): Promise<boolean> => {
-      try {
-        const res = await fetch(`/api/rank-my-adtech?slug=${encodeURIComponent(slug)}`, {
-          headers: { accept: "application/json" },
-        });
-        if (!res.ok) return false;
-        return Boolean(((await res.json()) as { ready?: boolean }).ready);
-      } catch {
-        return false;
-      }
-    };
-
-    /**
-     * Hold the link back until the page exists, then reveal it.
-     *
-     * Backs off 2s → 15s and gives up after three minutes, at which point the
-     * link is shown anyway: a build that slow has almost certainly landed and
-     * a permanently hidden link is worse than an optimistic one. The card
-     * itself already carries the whole grade, so nothing is gated on this
-     * except the deep link.
-     */
-    const waitForPage = async (slug: string, link: HTMLAnchorElement, pending: HTMLElement) => {
-      const DEADLINE = Date.now() + 180_000;
-      let wait = 2_000;
-      for (;;) {
-        if (await isLive(slug)) break;
-        if (Date.now() > DEADLINE) break;
-        await new Promise((r) => setTimeout(r, wait));
-        wait = Math.min(wait * 1.5, 15_000);
-      }
-      pending.hidden = true;
-      link.hidden = false;
-    };
     const flag = (bad: boolean) => {
       if (input) input.setAttribute("aria-invalid", bad ? "true" : "false");
     };
@@ -396,25 +345,17 @@ const description =
           // The designed failure frame, not a one-line mono squint — this is
           // the most common non-success outcome and model prose is reading
           // text, not a label.
-          renderFail({ headline: "Not adtech, says the grader.", detail: data.verdict });
+          renderFail({ headline: "Not adtech, says the panel.", detail: data.verdict });
           return;
         }
         if (data.status === "already-ranked") {
-          /* Never navigate blind. This row is in D1, but a row that was ranked
-             during the last build window has no page yet — and redirecting
-             into a 404 is worse than waiting, because the visitor loses the
-             tool as well as the verdict. */
-          say("Already ranked — fetching the verdict.");
-          if (await isLive(data.slug)) {
-            window.location.href = `/tools/rank-my-adtech/${data.slug}/`;
-          } else {
-            say("Already ranked, and its page is still publishing. Try again in a minute.");
-          }
+          say("Already ranked — taking you to the verdict.");
+          window.location.href = `/tools/rank-my-adtech/${data.slug}/`;
           return;
         }
         render(data);
       } catch {
-        say("The grader is unreachable. Try again shortly.");
+        say("The panel is unreachable. Try again shortly.");
       } finally {
         stopSteps();
         running = false;
@@ -450,23 +391,24 @@ const description =
       };
       set("name", d.name);
       set("one-liner", d.oneLiner);
-      set("total", `${d.grade} ${d.letter}`);
+      set("total", String(d.total));
       // The cohort, not the raw band. "emerging sell-side" is what the rank on
       // the company page is expressed in, so the card has to speak the same way
       // or the two pages read as two different measurements.
       set("cohort", [d.cohort, d.categoryLabel].filter(Boolean).join(" · "));
       set("provisional", d.provisional ? "· provisional evidence" : "");
       set("summary", d.summary);
+      // A split is the most interesting thing the panel can produce, so it
+      // survives to the card rather than waiting for the company page.
+      set("split", d.split ? `The panel disagreed by ${d.split.spread} points.` : "");
 
       const logo = node.querySelector("[data-logo]") as HTMLImageElement | null;
       if (logo && d.logo) { logo.src = d.logo; logo.hidden = false; }
 
       const permalink = node.querySelector("[data-permalink]") as HTMLAnchorElement | null;
-      const publishing = node.querySelector("[data-publishing]") as HTMLElement | null;
       if (permalink) permalink.href = `/tools/rank-my-adtech/${d.slug}/`;
 
       show(node);
-      if (permalink && publishing) waitForPage(d.slug, permalink, publishing);
     }
   }
 </script>
