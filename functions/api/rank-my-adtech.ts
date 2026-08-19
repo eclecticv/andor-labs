@@ -330,13 +330,18 @@ const RESERVED_SLUGS = new Set(["leaderboard", "index", "api", "og"]);
 /**
  * A run is abandoned rather than slow after this long.
  *
- * waitUntil() keeps the pipeline alive past the response, but it is not a
- * promise the platform makes forever — an eviction mid-run would leave a row
- * sitting at "running" and a client polling something that will never answer.
- * The longest real run measured on this board is ~262s including a retried
- * seat, so anything past six minutes is dead rather than thinking.
+ * waitUntil() keeps the pipeline alive past the response — and NOT for as long
+ * as this pipeline needs. Measured with stage checkpoints on 2026-08-19:
+ * id5.io reached `read` at 5s, `identify` at 11s, `panel` at 22s and then
+ * stopped forever; Confiant, which ranks locally in 174s, produced no row at
+ * all. The bound is on the whole invocation rather than on the response, so
+ * moving work behind waitUntil bought instant acknowledgement and durable
+ * failure reporting — both worth having — but did not raise the ceiling.
+ *
+ * 240s, not 360: a healthy long run reaches `persist` inside three minutes, so
+ * six was making every doomed run cost the visitor twice as long to be told.
  */
-const JOB_STALE_SECONDS = 360;
+const JOB_STALE_SECONDS = 240;
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
   const url = new URL(request.url);
