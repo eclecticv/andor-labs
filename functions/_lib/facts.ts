@@ -1,180 +1,194 @@
 /**
- * Third-party facts about a company, so the panel stops being asked to recall
- * them.
+ * What the panel is told about a company before it reads a word of marketing.
  *
  * ── Why this exists ──
- * Everything else the panel reads comes off the company's own website, which is
- * the one source with an interest in the answer. That is fine for judgement —
- * the whole point of the rubric is to read a marketing site sceptically — but it
- * is useless for FACTS, and the panel was being asked for facts anyway: which
- * funding round, what year, which investor.
+ * Everything else the jurors see comes off the company's own website, which is
+ * the one source with an interest in the answer. That is fine for judgement and
+ * useless for facts — and the panel was being asked for facts anyway: which
+ * round, what year, how big. It was bad at it, measurably. Across 28 companies a
+ * round recalled by two or more jurors WITH a matching year came back at roughly
+ * zero, and nexx360.io logged `round none 0/3` — not one of three labs could
+ * produce it, so the company banded "middle by default".
  *
- * It was bad at it, measurably. Across 28 companies a round was recalled by two
- * or more panelists WITH a matching year roughly never, and the live run on
- * nexx360.io logged `round none 0/3` — not one of three labs could produce it.
- * So the majority vote was doing nothing except filtering noise that should not
- * have been generated: three models each spending output tokens guessing, and a
- * quorum rule discarding all three guesses.
+ * Recall was the wrong instrument. Search answers the same question with a
+ * source attached.
  *
- * A lookup answers the same question with a source. Indexed.vc publishes funding
- * totals, headcount bands and headquarters for ~41,000 private companies, and
- * its free tier covers exactly the search this needs.
+ * ── Why search and not a company database ──
+ * Measured 2026-08-19 against the two companies actually on this board:
  *
- * ── Everything here fails soft, on purpose ──
- * No key, no match, a non-200, a timeout, malformed JSON — all return null, and
- * a null simply means the panel is asked the old way. A ranking must never fail
- * because a third-party enrichment API had a bad afternoon; that is the same
- * rule `syncLeadToLoops` follows for the CRM, for the same reason.
+ *   indexed.vc   0 results for The Media Trust, 0 for Nexx360; found only Criteo
+ *   Apollo       422 — no credits on the plan
+ *   Wikidata     has Criteo, has neither of the others
+ *   GLEIF        0 records; LEIs are issued to financial-market entities
+ *   registries   France open and keyless, but per-jurisdiction with a US-shaped hole
  *
- * Required environment:
- *   INDEXED_API_KEY   optional. Absent, every lookup returns null and the
- *                     pipeline behaves exactly as it did before this file.
+ * Exa answered all three at $0.007, structured, with a source URL and a
+ * confidence label PER FIELD. The confidence is the part that matters: on
+ * Nexx360 it returned funding marked `low`, and was right to.
+ *
+ * ── The schema is capped at ten properties ──
+ * Exa's limit, and a good forcing function. The ten below were chosen by
+ * measuring which come back correct; see the note above OUTPUT_SCHEMA for the
+ * one that was cut and why.
  */
 
-import { freeFacts } from "./facts-free";
-
-const ENDPOINT = "https://indexed.vc/api/v1/companies";
-const USAGE_ENDPOINT = "https://indexed.vc/api/v1/usage";
-
-/** Bounded so a hanging lookup cannot eat the ranking's latency budget. */
-const LOOKUP_TIMEOUT_MS = 8_000;
+const ENDPOINT = "https://api.exa.ai/search";
+const TIMEOUT_MS = 25_000;
 
 export interface FactsEnv {
-  INDEXED_API_KEY?: string;
+  EXA_API_KEY?: string;
 }
 
-/**
- * Credits held back from the monthly allowance.
- *
- * The free tier is 25 searches a MONTH — fewer than the board has companies —
- * so this is not a rate limit to respect politely, it is a budget that a single
- * careless re-rank would spend in one afternoon. The reserve leaves headroom for
- * a human to look something up deliberately after automated ranking has taken
- * its share.
- */
-const CREDIT_RESERVE = 5;
-
-/**
- * Ask how many credits are left. Free, per the published pricing table.
- *
- * Checking costs nothing, so it runs before every paid call. That is what makes
- * the budget an actual guarantee rather than a comment.
- */
-async function creditsRemaining(key: string): Promise<number | null> {
-  try {
-    const res = await fetch(`${USAGE_ENDPOINT}`, {
-      headers: { "X-API-Key": key, accept: "application/json" },
-    });
-    if (!res.ok) return null;
-    const body = (await res.json()) as { data?: { credits_remaining?: unknown } };
-    const left = Number(body?.data?.credits_remaining);
-    return Number.isFinite(left) ? left : null;
-  } catch {
-    return null;
-  }
-}
+/** How sure Exa is about one field. Carried to the page, never averaged away. */
+export type Confidence = "low" | "medium" | "high";
 
 export interface CompanyFacts {
-  /** Year founded, when a free source knew it. 0 when unknown. */
-  foundedYear?: number;
-  /** Their canonical name for the company, which may differ from the site's. */
-  name: string;
-  /** Total raised, in whole units of currency. 0 when unknown or unfunded. */
-  totalFundingRaised: number;
-  employeeCountRange: string;
+  foundedYear: number;
+  /** As Exa returns it — "11-50", "1001-5000". Bucketed on purpose. */
+  headcountRange: string;
   hqCity: string;
   hqCountry: string;
-  industries: string[];
-  shortDescription: string;
-  /** Where this came from, printed on the page. A fact with no source is a claim. */
-  source: string;
-}
-
-/** Reduce a URL to a bare comparable host. */
-function hostOf(value: string): string | null {
-  try {
-    const raw = value.trim();
-    const url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
-    return url.hostname.replace(/^www\./, "").toLowerCase();
-  } catch {
-    return null;
-  }
+  /** One neutral sentence from third-party sources, not the vendor's own line. */
+  whatTheyDo: string;
+  /** Segments served, rendered as "Serves publishers, adtech platforms, …". */
+  serves: string[];
+  isPubliclyTraded: boolean;
+  totalFundingUsd: number;
+  /** Round and year, e.g. "Series B 2023". */
+  lastFunding: string;
+  /** Empty when independent. */
+  acquiredBy: string;
+  /** Per-field confidence, keyed by the field names above. */
+  confidence: Partial<Record<string, Confidence>>;
+  /** Source URLs, keyed the same way. */
+  sources: Partial<Record<string, string[]>>;
+  /** What the lookup cost in dollars. Logged, so spend is never invisible. */
+  costUsd: number;
 }
 
 /**
- * Match on the website host and nothing else.
+ * ── One field deliberately NOT fetched ──
  *
- * Name matching is what turns an enrichment API into a fabrication engine:
- * "Adagio" is an adtech company, a music tempo, a French software house and at
- * least two other startups, and a fuzzy name match would confidently attach
- * another company's funding history to this one. A domain is the identifier the
- * company actually controls. If the domains do not agree, we have no facts, and
- * no facts is a perfectly good answer.
+ * `competitors` returned "the bluebird group, the powers company, mtm
+ * recognition, araya, accenture" for The Media Trust — an HR recognition firm
+ * mistaken for an adtech vendor, marked HIGH confidence and completely wrong.
+ *
+ * `serves` survives because of the same test read correctly. Asked for as
+ * "notable customers" it returned segments rather than companies, which looked
+ * like a failure; asked for as what the company serves, those segments are the
+ * right answer and make a usable line on the page.
+ *
+ * The pattern worth keeping: scalars ABOUT the company retrieve, lists about its
+ * RELATIONSHIPS get constructed, and the confidence label does not tell the two
+ * apart.
  */
-function pickByDomain(results: unknown, domain: string): Record<string, unknown> | null {
-  if (!Array.isArray(results)) return null;
-  const want = hostOf(domain);
-  if (!want) return null;
-  for (const row of results) {
-    if (typeof row !== "object" || row === null) continue;
-    const site = (row as Record<string, unknown>).website;
-    if (typeof site !== "string") continue;
-    if (hostOf(site) === want) return row as Record<string, unknown>;
-  }
-  return null;
-}
+const OUTPUT_SCHEMA = {
+  type: "object",
+  required: ["founded_year", "headcount_range", "hq_country", "what_they_do", "is_publicly_traded"],
+  properties: {
+    founded_year: { type: "integer" },
+    headcount_range: {
+      type: "string",
+      description: "one of: 1-10, 11-50, 51-200, 201-500, 501-1000, 1001-5000, 5000+",
+    },
+    hq_city: { type: "string" },
+    hq_country: { type: "string" },
+    what_they_do: {
+      type: "string",
+      description: "one neutral sentence describing what the company sells, not marketing language",
+    },
+    serves: {
+      type: "array",
+      items: { type: "string" },
+      description: "customer segments served, e.g. publishers, mobile app developers",
+    },
+    is_publicly_traded: { type: "boolean" },
+    total_funding_usd: { type: "integer" },
+    last_funding: { type: "string", description: "round and year, e.g. Series B 2023" },
+    acquired_by: { type: "string", description: "acquirer name, or empty string if independent" },
+  },
+};
+
+const SYSTEM_PROMPT =
+  "Prefer third-party sources over the company's own marketing. " +
+  "If a field cannot be verified from a source, return an empty value rather than guessing. " +
+  "Never infer a founding year from a copyright notice.";
 
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 const num = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
+/**
+ * Look a company up. Returns null on every failure, deliberately.
+ *
+ * This sits on the critical path in front of four model calls, so a third-party
+ * search having a bad afternoon must never cost a visitor their ranking. Absent
+ * a key it is a no-op and the pipeline behaves as it did before this existed.
+ */
 export async function lookupCompany(
   env: FactsEnv,
   domain: string,
+  name: string,
 ): Promise<CompanyFacts | null> {
-  if (!env.INDEXED_API_KEY) return null;
-
-  /**
-   * Spend a credit only if there are credits to spend.
-   *
-   * A null here means the usage endpoint itself did not answer, and that is
-   * treated as "do not spend" rather than "assume it is fine" — the failure
-   * mode of guessing wrong is a silently exhausted monthly budget, which is
-   * discovered later and by someone else.
-   */
-  const left = await creditsRemaining(env.INDEXED_API_KEY);
-  if (left === null || left <= CREDIT_RESERVE) {
-    console.warn(`[facts] skipping ${domain} — ${left ?? "unknown"} credits left, reserve is ${CREDIT_RESERVE}`);
-    return null;
-  }
+  if (!env.EXA_API_KEY) return null;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), LOOKUP_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(`${ENDPOINT}?q=${encodeURIComponent(domain)}`, {
-      headers: { "X-API-Key": env.INDEXED_API_KEY, accept: "application/json" },
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${env.EXA_API_KEY}`,
+      },
       signal: controller.signal,
+      body: JSON.stringify({
+        query: `${name} ${domain} — what the company does, size, age, headquarters, funding, ownership`,
+        /* `fast` measures ~450ms against `auto`'s ~1s, but outputSchema adds
+           synthesis latency on top of either, so the base type is not where the
+           time goes. `auto` is the accuracy default and this runs once. */
+        type: "auto",
+        category: "company",
+        numResults: 8,
+        contents: { highlights: true },
+        systemPrompt: SYSTEM_PROMPT,
+        outputSchema: OUTPUT_SCHEMA,
+      }),
     });
     if (!res.ok) {
-      console.warn(`[facts] indexed.vc ${res.status} for ${domain}`);
+      console.warn(`[facts] exa ${res.status} for ${domain}`);
       return null;
     }
-    const body = (await res.json()) as { data?: unknown };
-    const row = pickByDomain(body?.data, domain);
-    if (!row) return null;
+
+    const body = (await res.json()) as any;
+    const content = body?.output?.content;
+    if (!content || typeof content !== "object") return null;
+
+    const confidence: Record<string, Confidence> = {};
+    const sources: Record<string, string[]> = {};
+    for (const g of body?.output?.grounding ?? []) {
+      const field = str(g?.field);
+      if (!field) continue;
+      if (g?.confidence) confidence[field] = g.confidence as Confidence;
+      const urls = (g?.citations ?? []).map((c: any) => str(c?.url)).filter(Boolean);
+      if (urls.length) sources[field] = urls.slice(0, 3);
+    }
 
     return {
-      name: str(row.name),
-      totalFundingRaised: num(row.total_funding_raised),
-      employeeCountRange: str(row.employee_count_range),
-      hqCity: str(row.hq_city),
-      hqCountry: str(row.hq_country),
-      industries: Array.isArray(row.industries) ? row.industries.map(str).filter(Boolean) : [],
-      shortDescription: str(row.short_description),
-      foundedYear: 0,
-      source: "indexed.vc",
+      foundedYear: num(content.founded_year),
+      headcountRange: str(content.headcount_range),
+      hqCity: str(content.hq_city),
+      hqCountry: str(content.hq_country),
+      whatTheyDo: str(content.what_they_do),
+      serves: Array.isArray(content.serves) ? content.serves.map(str).filter(Boolean).slice(0, 6) : [],
+      isPubliclyTraded: content.is_publicly_traded === true,
+      totalFundingUsd: num(content.total_funding_usd),
+      lastFunding: str(content.last_funding),
+      acquiredBy: str(content.acquired_by),
+      confidence,
+      sources,
+      costUsd: num(body?.costDollars?.total),
     };
   } catch (err) {
-    // Includes the abort. A slow enrichment call must not cost the ranking.
     console.warn(`[facts] lookup failed for ${domain}:`, err);
     return null;
   } finally {
@@ -182,121 +196,86 @@ export async function lookupCompany(
   }
 }
 
-/**
- * Round a raise to a band a juror can reason about without doing arithmetic.
- *
- * Deliberately coarse. The exact figure is on the page for anyone who wants it;
- * what a juror needs is the order of magnitude, and handing it "$12,400,000"
- * invites the model to treat a rounding difference as a finding.
- */
-export function fundingBand(total: number): string {
-  if (total <= 0) return "no disclosed funding";
-  if (total < 3_000_000) return "under $3M raised";
-  if (total < 15_000_000) return "$3M–15M raised";
-  if (total < 50_000_000) return "$15M–50M raised";
-  if (total < 150_000_000) return "$50M–150M raised";
-  return "over $150M raised";
-}
+// ── Weight classes ──────────────────────────────────────────────────────────
+
+export type Division = "lightweight" | "middleweight" | "heavyweight";
+
+export const DIVISIONS: { key: Division; label: string; blurb: string }[] = [
+  { key: "lightweight", label: "Lightweight", blurb: "Up to 50 people." },
+  { key: "middleweight", label: "Middleweight", blurb: "51 to 500 people." },
+  { key: "heavyweight", label: "Heavyweight", blurb: "More than 500 people." },
+];
 
 /**
- * The block handed to every juror, byte-identical across the three seats.
+ * Headcount, not capital, decides the weight class.
  *
- * Framed as established and third-party so a juror weighs it as evidence rather
- * than as another marketing claim — and told plainly that it comes from
- * somewhere other than the site, because the rest of the prompt spends its time
- * teaching them to distrust the site.
+ * The board banded on funding stage until now, and funding stage is not on these
+ * websites: a round appears in crawlable markup on 7% of them and jurors recall
+ * one about 0% of the time, so `place()` kept falling through to "middle band by
+ * default" — a division that classified nothing.
+ *
+ * Headcount resolves on every company Exa has answered, at high confidence, and
+ * it is the more honest axis anyway. A reader comparing two vendors on this
+ * board wants to know whether they are comparing nine people to nine hundred.
+ */
+export function divisionFor(headcountRange: string): Division | null {
+  const first = Number((headcountRange.match(/\d+/) ?? [])[0]);
+  if (!Number.isFinite(first)) return null;
+  if (first >= 501) return "heavyweight";
+  if (first >= 51) return "middleweight";
+  return "lightweight";
+}
+
+/** Years since founding, or 0 when unknown. The board's second filter axis. */
+export function ageOf(foundedYear: number, now = new Date().getUTCFullYear()): number {
+  if (!foundedYear || foundedYear < 1800 || foundedYear > now) return 0;
+  return now - foundedYear;
+}
+
+// ── What the jurors are handed ──────────────────────────────────────────────
+
+const CONF_NOTE: Record<Confidence, string> = {
+  high: "",
+  medium: " (reported, not corroborated)",
+  low: " (uncertain)",
+};
+
+/**
+ * The facts block, byte-identical across the three seats like the rest of the
+ * rubric.
+ *
+ * Marked as third-party and carrying its own uncertainty, because the rest of
+ * the prompt spends its time teaching jurors to distrust the site — a block that
+ * arrived without provenance would read as one more claim.
  */
 export function factsBlock(facts: CompanyFacts | null): string {
   if (!facts) return "";
-  const lines = [
-    `  funding    ${fundingBand(facts.totalFundingRaised)}`,
-    facts.employeeCountRange ? `  headcount  ${facts.employeeCountRange}` : "",
-    [facts.hqCity, facts.hqCountry].filter(Boolean).length
-      ? `  based      ${[facts.hqCity, facts.hqCountry].filter(Boolean).join(", ")}`
-      : "",
-    facts.foundedYear ? `  founded    ${facts.foundedYear}` : "",
-    facts.industries.length ? `  sectors    ${facts.industries.join(", ")}` : "",
+
+  const line = (label: string, value: string, key: string) => {
+    if (!value) return "";
+    const conf = facts.confidence[key];
+    return `  ${label.padEnd(11)}${value}${conf ? CONF_NOTE[conf] : ""}`;
+  };
+
+  const rows = [
+    line("does", facts.whatTheyDo, "what_they_do"),
+    line("serves", facts.serves.join(", "), "serves"),
+    line("founded", facts.foundedYear ? String(facts.foundedYear) : "", "founded_year"),
+    line("size", facts.headcountRange ? `${facts.headcountRange} people` : "", "headcount_range"),
+    line("based", [facts.hqCity, facts.hqCountry].filter(Boolean).join(", "), "hq_city"),
+    line("funding", facts.totalFundingUsd ? `$${(facts.totalFundingUsd / 1e6).toFixed(1)}M raised` : "", "total_funding_usd"),
+    line("last round", facts.lastFunding, "last_funding"),
+    line("owner", facts.acquiredBy ? `acquired by ${facts.acquiredBy}` : "", "acquired_by"),
   ].filter(Boolean).join("\n");
+
+  if (!rows) return "";
 
   return `
 ═══ ESTABLISHED FACTS ═══
-Not from the company's website — these come from ${facts.source}, a third-party
-database. Treat them as settled. Do not contradict them, and do not repeat them
-back as if they were your finding.
+Gathered by search from third-party sources, NOT from the company's website.
+Treat them as settled. Do not contradict them and do not present them back as
+your own finding. Where a line is marked uncertain, weigh it as such.
 
-${lines}
+${rows}
 `;
-}
-
-/** Which stage band a raise implies, mirroring MODEL_BAND in classify.ts. */
-export function bandFromFunding(total: number): "emerging" | "growth" | "mature" | null {
-  if (total <= 0) return null;
-  if (total < 5_000_000) return "emerging";
-  if (total < 60_000_000) return "growth";
-  return "mature";
-}
-
-// ── The chain ───────────────────────────────────────────────────────────────
-
-/**
- * Cheapest source that answers, wins — and the metered one is asked last.
- *
- * The order is a budget decision, not a quality one. Free tier is 25 searches a
- * MONTH against a board with more companies than that, so every ranking that
- * can be satisfied without a credit must be.
- *
- *   1. schema.org markup   0 calls, 0 credits — the HTML is already in memory
- *   2. Wikidata            1 free call, no key
- *   3. indexed.vc          1 CREDIT, and only for what the others cannot give
- *
- * Steps 1 and 2 cover founding year, headquarters and headcount. Neither knows
- * FUNDING, which is the one field with no free source — so step 3 runs ONLY when
- * the free tiers came back with nothing at all, and is skipped entirely once the
- * monthly reserve is reached.
- *
- * Measured 2026-08-19: Wikidata has Criteo and has neither Nexx360 nor The Media
- * Trust, and nexx360's own Organization block carries no founding date. So on a
- * board of small private adtech, expect step 3 to be reached often — which is
- * precisely why it is metered rather than assumed.
- */
-export async function gatherFacts(
-  env: FactsEnv,
-  domain: string,
-  name: string,
-  html: string,
-): Promise<CompanyFacts | null> {
-  const free = await freeFacts(html, name, domain);
-
-  /**
-   * A free answer ENDS the chain. This is the gate that makes the budget real.
-   *
-   * The first version of this called the metered API unconditionally and merged
-   * whatever came back, which is a free-first chain in the comments and a
-   * pay-every-time chain in the code — criteo.com was fully answered by its own
-   * schema.org markup and still spent a credit.
-   *
-   * A company that told us its founding year and city has given the panel the
-   * context that block exists to provide. Funding would be nice on top, and it
-   * is not worth one twenty-fifth of the month's budget to have it.
-   */
-  if (free) {
-    return {
-      name,
-      totalFundingRaised: 0,
-      employeeCountRange: free.employeeCountRange,
-      hqCity: free.hqCity,
-      hqCountry: free.hqCountry,
-      foundedYear: free.foundedYear,
-      industries: [],
-      shortDescription: "",
-      source: free.source,
-    };
-  }
-
-  const paid = await lookupCompany(env, domain);
-  if (paid) {
-    return paid;
-  }
-
-  return null;
 }

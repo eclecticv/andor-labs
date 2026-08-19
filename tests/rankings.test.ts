@@ -17,6 +17,7 @@ const entry = (over: Partial<Entry> = {}): Entry => ({
   slug: "acme", name: "Acme", domain: "acme.com", logo_url: null, one_liner: null,
   provisional: 0, category: "ssp", band: "growth", side: "sell",
   band_evidence: null, band_inferred: 1,
+  founded_year: 2019, division: "lightweight", headcount: "11-50",
   total: 20, innovation: 7, difficulty: 7, outlook: 6,
   split_question: null, split_spread: 0, summary: "",
   created_at: "", takes: [], ...over,

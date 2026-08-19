@@ -13,12 +13,17 @@ import {
 } from "../functions/_lib/panel";
 import { CATEGORIES } from "../functions/_lib/classify";
 
-const take = (id: string, scores: [number, number, number]): PanelistTake =>
+/**
+ * Jurors answer in words now, so the fixture does too. The numbers behind them
+ * (hard no 0 · no 3 · kinda 5 · yes 8 · extremely 10) are what the arithmetic
+ * sees, and asserting on those is asserting that the mapping holds.
+ */
+const take = (id: string, verdicts: [string, string, string]): PanelistTake =>
   normalizeTake(
     {
-      innovation: { score: scores[0], summary: "x".repeat(80), adjective: "brisk" },
-      difficulty: { score: scores[1], summary: "x".repeat(80), adjective: "gnarly" },
-      outlook: { score: scores[2], summary: "x".repeat(80), adjective: "maybe" },
+      innovation: { verdict: verdicts[0], summary: "x".repeat(80) },
+      difficulty: { verdict: verdicts[1], summary: "x".repeat(80) },
+      outlook: { verdict: verdicts[2], summary: "x".repeat(80) },
       adjective: "curious",
     },
     id,
@@ -49,30 +54,45 @@ describe("the panel roster", () => {
 
 describe("aggregation", () => {
   it("averages each question and sums the means", () => {
-    const result = aggregate([take("a", [8, 6, 7]), take("b", [7, 6, 6]), take("c", [6, 6, 5])]);
-    expect(result.means.innovation).toBe(7);
-    expect(result.means.difficulty).toBe(6);
-    expect(result.means.outlook).toBe(6);
-    expect(result.total).toBe(19);
+    const result = aggregate([
+      take("a", ["yes", "kinda", "yes"]),
+      take("b", ["yes", "kinda", "kinda"]),
+      take("c", ["kinda", "kinda", "kinda"]),
+    ]);
+    expect(result.means.innovation).toBe(7); // 8, 8, 5
+    expect(result.means.difficulty).toBe(5); // kinda across the board
+    expect(result.means.outlook).toBe(6);    // 8, 5, 5
+    expect(result.total).toBe(18);
   });
 
   it("keeps one decimal, which is what stops the board tying", () => {
-    // Nine integers averaged three ways land on values like 6.3. Rounding
-    // those to whole numbers would throw away exactly the granularity that
-    // keeps ranks distinct.
-    const result = aggregate([take("a", [7, 0, 0]), take("b", [6, 0, 0]), take("c", [6, 0, 0])]);
-    expect(result.means.innovation).toBe(6.3);
+    // Three verdicts averaged land on values like 6 and 7.3. Rounding those to
+    // whole numbers would throw away the granularity that keeps ranks distinct.
+    const result = aggregate([
+      take("a", ["yes", "hard no", "hard no"]),
+      take("b", ["kinda", "hard no", "hard no"]),
+      take("c", ["kinda", "hard no", "hard no"]),
+    ]);
+    expect(result.means.innovation).toBe(6); // 8, 5, 5
   });
 
   it("surfaces a real disagreement", () => {
-    const result = aggregate([take("a", [9, 5, 5]), take("b", [2, 5, 5]), take("c", [5, 5, 5])]);
-    expect(result.split).toEqual({ question: "innovation", spread: 7 });
+    const result = aggregate([
+      take("a", ["extremely", "kinda", "kinda"]),
+      take("b", ["hard no", "kinda", "kinda"]),
+      take("c", ["kinda", "kinda", "kinda"]),
+    ]);
+    expect(result.split).toEqual({ question: "innovation", spread: 10 }); // 10 vs 0
   });
 
   it("does not call rounding a disagreement", () => {
     // A one or two point spread is three models agreeing. Reporting that as a
     // split would make every page claim a controversy it does not have.
-    const result = aggregate([take("a", [7, 7, 7]), take("b", [6, 7, 7]), take("c", [8, 7, 7])]);
+    const result = aggregate([
+      take("a", ["kinda", "yes", "yes"]),
+      take("b", ["kinda", "yes", "yes"]),
+      take("c", ["no", "yes", "yes"]),
+    ]);
     expect(result.split).toBeNull();
   });
 });
@@ -87,9 +107,9 @@ describe("usability", () => {
   it("rejects a thin summary even when the score is present", () => {
     const thin = normalizeTake(
       {
-        innovation: { score: 7, summary: "Good.", adjective: "fine" },
-        difficulty: { score: 7, summary: "x".repeat(80), adjective: "hard" },
-        outlook: { score: 7, summary: "x".repeat(80), adjective: "yes" },
+        innovation: { verdict: "yes", summary: "Good." },
+        difficulty: { verdict: "yes", summary: "x".repeat(80) },
+        outlook: { verdict: "yes", summary: "x".repeat(80) },
         adjective: "solid",
       },
       "a",
@@ -99,9 +119,12 @@ describe("usability", () => {
   });
 
   it("clamps scores into range instead of trusting the model", () => {
-    const wild = normalizeTake({ innovation: { score: 47 }, difficulty: { score: -3 } }, "a", "m");
+    const wild = normalizeTake({ innovation: { verdict: "wildly extremely so" }, difficulty: { verdict: "??" } }, "a", "m");
     expect(wild.ratings.innovation.score).toBe(10);
-    expect(wild.ratings.difficulty.score).toBe(0);
+    // An unreadable verdict lands on "kinda", not "hard no": a parse failure is
+    // our problem and must not be scored as the company's.
+    expect(wild.ratings.difficulty.verdict).toBe("kinda");
+    expect(wild.ratings.innovation.verdict).toBe("extremely");
   });
 
   it("takes the first word of an adjective rather than the letters", () => {
@@ -119,7 +142,7 @@ describe("the recall vote", () => {
   // three labs. This is the hallucination filter, so its failure mode matters
   // more than its success: it must abstain rather than pass through a guess.
   const withRecall = (id: string, r: Partial<PanelistTake["recall"]>): PanelistTake => ({
-    ...take(id, [5, 5, 5]),
+    ...take(id, ["kinda", "kinda", "kinda"]),
     recall: { category: "", round: "", year: 0, investor: "", ...r },
   });
 
@@ -194,7 +217,7 @@ describe("the prompt", () => {
     // The vibe-code question runs backwards from the other two: if 10 meant
     // "easily cloned" a company could top the board by being trivial. The
     // inversion has to be stated in the prompt or the total is incoherent.
-    expect(prompt).toMatch(/Score the DIFFICULTY, not the ease/);
+    expect(prompt).toMatch(/Is this hard to replicate\?/);
   });
 
   it("gives every question an anchored scale", () => {
@@ -251,7 +274,7 @@ describe("the prompt", () => {
   });
 
   it("caps an uncited score at the midpoint", () => {
-    expect(prompt).toMatch(/cannot go above 5/i);
+    expect(prompt).toMatch(/cannot go above "kinda"/i);
     expect(prompt).toMatch(/two DIFFERENT\s+concrete things/);
     expect(prompt).toMatch(/Start each question at 4/);
   });

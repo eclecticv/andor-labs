@@ -68,7 +68,7 @@ function panelistName(take: PanelistTake): string {
 const renderTake = (take: PanelistTake) =>
   QUESTIONS.map(
     (q) =>
-      `  ${q.label} — ${take.ratings[q.key].score}/10 ("${take.ratings[q.key].adjective}")\n` +
+      `  ${q.label} — ${take.ratings[q.key].verdict}\n` +
       `    ${take.ratings[q.key].summary}`,
   ).join("\n");
 
@@ -100,7 +100,7 @@ ${splitNote}
 
 ═══ WRITE THE PARAGRAPH ═══
 
-70-110 words. One paragraph. No headings, no lists, no preamble.
+UNDER 50 WORDS. One paragraph. No headings, no lists, no preamble.
 
 DO:
   - Lead with the actual finding, not with throat-clearing.
@@ -142,6 +142,11 @@ export function normalizeSummary(raw: unknown): string {
  * truthiness and three dots are truthy. The floor is the fix.
  */
 export function assertSummaryUsable(summary: string): string {
-  if (summary.length < 120) throw new Error("summary too short");
+  /* Lowered from 120 with the brief: under fifty words is roughly 250-300
+     characters, so a 120-char floor was close enough to the target to start
+     rejecting compliant answers. The floor exists for a model that returned
+     "..." and won the ladder because three dots are truthy — 60 still catches
+     that and nothing legitimate. */
+  if (summary.length < 60) throw new Error("summary too short");
   return summary;
 }

@@ -106,6 +106,24 @@ export const COHORTS: Cohort[] = BOARD_AXIS === "side" ? SIDES : BANDS;
 export const cohortKeyOf = (entry: Entry): string =>
   BOARD_AXIS === "side" ? entry.side : entry.band;
 
+export type Division = "lightweight" | "middleweight" | "heavyweight";
+
+/** Mirrored from functions/_lib/facts.ts. Change one, change the other. */
+export const DIVISIONS: { key: Division; label: string; blurb: string }[] = [
+  { key: "lightweight", label: "Lightweight", blurb: "Up to 50 people." },
+  { key: "middleweight", label: "Middleweight", blurb: "51 to 500 people." },
+  { key: "heavyweight", label: "Heavyweight", blurb: "More than 500 people." },
+];
+
+export const DIVISION_LABELS: Record<string, string> =
+  Object.fromEntries(DIVISIONS.map((d) => [d.key, d.label]));
+
+/** Years since founding, or 0 when unknown. The board's second filter axis. */
+export function ageOf(foundedYear: number | null, now = new Date().getUTCFullYear()): number {
+  if (!foundedYear || foundedYear < 1800 || foundedYear > now) return 0;
+  return now - foundedYear;
+}
+
 export const BAND_LABELS: Record<string, string> =
   Object.fromEntries(BANDS.map((b) => [b.key, b.label]));
 export const SIDE_LABELS: Record<string, string> =
@@ -342,9 +360,11 @@ export const categoryLabel = (key: string | null) => CATEGORY_LABELS[key ?? ""] 
 // ── Shapes ──────────────────────────────────────────────────────────────────
 
 export interface Rating {
+  /** The word the juror chose — what the page shows. */
+  verdict: string;
+  /** Its position on the 0-10 scale — what the arithmetic uses. */
   score: number;
   summary: string;
-  adjective: string;
 }
 
 export interface Take {
@@ -370,6 +390,20 @@ export interface Entry {
   side: Side;
   band_evidence: string | null;
   band_inferred: number;
+
+  /**
+   * The board's two filter axes, both from third-party search rather than from
+   * the company's own pages.
+   *
+   * Null when the lookup established nothing — the page shows a weight class or
+   * an age only when there is one, instead of defaulting to the middle and
+   * quietly asserting it. That default is what the funding-derived band did, and
+   * it classified every company identically.
+   */
+  founded_year: number | null;
+  division: Division | null;
+  /** Headcount band as reported, kept beside the class it produced. */
+  headcount: string | null;
 
   /** Sum of the three means, 0-30, to one decimal. */
   total: number;
@@ -478,6 +512,7 @@ interface TakeRow {
 const ENTRY_SELECT = `
   SELECT c.slug, c.name, c.domain, c.logo_url, c.one_liner, c.provisional,
          c.category, c.band, c.side, c.band_evidence, c.band_inferred,
+         c.founded_year, c.division, c.headcount,
          r.id AS ranking_id, r.total, r.innovation, r.difficulty, r.outlook,
          r.split_question, r.split_spread, r.summary, r.created_at
   FROM company c

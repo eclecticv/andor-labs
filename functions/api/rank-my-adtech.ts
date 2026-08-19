@@ -45,7 +45,7 @@
 
 import { readSite } from "../_lib/crawl";
 import { detectStack, byCategory } from "../_lib/stack";
-import { gatherFacts, fundingBand } from "../_lib/facts";
+import { lookupCompany, divisionFor, ageOf, type FactsEnv } from "../_lib/facts";
 import { resolveLogo } from "../_lib/logo";
 
 import {
@@ -59,6 +59,8 @@ import { askLadder, extractJson, keyFor, type Provider } from "../_lib/providers
 
 interface Env {
   RANKINGS: D1Database;
+  /** Optional. Absent, the jurors work from the site alone. */
+  EXA_API_KEY?: string;
   /** Optional. Absent, the panel is asked to recall funding as it used to. */
   INDEXED_API_KEY?: string;
   GEMINI_API_KEY?: string;
@@ -476,15 +478,15 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
    * Look the company up BEFORE the panel sits, so the facts are in the prompt.
    *
    * On the critical path by definition — the seats need it in their input — but
-   * every tier fails soft to null, and a null just means the jurors are asked to
-   * recall funding the way they always were. It runs after `identify` because
-   * the free Wikidata tier needs a company NAME to search on.
+   * it fails soft to null, and a null just means the jurors work from the site
+   * alone. It runs after `identify` because the search needs a company NAME.
    */
-  const facts = await gatherFacts(env, domain, identity.name, site.html);
+  const facts = await lookupCompany(env as FactsEnv, domain, identity.name);
   if (facts) {
     console.log(
-      `[rank] ${domain} — facts: ${fundingBand(facts.totalFundingRaised)}` +
-      ` · ${facts.employeeCountRange || "headcount unknown"} · via ${facts.source}`,
+      `[rank] ${domain} — facts: founded ${facts.foundedYear || "?"}` +
+      ` · ${facts.headcountRange || "size ?"} · ${divisionFor(facts.headcountRange) ?? "unclassed"}` +
+      ` · $${facts.costUsd}`,
     );
   }
 
@@ -511,7 +513,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
   // A human correction beats the panel — see CATEGORY_OVERRIDES.
   const category = categoryFor(domain, recall.category, identity.category);
 
-  const placement = place(site.html, site.pages, identity.stage, recall, facts);
+  const placement = place(site.html, site.pages, identity.stage, recall);
   if (!placement.eligible) {
     return json({ status: "not-eligible", domain, name: identity.name, verdict: placement.reason }, 200);
   }
@@ -576,14 +578,18 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
   ).bind(domain).run();
 
   const companyRow = await env.RANKINGS.prepare(
-    `INSERT INTO company (domain, name, slug, logo_url, one_liner, division, category, stage,
-                          band, side, band_evidence, band_inferred, provisional)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+    `INSERT INTO company (domain, name, slug, logo_url, one_liner,
+                          founded_year, division, headcount,
+                          category, stage, band, side, band_evidence, band_inferred, provisional)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
   ).bind(
     domain, identity.name, slug, logo, identity.oneLiner,
-    // `division` is legacy and still NOT NULL. Band supersedes it; the column
-    // goes once nothing reads it.
-    "middleweight",
+    /* From the search, not hardcoded. NULL when the lookup found no size or no
+       founding year — the page shows a weight class and an age only when one
+       was actually established. */
+    facts?.foundedYear || null,
+    facts ? divisionFor(facts.headcountRange) : null,
+    facts?.headcountRange || null,
     category, identity.stage,
     placement.band, side, placement.bandEvidence, placement.bandInferred ? 1 : 0,
     site.thin ? 1 : 0,

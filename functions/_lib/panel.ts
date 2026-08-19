@@ -257,17 +257,44 @@ export type QuestionKey = "innovation" | "difficulty" | "outlook";
  * lens now belongs to the juror (see PANELISTS) and never moves; what varies
  * per question is only what is being asked and how the scale is anchored.
  */
+/**
+ * The five verdicts, and the only vocabulary a juror may score in.
+ *
+ * ── Why words and not numbers ──
+ * A model asked for "0-10" reinvents the scale on every call; the anchors were
+ * always there to turn scoring into classification against fixed points. This
+ * finishes that job. A juror now picks one of five words and never emits a
+ * number at all, which is also the existing rule that totals are arithmetic in
+ * code and never asked of a model.
+ *
+ * ── Why every question reads the same direction ──
+ * "Hard to build" used to be scored inverted — the ask was whether a weekend
+ * could reproduce it while the SCORE recorded difficulty, and that inversion was
+ * a permanent trap for both the jurors and anyone reading the rubric. Phrased as
+ * yes/no questions where yes is always the stronger answer, the inversion
+ * disappears: "is this hard to replicate" and "will this still matter" now point
+ * the same way, and a company cannot climb the board by being easy to clone.
+ *
+ * The numbers behind the words keep the 0-10 column and the decimal mean, which
+ * is what stops the board tying.
+ */
+export const VERDICTS = ["hard no", "no", "kinda", "yes", "extremely"] as const;
+export type Verdict = (typeof VERDICTS)[number];
+
+export const VERDICT_SCORE: Record<Verdict, number> = {
+  "hard no": 0, no: 3, kinda: 5, yes: 8, extremely: 10,
+};
+
 export const QUESTIONS: Question[] = [
   {
     key: "innovation",
     label: "Innovation",
-    ask: "How innovative is this, really?",
-    anchors: `10 — a mechanism the category did not have before this company
- 8 — a real insight, conventionally executed
- 6 — a competent take on an idea the category already had
- 4 — a familiar idea, restated
- 2 — hard to tell apart from its neighbours
- 0 — nothing here is new`,
+    ask: "Was this first, or only? Name what the category did not have before them, and what on the pages shows it.",
+    anchors: `extremely — a mechanism the category did not have before this company
+yes        — a real insight, conventionally executed
+kinda      — a competent take on an idea the category already had
+no         — a familiar idea, restated
+hard no    — nothing here is new`,
   },
   {
     key: "difficulty",
@@ -285,14 +312,12 @@ export const QUESTIONS: Question[] = [
      * The ask now demands a named bottleneck and does not say what the
      * candidates are. Naming one is the juror's work.
      */
-    ask: `Name the single hardest thing about this to replicate, and what on the pages tells you so. Be specific about the bottleneck rather than the product. If nothing on the pages supports any real barrier, say that — it is a common and legitimate finding, and it scores low.`,
-    anchors: `Score the DIFFICULTY, not the ease. High means hard to reproduce.
-10 — years of accumulated work, or rests on something nobody else has
- 8 — hard; a strong team would need many months
- 6 — substantial but standard; the problems are known ones
- 4 — a competent team could approximate it in weeks
- 2 — days, using off-the-shelf parts
- 0 — trivial`,
+    ask: `Is this hard to replicate? Name the single hardest thing about it and what on the pages tells you so — the bottleneck, not the product. If nothing supports a real barrier, say so; that is a common and legitimate finding.`,
+    anchors: `extremely — years of accumulated work, or rests on something nobody else has
+yes        — hard; a strong team would need many months
+kinda      — substantial but standard; the problems are known ones
+no         — a competent team could approximate it in weeks
+hard no    — trivial`,
   },
   {
     key: "outlook",
@@ -324,26 +349,27 @@ export const QUESTIONS: Question[] = [
      * output tokens, and output tokens are the latency. The question survives
      * intact; the essay does not.
      */
-    ask: "Does this still matter in three years? Name the single thing that decides it, and what on the pages tells you so.",
+    ask: "Will this still matter in three years? Name the single thing that decides it, and what on the pages tells you so.",
     anchors: `Acquisition is an OUTCOME, not a verdict: absorbed and still shipping under its
 own name scores HIGH, absorbed and folded into a suite scores low. Never score
 on independence itself.
 
-10 — the need is growing, the market is large, and conditions favour them
- 8 — a durable need, with one identifiable headwind
- 6 — depends on the category staying roughly as it is
- 4 — a real headwind, or a market narrowing around them
- 2 — survival rests on one decision they do not control
- 0 — the need itself is going away`,
+extremely — the need is growing, the market is large, conditions favour them
+yes        — a durable need, with one identifiable headwind
+kinda      — depends on the category staying roughly as it is
+no         — a real headwind, or a market narrowing around them
+hard no    — the need itself is going away`,
   },
 ];
 
 // ── Shapes ──────────────────────────────────────────────────────────────────
 
 export interface Rating {
+  /** The word the juror actually chose. What the page shows. */
+  verdict: Verdict;
+  /** Its position on the 0-10 scale. What the arithmetic uses. */
   score: number;
   summary: string;
-  adjective: string;
 }
 
 export interface PanelistTake {
@@ -389,8 +415,8 @@ export interface PanelInput {
   /** Page text, each section headed. */
   pages: string;
   /**
-   * Third-party facts, when a lookup found them. Null means the panel is asked
-   * to recall funding the old way — see the funding block in the prompt.
+   * Third-party facts, when a lookup found them. Null simply means the jurors
+   * work from the site alone, as they always did.
    */
   facts?: CompanyFacts | null;
   /** True when the site rendered to almost nothing. */
@@ -455,11 +481,10 @@ yours.`;
 const RATING_SCHEMA = {
   type: "object",
   properties: {
-    score: { type: "integer" },
+    verdict: { type: "string", description: "one of: hard no, no, kinda, yes, extremely" },
     summary: { type: "string" },
-    adjective: { type: "string" },
   },
-  required: ["score", "summary", "adjective"],
+  required: ["verdict", "summary"],
 };
 
 export const PANEL_RESPONSE_SCHEMA = {
@@ -523,11 +548,11 @@ so a claim you cannot point at is not a neutral unknown — it is an absence.
 
   - Start each question at 4. Argue UPWARD from there with evidence, or leave
     it. Optimism costs something; vagueness does not earn anything.
-  - To score ABOVE 5 on a question, your summary must point at two DIFFERENT
+  - To answer "yes" or "extremely", your summary must point at two DIFFERENT
     concrete things on the pages. Two restatements of the same sentence is one
     thing, not two.
-  - A company whose entire case is its homepage cannot go above 5. That is not
-    a penalty. That is the score.
+  - A company whose entire case is its homepage cannot go above "kinda". That is
+    not a penalty. That is the answer.
   - Do not assume. If the pages do not settle something, say you cannot tell
     rather than filling the gap with what is usually true of companies like this.
   - Do not invent. No figure, customer, integration or date that is not on the
@@ -536,16 +561,18 @@ so a claim you cannot point at is not a neutral unknown — it is an absence.
     without describing how, treat it as unevidenced rather than as a finding.
   - Answer in your own terms. Do not reach for the phrasing of the question or
     the scale; describe what you actually found.
+  - BE BRIEF. Fifty words is the ceiling for anything you write, and most
+    answers want fewer. A long answer is not a more careful one.
 ${questions}
 
 For EACH question return:
-  score      integer 0-10, taken from the anchors above
-  summary    TWO OR THREE sentences of actual reasoning, citing what you saw on
-             the pages. Not a restatement of the score.
-  adjective  ONE lowercase word capturing your reaction to THIS question.
+  verdict    EXACTLY one of: hard no, no, kinda, yes, extremely
+  summary    Your reasoning, citing what you saw on the pages. UNDER 50 WORDS.
+             Not a restatement of the verdict.
 
-Then one more field, "adjective", for the company overall — a single lowercase
-word. It appears next to your name on the leaderboard, so make it count.
+Then one "adjective" for the company overall — a single lowercase word or a very
+short phrase. It appears next to your name on the leaderboard and it is the only
+adjective you are asked for, so make it count.
 
 Aim at the product, the positioning and the choices. Never at people. Never
 claim a company is failing, fraudulent, or in financial trouble.
@@ -578,9 +605,9 @@ sound established and reading stage off it is wrong more often than right.
 Return JSON only, with the keys in this order. "case_against" comes first
 because you must write it first:
 {"case_against":[str,str,str],
- "innovation":{"score":int,"summary":str,"adjective":str},
- "difficulty":{"score":int,"summary":str,"adjective":str},
- "outlook":{"score":int,"summary":str,"adjective":str},
+ "innovation":{"verdict":str,"summary":str},
+ "difficulty":{"verdict":str,"summary":str},
+ "outlook":{"verdict":str,"summary":str},
  "adjective":str,
  "category":str,
  "funding":{"round":str,"year":int,"investor":str}}
@@ -593,10 +620,22 @@ ${input.pages.slice(0, 30_000)}`;
 
 // ── Normalising ─────────────────────────────────────────────────────────────
 
-const clamp10 = (v: unknown): number => {
-  const n = typeof v === "number" ? v : Number.parseInt(String(v ?? ""), 10);
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.min(10, Math.round(n)));
+/**
+ * Read the juror's word, defensively.
+ *
+ * A model told to answer in five words will occasionally answer in six —
+ * "extremely yes", "a hard no", "Kinda." — so this matches on containment
+ * rather than equality. Longest verdict first, or "hard no" would match as "no".
+ *
+ * An unreadable answer lands on "kinda" rather than "hard no": a parse failure
+ * is our problem and should not be scored as the company's.
+ */
+const readVerdict = (v: unknown): Verdict => {
+  const text = String(v ?? "").toLowerCase();
+  for (const w of ["hard no", "extremely", "kinda", "yes", "no"] as Verdict[]) {
+    if (text.includes(w)) return w;
+  }
+  return "kinda";
 };
 
 /**
@@ -621,10 +660,13 @@ export function normalizeTake(raw: unknown, panelistId: string, modelUsed: strin
   const ratings = {} as Record<QuestionKey, Rating>;
   for (const q of QUESTIONS) {
     const src = (o[q.key] ?? {}) as Record<string, unknown>;
+    const verdict = readVerdict(src.verdict);
     ratings[q.key] = {
-      score: clamp10(src.score),
-      summary: trim(src.summary, 600),
-      adjective: oneWord(src.adjective),
+      verdict,
+      score: VERDICT_SCORE[verdict],
+      /* 50 words is the instruction; 400 characters is the backstop for a model
+         that ignored it. Truncating is kinder than rejecting a whole seat. */
+      summary: trim(src.summary, 400),
     };
   }
   const f = (o.funding ?? {}) as Record<string, unknown>;
@@ -661,8 +703,9 @@ export function normalizeTake(raw: unknown, panelistId: string, modelUsed: strin
 export function assertTakeUsable(take: PanelistTake): PanelistTake {
   for (const q of QUESTIONS) {
     const r = take.ratings[q.key];
-    if (r.summary.length < 60) throw new Error(`${q.key}: summary too thin`);
-    if (!r.adjective) throw new Error(`${q.key}: no adjective`);
+    /* 30, not 60: the brief is now UNDER fifty words, so the old floor was
+       written for a rubric that asked for two or three sentences. */
+    if (r.summary.length < 30) throw new Error(`${q.key}: summary too thin`);
   }
   if (!take.adjective) throw new Error("no overall adjective");
   return take;
@@ -696,8 +739,16 @@ export function aggregate(takes: PanelistTake[]): PanelResult {
   }
 
   const total = Math.round(QUESTIONS.reduce((sum, q) => sum + means[q.key], 0) * 10) / 10;
-  // A spread of 3 or more is a real disagreement; 1 or 2 is rounding.
-  return { takes, means, total, split: widest && widest.spread >= 3 ? widest : null };
+  /**
+   * Two steps apart, not three points apart.
+   *
+   * The old threshold of 3 was calibrated when jurors picked freely from 0-10
+   * and a gap of 1-2 was rounding noise. On the five-verdict scale the steps
+   * themselves are 2-3 points wide (0 · 3 · 5 · 8 · 10), so a spread of 3 is now
+   * ONE step — "kinda" against "yes" — which is an ordinary judgement call and
+   * not a split. Five points is two steps, which is a genuine disagreement.
+   */
+  return { takes, means, total, split: widest && widest.spread >= 5 ? widest : null };
 }
 
 // ── Resolving the facts ─────────────────────────────────────────────────────
@@ -802,7 +853,14 @@ export async function runPanel(env: ProviderEnv, input: PanelInput): Promise<Pan
         //
         // `system` carries the character; `prompt` is byte-identical across
         // seats. Same rubric, three different people reading it.
-        { preferred: p.model, only: [p.model], attempts: 2, system: buildPanelSystem(p),
+        /* ONE attempt in the parallel round, not two.
+           Two meant a flaky seat burned up to 240s before the panel could even
+           report itself incomplete, while the other two sat finished and idle —
+           so the common failure was not "a lab was down" but "a lab was slow and
+           we waited for it twice". One attempt here, and one targeted retry of
+           only the seats that missed, recovers the same transient failures for
+           the same worst-case wall clock and a far better median. */
+        { preferred: p.model, only: [p.model], attempts: 1, system: buildPanelSystem(p),
           schema: PANEL_RESPONSE_SCHEMA },
       ).then((r) => r.value),
     ),
@@ -814,6 +872,54 @@ export async function runPanel(env: ProviderEnv, input: PanelInput): Promise<Pan
     if (result.status === "fulfilled") takes.push(result.value);
     else missing.push(`${PANELISTS[i].name}: ${result.reason?.message ?? result.reason}`);
   });
+
+  /**
+   * One retry, and only for the seats that actually missed.
+   *
+   * The refusal below stands — a panel of two is not comparable to a board of
+   * threes — but refusing on a single transient timeout was throwing away two
+   * good takes and a crawl. GLM timed out twice in one afternoon and answered
+   * cleanly minutes later, which is exactly the shape this recovers.
+   *
+   * Sequential, because by this point the other seats have finished and there is
+   * nothing to run alongside.
+   */
+  if (takes.length < PANELISTS.length) {
+    const seatedIds = new Set(takes.map((t) => t.panelistId));
+    const absent = PANELISTS.filter((p) => !seatedIds.has(p.id));
+    console.warn(`[panel] retrying ${absent.map((p) => p.name).join(", ")}`);
+
+    /**
+     * Wait before retrying, because the failures worth retrying are the ones a
+     * pause fixes.
+     *
+     * Measured on blockthrough.com: NIM answered `503 Service temporarily
+     * overloaded`, and an immediate retry came back with unparseable content —
+     * the same overloaded service, asked again a millisecond later. A retry with
+     * no backoff is not a second chance, it is the same request.
+     *
+     * Six seconds is chosen against the deadline rather than against the
+     * provider: the other seats have finished by now, so this is dead time on
+     * the request, and the budget only stretches so far.
+     */
+    await new Promise((r) => setTimeout(r, 6_000));
+
+    for (const p of absent) {
+      try {
+        const again = await askLadder(
+          p.provider, env, prompt,
+          (text, model) => assertTakeUsable(normalizeTake(extractJson(text), p.id, model)),
+          /* Two attempts here, unlike the parallel round: nothing else is
+             running, so a second try costs only its own latency. */
+          { preferred: p.model, only: [p.model], attempts: 2, system: buildPanelSystem(p),
+            schema: PANEL_RESPONSE_SCHEMA },
+        );
+        takes.push(again.value);
+      } catch (err) {
+        missing.push(`${p.name} (retry): ${err instanceof Error ? err.message : err}`);
+      }
+    }
+  }
 
   if (takes.length < PANELISTS.length) {
     throw new Error(`panel incomplete — ${missing.join(" | ")}`);

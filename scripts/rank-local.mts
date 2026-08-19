@@ -22,7 +22,7 @@
  */
 import { readSite } from "../functions/_lib/crawl";
 import { detectStack, byCategory } from "../functions/_lib/stack";
-import { gatherFacts, fundingBand } from "../functions/_lib/facts";
+import { lookupCompany, divisionFor, ageOf } from "../functions/_lib/facts";
 import { resolveLogo } from "../functions/_lib/logo";
 
 import {
@@ -38,6 +38,7 @@ const env = {
   GEMINI_API_KEY: process.env.GEMINI_API_KEY,
   NVIDIA_API_KEY: process.env.NVIDIA_API_KEY,
   OPENCODE_API_KEY: process.env.OPENCODE_API_KEY,
+  EXA_API_KEY: process.env.EXA_API_KEY,
 };
 const CONTEXT_DEV_API_KEY = process.env.CONTEXT_DEV_API_KEY;
 
@@ -79,8 +80,8 @@ async function rank(domain: string) {
   const markup = placeFromMarkup(site.html, site.pages);
   if (markup.isPublic) return { refused: `Public company — ${markup.isPublic}.`, domain };
 
-  const facts = await gatherFacts(env as any, domain, identity.name, site.html);
-  if (facts) console.error(`  facts: ${fundingBand(facts.totalFundingRaised)} · ${facts.employeeCountRange || "headcount unknown"} (${facts.source})`);
+  const facts = await lookupCompany(env as any, domain, identity.name);
+  if (facts) console.error(`  facts: founded ${facts.foundedYear || "?"} · ${facts.headcountRange || "size ?"} · ${divisionFor(facts.headcountRange) ?? "unclassed"} · $${facts.costUsd}`);
 
   const panel = await runPanel(env, {
     domain, pages: site.pages, thin: site.thin, facts,
@@ -89,7 +90,7 @@ async function rank(domain: string) {
 
   const recall = resolveRecall(panel.takes);
   const category = categoryFor(domain, recall.category, identity.category);
-  const placement = place(site.html, site.pages, identity.stage, recall, facts);
+  const placement = place(site.html, site.pages, identity.stage, recall);
   if (!placement.eligible) return { refused: placement.reason, domain };
   const side = sideFor(category);
   const cohort = cohortLabel(placement.band, side);
@@ -109,15 +110,15 @@ async function rank(domain: string) {
 
   return {
     domain, slug, identity, placement, side, cohort, panel, summary, logo, category,
-    stack: byCategory(detected), thin: site.thin,
+    stack: byCategory(detected), thin: site.thin, facts,
   };
 }
 
 const sqlFor = (r: any) => {
   const lines = [
     `DELETE FROM company WHERE domain = ${q(r.domain)} AND id NOT IN (SELECT company_id FROM ranking);`,
-    `INSERT INTO company (domain, name, slug, logo_url, one_liner, division, category, stage, band, side, band_evidence, band_inferred, provisional)
- VALUES (${q(r.domain)}, ${q(r.identity.name)}, ${q(r.slug)}, ${q(r.logo)}, ${q(r.identity.oneLiner)}, 'middleweight', ${q(r.category)}, ${q(r.identity.stage)}, ${q(r.placement.band)}, ${q(r.side)}, ${q(r.placement.bandEvidence)}, ${r.placement.bandInferred ? 1 : 0}, ${r.thin ? 1 : 0});`,
+    `INSERT INTO company (domain, name, slug, logo_url, one_liner, founded_year, division, headcount, category, stage, band, side, band_evidence, band_inferred, provisional)
+ VALUES (${q(r.domain)}, ${q(r.identity.name)}, ${q(r.slug)}, ${q(r.logo)}, ${q(r.identity.oneLiner)}, ${r.facts?.foundedYear || "NULL"}, ${r.facts ? q(divisionFor(r.facts.headcountRange)) : "NULL"}, ${q(r.facts?.headcountRange ?? null)}, ${q(r.category)}, ${q(r.identity.stage)}, ${q(r.placement.band)}, ${q(r.side)}, ${q(r.placement.bandEvidence)}, ${r.placement.bandInferred ? 1 : 0}, ${r.thin ? 1 : 0});`,
     `INSERT INTO ranking (company_id, total, innovation, difficulty, outlook, split_question, split_spread, summary, stack_json)
  VALUES ((SELECT id FROM company WHERE domain = ${q(r.domain)}), ${r.panel.total}, ${r.panel.means.innovation}, ${r.panel.means.difficulty}, ${r.panel.means.outlook}, ${q(r.panel.split?.question ?? null)}, ${r.panel.split?.spread ?? 0}, ${q(r.summary)}, ${q(JSON.stringify(r.stack))});`,
   ];

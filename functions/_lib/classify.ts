@@ -204,8 +204,6 @@ export function categoryFor(domain: string, voted: string, fallback: Category): 
 
 // ── Bands ───────────────────────────────────────────────────────────────────
 
-import { bandFromFunding, fundingBand } from "./facts";
-
 export type Band = "emerging" | "growth" | "mature";
 
 export const BANDS: { key: Band; label: string; blurb: string }[] = [
@@ -363,8 +361,6 @@ export function place(
   modelStage: string | null | undefined,
   /** The panel's majority recall, when two or more agreed. */
   recall?: PanelRecall | null,
-  /** A third-party funding total, when a lookup found one. */
-  facts?: { totalFundingRaised: number; source: string } | null,
 ): Placement {
   const found = placeFromMarkup(html, text);
 
@@ -376,32 +372,6 @@ export function place(
       bandEvidence: found.isPublic,
       bandInferred: false,
     };
-  }
-
-  /**
-   * A looked-up figure outranks everything, including the markup.
-   *
-   * The markup tier below is good evidence — a company announcing its own
-   * Series B on its own site is not guessing — but it is a snapshot of whenever
-   * that page was last edited, and "announced our seed" sits on about-pages for
-   * years after a Series A. A funding database is the same class of fact,
-   * maintained.
-   *
-   * Still ranked below the public-company refusal above it: a ticker symbol
-   * disqualifies a company outright and no amount of private funding history
-   * changes that.
-   */
-  if (facts && facts.totalFundingRaised > 0) {
-    const band = bandFromFunding(facts.totalFundingRaised);
-    if (band) {
-      return {
-        eligible: true,
-        reason: "",
-        band,
-        bandEvidence: `${facts.source} records ${fundingBand(facts.totalFundingRaised)}.`,
-        bandInferred: false,
-      };
-    }
   }
 
   if (found.band) {

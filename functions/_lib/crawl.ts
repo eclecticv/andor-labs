@@ -261,11 +261,25 @@ export async function readSite(domain: string, contextDevKey?: string): Promise<
 
   const sitemapUrlCount = await countSitemap(origin);
 
+  /**
+   * context.dev FIRST, not as a fallback.
+   *
+   * It returns rendered markdown, which is a better document than anything
+   * `toText()` can produce by stripping tags with regexes — headings survive as
+   * headings, lists as lists, and links keep their targets. The panel reads
+   * prose, and prose with structure is easier to reason over than a flattened
+   * run of words.
+   *
+   * It also deletes a whole class of bug at the source. `toText()` was replacing
+   * every numeric HTML entity with a space, so "We&#8217;re" reached the jurors
+   * as "We re" on any CMS-built site; that fix stays as the fallback path's
+   * safety net, but the primary path no longer needs it.
+   *
+   * Falls back to the stripped direct fetch whenever context.dev is unkeyed,
+   * errors, or returns less than the direct read did.
+   */
   let homeText = toText(home, 10_000);
-  // The direct fetch returned a shell — a client-rendered app or a WAF's block
-  // page served with a 200. Try context.dev on the homepage alone before
-  // giving up; the extra pages already fetched above stay as-is regardless.
-  if (homeText.length < 120 && contextDevKey) {
+  if (contextDevKey) {
     const rendered = await readViaContextDev(homeUrl, contextDevKey);
     if (rendered && rendered.length > homeText.length) homeText = rendered;
   }
