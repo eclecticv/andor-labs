@@ -4,7 +4,7 @@
 // rest" are all literally the same markup — three near-copies of a row is how
 // a board starts drifting between the places it appears.
 import PixelIcon from "./PixelIcon.astro";
-import { scoreBand, categoryLabel, adjectivesFor, fmt, type Entry } from "../../lib/rankings";
+import { scoreBand, categoryLabel, adjectivesFor, fmt, DIVISION_LABELS, type Entry } from "../../lib/rankings";
 
 interface Props {
   entry: Entry;
@@ -63,6 +63,17 @@ const isSplit = entry.split_spread >= 3;
           the same. */}
       <span class="aol-rb__keywords">
         <span class="aol-rb__keyword aol-rb__keyword--cat">{categoryLabel(entry.category)}</span>
+        {/* Weight class, from headcount. It sits with the category rather than
+            in its own column because it is the same KIND of fact — what this
+            company is — and a reader scanning the board wants to know they are
+            not comparing nine people to nine hundred. Absent when the lookup
+            established no size; the row never guesses one. */}
+        {entry.division ? (
+          <span class="aol-rb__keyword aol-rb__keyword--class"
+            title={entry.headcount ? `${entry.headcount} people` : undefined}>
+            {DIVISION_LABELS[entry.division].toLowerCase()}
+          </span>
+        ) : null}
         {adjectives.map(({ word, count }) => (
           <span class="aol-rb__keyword"
             title={count > 1 ? `${count} of the three panelists chose this word` : undefined}>

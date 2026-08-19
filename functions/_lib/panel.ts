@@ -31,7 +31,7 @@
  */
 
 import { askLadder, extractJson, type Provider, type ProviderEnv } from "./providers";
-import { factsBlock, type CompanyFacts } from "./facts";
+import { factsBlock, pressBlock, type CompanyFacts, type PressItem } from "./facts";
 
 // ── The panelists ───────────────────────────────────────────────────────────
 
@@ -419,6 +419,8 @@ export interface PanelInput {
    * work from the site alone, as they always did.
    */
   facts?: CompanyFacts | null;
+  /** Third-party coverage, excerpted. Evidence the website does not carry. */
+  press?: PressItem[];
   /** True when the site rendered to almost nothing. */
   thin: boolean;
   /** The closed subcategory set, passed in so _lib/panel owns no taxonomy. */
@@ -613,7 +615,7 @@ because you must write it first:
  "funding":{"round":str,"year":int,"investor":str}}
 
 COMPANY: ${input.domain}
-${factsBlock(input.facts ?? null)}
+${factsBlock(input.facts ?? null)}${pressBlock(input.press ?? [])}
 PAGES:
 ${input.pages.slice(0, 30_000)}`;
 }

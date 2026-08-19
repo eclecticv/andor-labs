@@ -22,7 +22,7 @@
  */
 import { readSite } from "../functions/_lib/crawl";
 import { detectStack, byCategory } from "../functions/_lib/stack";
-import { lookupCompany, divisionFor, ageOf } from "../functions/_lib/facts";
+import { lookupCompany, lookupPress, divisionFor, ageOf } from "../functions/_lib/facts";
 import { resolveLogo } from "../functions/_lib/logo";
 
 import {
@@ -80,11 +80,15 @@ async function rank(domain: string) {
   const markup = placeFromMarkup(site.html, site.pages);
   if (markup.isPublic) return { refused: `Public company — ${markup.isPublic}.`, domain };
 
-  const facts = await lookupCompany(env as any, domain, identity.name);
+  const [facts, press] = await Promise.all([
+    lookupCompany(env as any, domain, identity.name),
+    lookupPress(env as any, domain, identity.name),
+  ]);
+  if (press.length) console.error(`  press: ${press.length} items — ${press[0].title.slice(0, 60)}…`);
   if (facts) console.error(`  facts: founded ${facts.foundedYear || "?"} · ${facts.headcountRange || "size ?"} · ${divisionFor(facts.headcountRange) ?? "unclassed"} · $${facts.costUsd}`);
 
   const panel = await runPanel(env, {
-    domain, pages: site.pages, thin: site.thin, facts,
+    domain, pages: site.pages, thin: site.thin, facts, press,
     categories: CATEGORIES, categoryNotes: CATEGORY_NOT,
   });
 
@@ -117,8 +121,8 @@ async function rank(domain: string) {
 const sqlFor = (r: any) => {
   const lines = [
     `DELETE FROM company WHERE domain = ${q(r.domain)} AND id NOT IN (SELECT company_id FROM ranking);`,
-    `INSERT INTO company (domain, name, slug, logo_url, one_liner, founded_year, division, headcount, category, stage, band, side, band_evidence, band_inferred, provisional)
- VALUES (${q(r.domain)}, ${q(r.identity.name)}, ${q(r.slug)}, ${q(r.logo)}, ${q(r.identity.oneLiner)}, ${r.facts?.foundedYear || "NULL"}, ${r.facts ? q(divisionFor(r.facts.headcountRange)) : "NULL"}, ${q(r.facts?.headcountRange ?? null)}, ${q(r.category)}, ${q(r.identity.stage)}, ${q(r.placement.band)}, ${q(r.side)}, ${q(r.placement.bandEvidence)}, ${r.placement.bandInferred ? 1 : 0}, ${r.thin ? 1 : 0});`,
+    `INSERT INTO company (domain, name, slug, logo_url, one_liner, founded_year, division, headcount, facts_json, category, stage, band, side, band_evidence, band_inferred, provisional)
+ VALUES (${q(r.domain)}, ${q(r.identity.name)}, ${q(r.slug)}, ${q(r.logo)}, ${q(r.identity.oneLiner)}, ${r.facts?.foundedYear || "NULL"}, ${r.facts ? q(divisionFor(r.facts.headcountRange)) : "NULL"}, ${q(r.facts?.headcountRange ?? null)}, ${q(r.facts ? JSON.stringify(r.facts) : null)}, ${q(r.category)}, ${q(r.identity.stage)}, ${q(r.placement.band)}, ${q(r.side)}, ${q(r.placement.bandEvidence)}, ${r.placement.bandInferred ? 1 : 0}, ${r.thin ? 1 : 0});`,
     `INSERT INTO ranking (company_id, total, innovation, difficulty, outlook, split_question, split_spread, summary, stack_json)
  VALUES ((SELECT id FROM company WHERE domain = ${q(r.domain)}), ${r.panel.total}, ${r.panel.means.innovation}, ${r.panel.means.difficulty}, ${r.panel.means.outlook}, ${q(r.panel.split?.question ?? null)}, ${r.panel.split?.spread ?? 0}, ${q(r.summary)}, ${q(JSON.stringify(r.stack))});`,
   ];

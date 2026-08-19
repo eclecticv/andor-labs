@@ -59,11 +59,11 @@ const STEPS = [
 
 const HOW = [
   { icon: "newspaper", title: "We read the site",
-    body: "Up to six pages. The about and press pages, not just the homepage." },
+    body: "Up to seven pages as rendered markdown, plus what a search turns up about the company elsewhere." },
   { icon: "vote-yeah", title: "Three labs judge it",
     body: `${panelLabs()}, at the same moment, unable to see each other.` },
-  { icon: "shapes", title: "Nine ratings",
-    body: "Three questions times three judges, scored against a fixed scale rather than a feeling." },
+  { icon: "shapes", title: "Nine answers",
+    body: "Three questions times three judges, answered in five words: hard no, no, kinda, yes, extremely." },
   { icon: "trophy-solid", title: "A fourth writes it up",
     body: "Then it goes on the public board, ranked against its own corner of adtech." },
 ];
@@ -87,7 +87,7 @@ const description =
     <section class="aol-rma__hero">
       <div class="aol-rma__inner aol-rma__split">
         <div class="aol-rma__copy">
-          <p class="aol-rma__eyebrow">
+          <p class="aol-eyebrow aol-rma__eyebrow">
             <PixelIcon name="vote-yeah" size={12} /> Free tool ·{" "}
             {ranked > 0 ? `${ranked} ranked` : "fresh board"}
           </p>
@@ -193,7 +193,7 @@ const description =
               <li class="aol-rma__axis-cell">
                 <span class="aol-rma__axis-label">
                   <PixelIcon name={q.icon as any} size={12} />
-                  {q.label}<em>0–10</em>
+                  {q.label}<em>hard no → extremely</em>
                 </span>
                 <span class="aol-rma__axis-q">{q.question}</span>
               </li>

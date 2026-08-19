@@ -541,9 +541,15 @@
   background-image:radial-gradient(var(--ink-300) 0.9px, transparent 1.1px);
   background-size:6px 3px; background-position:left center; background-repeat:repeat-x;
 }
+/* Shrinkable, not fixed. `flex:none` was safe while every value here was a
+   short one — "Next.js", "Cloudflare Pages" — and overflowed the row the moment
+   a longer one arrived ("publishers, adtech platforms, mobile app developers").
+   `min-width:0` is the half that actually allows a flex child to wrap. */
 .aol-specsheet__val{
-  flex:none; margin:0; font-family:var(--font-serif); font-weight:600;
+  flex:1 1 auto; min-width:0; margin:0;
+  font-family:var(--font-serif); font-weight:600;
   font-size:16px; color:var(--ink-900); text-align:right;
+  overflow-wrap:anywhere;
 }
 
 /* ---- ChangesList — paired before/after rows (variable length, unlike .aol-ba's fixed 3-item row) ---- */
@@ -871,7 +877,11 @@
   .aol-rb__keywords{ grid-area:words; }
   .aol-rb__score{ grid-area:score; font-size:var(--text-md); min-width:0; }
   .aol-rb__band{ display:none; }
-  .aol-rb__keyword{ font-size:var(--text-2xs); padding:2px 6px; }
+  /* The weight class reads as a fact about the company, like the category beside
+   it, so it takes the same outlined chip rather than a colour of its own — the
+   accent budget belongs to links and ranks. */
+.aol-rb__keyword--class{ border-style:dashed; }
+.aol-rb__keyword{ font-size:var(--text-2xs); padding:2px 6px; }
   /* Category plus two panel words — the rest is one tap away. */
   .aol-rb__keywords > .aol-rb__keyword:nth-of-type(n+4){ display:none; }
 }
@@ -908,10 +918,12 @@
 .aol-rma__board{ background:transparent; }
 .aol-rma__axes{ background:var(--surface-card); }
 
+/* Placement only. The TYPE belongs to .aol-eyebrow in tokens/typography.css,
+   which these elements now also carry — this class restated every one of its
+   declarations, so the two could drift and briefly did (.06em here against the
+   system's --tracking-label). One owner per property. */
 .aol-rma__eyebrow{
   display:flex; align-items:center; gap:6px; margin:0 0 var(--space-4);
-  font-family:var(--font-mono); font-size:var(--text-2xs);
-  text-transform:uppercase; letter-spacing:var(--tracking-label); color:var(--text-muted);
 }
 .aol-rma__h1{ font-family:var(--font-display); font-weight:var(--weight-regular);
   font-size:var(--text-3xl); line-height:var(--leading-tight);
@@ -1081,7 +1093,10 @@
 }
 
 /* ---- One company's ranking (.aol-rmc) ---- */
-.aol-rmc{ background:var(--paper); padding:var(--space-12) 0 var(--space-20); }
+/* One rhythm, the site's. This carried 48/80 where every other top-level band
+   on the site uses --section-pad-y, which is close enough to look deliberate and
+   far enough to break the alignment. */
+.aol-rmc{ background:var(--paper); padding:var(--section-pad-y) 0; }
 .aol-rmc__back{ margin:0 0 var(--space-6); font-size:var(--text-sm); }
 .aol-rmc__head{
   display:grid; grid-template-columns:56px minmax(0,1fr) auto;
@@ -1091,7 +1106,8 @@
 }
 .aol-rmc__logo{ width:56px; height:56px; object-fit:contain; margin-top:5px; }
 .aol-rmc__id{ min-width:0; }
-.aol-rmc__name{ font-family:var(--font-display); font-weight:var(--weight-regular);
+.aol-rmc__name{ overflow-wrap:anywhere;
+  font-family:var(--font-display); font-weight:var(--weight-regular);
   /* 48px — every other page's H1 size. 36 made the company subordinate to its
      own section headings. */
   font-size:var(--text-3xl); line-height:var(--leading-tight);
@@ -1138,6 +1154,20 @@
   margin:0; font-size:var(--text-md); line-height:var(--leading-relaxed);
   color:var(--text-body); max-width:var(--measure);
 }
+/* ---- The looked-up profile ----------------------------------------------
+   A kicker, one neutral sentence, and a leader-dot datasheet. The DS already
+   draws the datasheet (.aol-specsheet, via SpecGrid); all this adds is the
+   rhythm around it and the sentence above it. */
+/* Placement only — see .aol-rma__eyebrow above. Carries .aol-eyebrow for type. */
+.aol-rmc__kicker{ margin:var(--space-8) 0 var(--space-3); }
+/* The one line of prose in this block, so it reads and the rows below scan. */
+.aol-rmc__does{
+  margin:0 0 var(--space-5); font-size:var(--text-md);
+  line-height:var(--leading-relaxed); color:var(--text-body);
+  max-width:var(--measure);
+}
+.aol-rmc__facts{ margin:0 0 var(--space-6); max-width:var(--measure); }
+
 .aol-rmc__note{ margin:0 0 var(--space-4); font-size:var(--text-base); color:var(--text-muted); max-width:var(--measure); }
 
 /* Meter as a segmented tick scale — a diagram, not a SaaS progress pill.

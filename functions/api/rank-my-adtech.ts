@@ -45,7 +45,7 @@
 
 import { readSite } from "../_lib/crawl";
 import { detectStack, byCategory } from "../_lib/stack";
-import { lookupCompany, divisionFor, ageOf, type FactsEnv } from "../_lib/facts";
+import { lookupCompany, lookupPress, divisionFor, ageOf, type FactsEnv } from "../_lib/facts";
 import { resolveLogo } from "../_lib/logo";
 
 import {
@@ -168,7 +168,7 @@ export function failure(stage: "read" | "identify" | "panel" | "write") {
     read: {
       headline: "We could not get a look at them.",
       detail:
-        "We fetched that site and came back with almost nothing. Either it is very well defended, it renders entirely in the browser, or we are having a bad afternoon. The authorities have been notified.",
+        "We fetched that site and came back with almost nothing — it renders in the browser, or it blocks us. Nothing was published. Try a different domain, or the same one shortly.",
     },
     identify: {
       headline: "We could not work out what they are.",
@@ -178,7 +178,7 @@ export function failure(stage: "read" | "identify" | "panel" | "write") {
     panel: {
       headline: "The panel did not sit.",
       detail:
-        "Three judges are required and fewer than three turned up, so there is no ranking rather than a smaller one. A panel of two would not be comparable to anything else on this board. Try again shortly.",
+        "One of the three judges did not answer, so nothing was published — a panel of two would not be comparable to the rest of this board. Try again shortly.",
     },
     write: {
       headline: "The panel voted. Nobody would write it up.",
@@ -481,7 +481,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
    * it fails soft to null, and a null just means the jurors work from the site
    * alone. It runs after `identify` because the search needs a company NAME.
    */
-  const facts = await lookupCompany(env as FactsEnv, domain, identity.name);
+  const [facts, press] = await Promise.all([
+    lookupCompany(env as FactsEnv, domain, identity.name),
+    lookupPress(env as FactsEnv, domain, identity.name),
+  ]);
   if (facts) {
     console.log(
       `[rank] ${domain} — facts: founded ${facts.foundedYear || "?"}` +
@@ -492,7 +495,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
 
   try {
     panel = await runPanel(env, {
-      domain, pages: site.pages, thin: site.thin, facts,
+      domain, pages: site.pages, thin: site.thin, facts, press,
       categories: CATEGORIES, categoryNotes: CATEGORY_NOT,
     });
   } catch (err) {
@@ -579,9 +582,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
 
   const companyRow = await env.RANKINGS.prepare(
     `INSERT INTO company (domain, name, slug, logo_url, one_liner,
-                          founded_year, division, headcount,
+                          founded_year, division, headcount, facts_json,
                           category, stage, band, side, band_evidence, band_inferred, provisional)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
   ).bind(
     domain, identity.name, slug, logo, identity.oneLiner,
     /* From the search, not hardcoded. NULL when the lookup found no size or no
@@ -590,6 +593,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
     facts?.foundedYear || null,
     facts ? divisionFor(facts.headcountRange) : null,
     facts?.headcountRange || null,
+    facts ? JSON.stringify(facts) : null,
     category, identity.stage,
     placement.band, side, placement.bandEvidence, placement.bandInferred ? 1 : 0,
     site.thin ? 1 : 0,

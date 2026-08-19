@@ -29,9 +29,11 @@ import SiteFooter from "../../../components/sections/SiteFooter.astro";
 import SiteMotion from "../../../components/SiteMotion.astro";
 import PixelIcon from "../../../components/ds/PixelIcon.astro";
 import DitherLine from "../../../components/ds/DitherLine.astro";
+import SpecGrid from "../../../components/ds/SpecGrid.astro";
 import {
   getEntries, ranksFor, ordinal, scoreBand, categoryLabel,
   fmt, bandBadgeFor, identityFor, rankingIsStale, QUESTIONS, WRITER, SIDE_LABELS,
+  DIVISION_LABELS, ageOf, factsFor,
 } from "../../../lib/rankings";
 
 export async function getStaticPaths() {
@@ -44,6 +46,27 @@ export async function getStaticPaths() {
 
 const { entry, all } = Astro.props;
 const band = scoreBand(entry.total);
+const age = ageOf(entry.founded_year);
+
+/**
+ * The looked-up profile, as a datasheet.
+ *
+ * Built here rather than in the markup so the empty rows never render: a spec
+ * sheet with "unknown" in it is worse than a shorter one, and the whole claim of
+ * this block is that every line was actually established.
+ */
+const facts = factsFor(entry);
+const money = (n: number) => (n >= 1e9 ? `$${(n / 1e9).toFixed(1)}B` : `$${Math.round(n / 1e6)}M`);
+const factRows = [
+  facts.serves?.length ? { label: "Serves", value: facts.serves.join(", ") } : null,
+  entry.founded_year ? { label: "Founded", value: `${entry.founded_year}${age ? ` · ${age} years` : ""}` } : null,
+  entry.headcount ? { label: "Headcount", value: `${entry.headcount}${entry.division ? ` · ${DIVISION_LABELS[entry.division]}` : ""}` } : null,
+  [facts.hqCity, facts.hqCountry].filter(Boolean).length
+    ? { label: "Based", value: [facts.hqCity, facts.hqCountry].filter(Boolean).join(", ") } : null,
+  facts.totalFundingUsd ? { label: "Raised", value: money(facts.totalFundingUsd) } : null,
+  facts.lastFunding ? { label: "Last round", value: facts.lastFunding } : null,
+  facts.acquiredBy ? { label: "Owner", value: facts.acquiredBy } : null,
+].filter((r): r is { label: string; value: string } => r !== null);
 const ranks = ranksFor(entry, all);
 
 const bandBadge = bandBadgeFor(entry);
@@ -106,6 +129,22 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
               <span>{SIDE_LABELS[entry.side]}</span>
               <span>·</span>
               <span>{categoryLabel(entry.category)}</span>
+              {/* Weight class and age, the board's two filter axes. Both come
+                  from third-party search rather than from this company's own
+                  pages, and both are simply absent when nothing was
+                  established — the page never guesses a size or an age. */}
+              {entry.division ? (
+                <>
+                  <span>·</span>
+                  <span>{DIVISION_LABELS[entry.division]}</span>
+                </>
+              ) : null}
+              {age ? (
+                <>
+                  <span>·</span>
+                  <span>{age} {age === 1 ? "year" : "years"} old</span>
+                </>
+              ) : null}
               {/* Stage lives in the band-note below the ranks — printing it here
                   too said the same thing twice within 200px. */}
               {entry.provisional ? (
@@ -128,6 +167,22 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
             </span>
           </div>
         </header>
+
+        {/* ── The looked-up profile ─────────────────────────────────────
+            A datasheet, not a card grid: these are facts with a label and a
+            value, which is what SpecGrid draws. Everything here came from a
+            third-party search rather than from the company's own pages, and
+            that provenance is the reason it sits ABOVE the panel's opinion —
+            the reader should know what is established before reading what is
+            argued. */}
+        {factRows.length ? (
+          <>
+            <DitherLine />
+            <p class="aol-eyebrow aol-rmc__kicker">Established · third-party search</p>
+            {facts.whatTheyDo ? <p class="aol-rmc__does">{facts.whatTheyDo}</p> : null}
+            <SpecGrid specs={factRows} class="aol-rmc__facts" />
+          </>
+        ) : null}
 
         <DitherLine />
 
@@ -201,10 +256,10 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
             scoring a classification rather than a vibe; they do not make it
             repeatable to a decimal, and saying so costs nothing. */}
         <p class="aol-rmc__note">
-          Three panelists, three questions. Each scored against a fixed scale
-          rather than a feeling — anchors, not vibes. Run the same company twice
-          and the totals still move a point or two; treat these as a reading,
-          not a measurement.
+          Three panelists, three questions, and five words to answer in: hard no,
+          no, kinda, yes, extremely. Nobody picks a number — the words become the
+          score. Run the same company twice and the totals still move; treat this
+          as a reading, not a measurement.
         </p>
 
         <div class="aol-rmc__questions">

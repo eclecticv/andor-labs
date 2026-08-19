@@ -404,6 +404,8 @@ export interface Entry {
   division: Division | null;
   /** Headcount band as reported, kept beside the class it produced. */
   headcount: string | null;
+  /** Everything else the search returned. See factsFor(). */
+  facts_json: string | null;
 
   /** Sum of the three means, 0-30, to one decimal. */
   total: number;
@@ -512,7 +514,7 @@ interface TakeRow {
 const ENTRY_SELECT = `
   SELECT c.slug, c.name, c.domain, c.logo_url, c.one_liner, c.provisional,
          c.category, c.band, c.side, c.band_evidence, c.band_inferred,
-         c.founded_year, c.division, c.headcount,
+         c.founded_year, c.division, c.headcount, c.facts_json,
          r.id AS ranking_id, r.total, r.innovation, r.difficulty, r.outlook,
          r.split_question, r.split_spread, r.summary, r.created_at
   FROM company c
@@ -666,3 +668,35 @@ export const scoresFor = (entry: Entry, key: QuestionKey): number[] =>
 /** A number like 7 renders as "7", 7.3 as "7.3". Never "7.0". */
 export const fmt = (n: number): string =>
   Number.isInteger(n) ? String(n) : n.toFixed(1);
+
+/** One looked-up fact, with the confidence and sources behind it. */
+export interface CompanyFacts {
+  whatTheyDo?: string;
+  serves?: string[];
+  hqCity?: string;
+  hqCountry?: string;
+  totalFundingUsd?: number;
+  lastFunding?: string;
+  acquiredBy?: string;
+  isPubliclyTraded?: boolean;
+  confidence?: Record<string, "low" | "medium" | "high">;
+  sources?: Record<string, string[]>;
+}
+
+/**
+ * The looked-up profile, defended.
+ *
+ * `JSON.parse` succeeding does not make the result the shape this returns, and a
+ * single malformed row must not take the static build down with it — every
+ * failure degrades to an empty object and the page simply shows less.
+ */
+export function factsFor(entry: Entry): CompanyFacts {
+  if (!entry.facts_json) return {};
+  try {
+    const parsed = JSON.parse(entry.facts_json);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return {};
+    return parsed as CompanyFacts;
+  } catch {
+    return {};
+  }
+}

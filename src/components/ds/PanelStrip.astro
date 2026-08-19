@@ -83,7 +83,7 @@ const { questions = true } = Astro.props;
           <li class="aol-rma__axis">
             <span class="aol-rma__axis-icon"><PixelIcon name={q.icon as any} size={24} /></span>
             <span class="aol-rma__axis-body">
-              <span class="aol-rma__axis-name">{q.label}<em>0–10</em></span>
+              <span class="aol-rma__axis-name">{q.label}<em>hard no → extremely</em></span>
               {/* The question itself, not a persona. Personas used to hang off
                   the questions — one hat per question, worn by all three
                   jurors. They now belong to the jurors, who hold one lens
@@ -95,10 +95,10 @@ const { questions = true } = Astro.props;
         ))}
       </ul>
       <p class="aol-rma__note">
-        Every panelist answers all three, so a company carries nine ratings.
-        Each question shows the panel's average; the total is out of thirty.
-        The engineer scores how <em>hard</em> something is to rebuild, not how
-        easy — otherwise a company could climb this board by being trivial.
+        Every panelist answers all three, so a company carries nine answers.
+        Each is one of five words — <em>hard no, no, kinda, yes, extremely</em> —
+        and nobody picks a number. The words become the score, the score becomes
+        the average, and the total is out of thirty.
       </p>
     </>
   ) : null}

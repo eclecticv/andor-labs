@@ -279,3 +279,106 @@ your own finding. Where a line is marked uncertain, weigh it as such.
 ${rows}
 `;
 }
+
+// ── What the press has said ─────────────────────────────────────────────────
+
+export interface PressItem {
+  title: string;
+  url: string;
+  excerpt: string;
+  publishedAt: string;
+}
+
+/**
+ * A second search, over news rather than company pages, returning EXCERPTS.
+ *
+ * ── Why this is not the spoon-feeding the rubric just removed ──
+ * The menu that was cut told jurors what kinds of answer to give. This tells
+ * them nothing; it hands over other people's sentences with the URLs attached
+ * and leaves the judgement alone.
+ *
+ * ── Why it is needed ──
+ * Blockthrough scored "no" on difficulty because its own site does not describe
+ * a barrier, and three jurors said so. But the press does: a Deloitte
+ * Companies-to-Watch award, the acquisition of a competitor, 11th
+ * fastest-growing company in Canada, named publisher partnerships. A panel
+ * reading the homepage alone cannot see any of it, so it scored the marketing
+ * rather than the company.
+ *
+ * ── Why there is no outputSchema here ──
+ * Deliberately. Asking for synthesis is what produced "the bluebird group, the
+ * powers company, mtm recognition" as this company's competitors — high
+ * confidence and entirely invented. Highlights are spans lifted out of real
+ * articles, so there is nothing for a model to construct.
+ */
+export async function lookupPress(
+  env: FactsEnv,
+  domain: string,
+  name: string,
+): Promise<PressItem[]> {
+  if (!env.EXA_API_KEY) return [];
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${env.EXA_API_KEY}`,
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        query: `${name} — awards, recognition, funding, acquisitions, notable engineers and leadership, partnerships`,
+        type: "auto",
+        category: "news",
+        numResults: 6,
+        contents: { highlights: true },
+        /* The company's own newsroom is a press release desk. Excluding it is
+           the whole point: this call exists to find what OTHER people published. */
+        excludeDomains: [domain],
+      }),
+    });
+    if (!res.ok) return [];
+
+    const body = (await res.json()) as any;
+    return (body?.results ?? [])
+      .map((r: any) => ({
+        title: str(r?.title),
+        url: str(r?.url),
+        excerpt: (Array.isArray(r?.highlights) ? r.highlights.join(" ") : "")
+          .replace(/\s+/g, " ").trim().slice(0, 220),
+        publishedAt: str(r?.publishedDate).slice(0, 10),
+      }))
+      .filter((p: PressItem) => p.title && p.excerpt)
+      .slice(0, 5);
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * The press block, appended to the facts block.
+ *
+ * Sources are printed because a juror citing one should be checkable, and
+ * because an excerpt with no origin is indistinguishable from something we made
+ * up — which is the failure this whole layer is built to avoid.
+ */
+export function pressBlock(press: PressItem[]): string {
+  if (!press.length) return "";
+  const rows = press
+    .map((p) => `  · ${p.title}${p.publishedAt ? ` (${p.publishedAt})` : ""}\n    "${p.excerpt}"\n    ${p.url}`)
+    .join("\n");
+  return `
+═══ WHAT OTHERS HAVE PUBLISHED ═══
+Third-party coverage, excerpted verbatim. Not the company's own newsroom.
+
+Use it as evidence the website does not carry — awards, acquisitions, named
+people, partnerships. It is not a verdict and it is not the company talking.
+A press release is still someone's marketing; weigh it accordingly.
+
+${rows}
+`;
+}

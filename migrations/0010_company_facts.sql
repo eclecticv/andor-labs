@@ -1,0 +1,14 @@
+-- Keep the facts we looked up.
+--
+-- 0009 stored the two that became filter axes — founding year and weight class —
+-- because those are queried. The rest of what the search returns is read once,
+-- shown on one page, and never filtered on: what the company does, who it
+-- serves, what it raised, who owns it, and the confidence and source URL behind
+-- each of those.
+--
+-- That shape is a document, not a set of columns. As JSON it stays one write and
+-- one read, and adding a field later costs nothing; as columns it would be a
+-- migration every time Exa's schema moved, for fields no query will ever filter.
+--
+-- Nullable, because a ranking must still publish when the lookup found nothing.
+ALTER TABLE company ADD COLUMN facts_json TEXT;
