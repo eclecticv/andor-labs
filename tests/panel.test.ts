@@ -9,7 +9,7 @@
 import { describe, expect, it } from "vitest";
 import {
   PANELISTS, WRITER, QUESTIONS, aggregate, normalizeTake, assertTakeUsable,
-  buildPanelPrompt, buildPanelSystem, resolveRecall, type PanelistTake,
+  buildPanelPrompt, buildPanelSystem, resolveRecall, VERDICTS, type PanelistTake,
 } from "../functions/_lib/panel";
 import { PROVIDER_TIMEOUT_MS } from "../functions/_lib/providers";
 import { CATEGORIES } from "../functions/_lib/classify";
@@ -300,5 +300,61 @@ describe("provider deadlines", () => {
     // Bounded: the seats run concurrently, so this is the panel's worst-case
     // wall clock and the page promises "one to three minutes".
     expect(PROVIDER_TIMEOUT_MS.opencode).toBeLessThanOrEqual(180_000);
+  });
+});
+
+/**
+ * The voice samples are the only part of a persona that DEMONSTRATES rather
+ * than describes, which makes them the only part that can anchor a score. These
+ * guard the two rules that keep a demonstration from becoming a template.
+ */
+describe("panelist voice samples", () => {
+  it("gives every seat one", () => {
+    for (const p of PANELISTS) expect(p.voice.length).toBeGreaterThan(120);
+  });
+
+  it("never reaches a verdict, so it cannot anchor one", () => {
+    // A worked example that concludes puts its conclusion in front of every
+    // juror on every company — the same failure the difficulty question hit
+    // when it offered a closed list of bottlenecks and got item one back.
+    //
+    // Only the verdict words that are unambiguously verdict VOCABULARY are
+    // checked. Bare "no" and "yes" are ordinary English and appear inside
+    // "not", "nobody", "innovation"; asserting on them tests spelling rather
+    // than anchoring, which is how the first version of this failed on a
+    // sample containing the word "not".
+    const anchoring = VERDICTS.filter((v) => v !== "no" && v !== "yes");
+    for (const p of PANELISTS) {
+      for (const v of anchoring) {
+        expect(p.voice.toLowerCase()).not.toContain(v);
+      }
+      expect(p.voice).not.toMatch(/\b\d+\s*\/\s*10\b/);
+      expect(p.voice).not.toMatch(/\bscores?\b|\brate[sd]?\b/i);
+    }
+  });
+
+  it("names no company that is on the board", () => {
+    // A seat must never be handed a worked example of the company it is
+    // currently judging.
+    for (const p of PANELISTS) {
+      for (const onTheBoard of ["Confiant", "Blockthrough", "AdPushup", "Ezoic", "AdMesh", "Media Trust"]) {
+        expect(p.voice).not.toContain(onTheBoard);
+      }
+    }
+  });
+
+  it("gives the three seats genuinely different vocabularies", () => {
+    // The failure being fixed is three interchangeable raters. If two samples
+    // share most of their distinctive words, they will read as one person.
+    const words = PANELISTS.map((p) =>
+      new Set(p.voice.toLowerCase().match(/[a-z]{5,}/g) ?? []),
+    );
+    for (let i = 0; i < words.length; i++) {
+      for (let j = i + 1; j < words.length; j++) {
+        const shared = [...words[i]].filter((w) => words[j].has(w)).length;
+        const overlap = shared / Math.min(words[i].size, words[j].size);
+        expect(overlap).toBeLessThan(0.25);
+      }
+    }
   });
 });
