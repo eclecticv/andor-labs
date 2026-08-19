@@ -114,6 +114,25 @@ describe("panel copy does not drift from the panel", () => {
     }
   });
 
+  it("names the writer by character wherever it credits the writer", () => {
+    /**
+     * Every juror is rendered character-first with the model underneath, and
+     * the writer is a seat like any other. The company page credited only
+     * "GPT-5.6 Luna", so the same clerk was Vega on the landing page and a bare
+     * model id on the profile — the two-names-for-one-seat bug this file exists
+     * for, on the one seat nobody thought to check.
+     */
+    const offences: string[] = [];
+    for (const file of files) {
+      const src = readFileSync(file, "utf8");
+      if (!src.includes("WRITER.name")) continue;
+      if (!src.includes("WRITER.character")) {
+        offences.push(`${file} credits WRITER.name without WRITER.character`);
+      }
+    }
+    expect(offences, offences.join("\n")).toEqual([]);
+  });
+
   it("derives the lab sentence from the panel", () => {
     const prose = panelLabs();
     for (const p of PANELISTS) expect(prose).toContain(p.lab);

@@ -51,7 +51,8 @@ export const GET: APIRoute = async ({ site }) => {
     // quoting a stale roster is a citation nobody can check.
     "- What it does: ranks private adtech startups out of 30, judged by three",
     `  language models from three different labs (${PANELISTS.map((p) => `${p.lab} ${p.name}`).join(", ")}),`,
-    `  with a fourth — ${WRITER.lab} ${WRITER.name} — writing the summary and scoring nothing.`,
+    `  with a fourth — ${WRITER.character}, played by ${WRITER.lab} ${WRITER.name} — writing`,
+    "  the summary and scoring nothing.",
     "- Each judge is a fixed persona holding one lens across all three questions,",
     "  so the engineer answers the outlook question as an engineer. Seats are",
     "  pinned to one model each: a seat that cannot answer fails the ranking",

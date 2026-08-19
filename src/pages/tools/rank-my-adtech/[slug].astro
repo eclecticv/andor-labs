@@ -297,9 +297,14 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
         </ul>
         <p class="aol-panel__writer">
           <PixelIcon name="quote-left" size={12} />
+          {/* Character first, model underneath — the same order PanelStrip uses
+              and the same order every juror above is rendered in. The character
+              is who wrote the words; the model is what makes the claim
+              checkable. This credited only the model, so one seat had two names
+              across two pages and the writer alone read as an anonymous AI. */}
           <span>
-            <strong>{WRITER.name}</strong> ({WRITER.lab}) wrote the verdict above and scored
-            nothing. {WRITER.spec}
+            <strong>{WRITER.character}</strong>, {WRITER.title}, wrote the verdict above and
+            scored nothing. Played by {WRITER.name} ({WRITER.lab}). {WRITER.spec}
           </span>
         </p>
 
