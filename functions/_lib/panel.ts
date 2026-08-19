@@ -308,19 +308,27 @@ export const QUESTIONS: Question[] = [
      * down. Weighing the direction of the need and the size of the market
      * alongside the headwinds means a tailwind can raise a score.
      */
-    ask: "Where does this sit in three years? Weigh three things and say which dominates: the DIRECTION of the need it serves (growing, evergreen, or past its prime), the SIZE of the market it can address, and whether the company sits in a tailwind or a headwind — a platform deprecation, a regulatory shift, a buyer consolidating. Point at what on the pages tells you.",
-    anchors: `Acquisition is an OUTCOME, not a verdict. A company absorbed and still
-shipping under its own name scores HIGH — someone with money concluded it would
-keep mattering. A company absorbed and quietly folded into a suite scores low.
-Never score down merely because a company was acquired, and never score up
-merely because a company is independent.
+    /**
+     * Kept SHORT on purpose, and the first draft was not.
+     *
+     * Written as "weigh three things and say which dominates", it asked for
+     * three sub-analyses per seat where the other two questions ask for one
+     * judgement. Measured against the real corpus, that took the panel from
+     * ~80s to two seats timing out at 120s twice each — the reasoning is
+     * output tokens, and output tokens are the latency. The question survives
+     * intact; the essay does not.
+     */
+    ask: "Does this still matter in three years? Name the single thing that decides it — a growing or fading need, the size of the market, or one platform, regulator or buyer whose decision it rests on.",
+    anchors: `Acquisition is an OUTCOME, not a verdict: absorbed and still shipping under its
+own name scores HIGH, absorbed and folded into a suite scores low. Never score
+on independence itself.
 
-10 — an evergreen or growing need, a large addressable market, and a tailwind
+10 — a growing or evergreen need, large market, and a tailwind
  8 — a durable need with one identifiable headwind
  6 — depends on the category staying roughly as it is
  4 — a real headwind, or a market narrowing around it
  2 — one platform decision away from irrelevance
- 0 — the need is being absorbed into a platform default, or is past its prime`,
+ 0 — being absorbed into a platform default, or past its prime`,
   },
 ];
 
