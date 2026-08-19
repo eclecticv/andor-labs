@@ -26,6 +26,14 @@
  * also simply less to get wrong.
  */
 
+/* The one place the four score bands are defined. Shared rather than mirrored:
+   the labels appear on the row, the company page, the share card and the
+   legend, and every one of those was previously a separate literal. */
+/* Aliased on import: `BANDS` in this file is already taken by the STAGE bands
+   (seed, growth, late), which are a different axis entirely. */
+import { BANDS as SCORE_BANDS, bandFor, bandLegend, type ScoreBand } from "../../functions/_lib/bands";
+export { SCORE_BANDS, bandLegend, type ScoreBand };
+
 const DEFAULT_DATABASE_ID = "662a14cc-7ed7-47d0-9dbb-a0e10d95ff43";
 const DEFAULT_ACCOUNT_ID = "63956fb1f50aec70801897b5de548e8d";
 
@@ -138,11 +146,15 @@ export const SIDE_LABELS: Record<string, string> =
  */
 export const QUESTIONS = [
   { key: "innovation", label: "Innovation", icon: "lightbulb",
-    question: "How innovative is this, really?" },
+    question: "Was this first, or only?" },
   { key: "difficulty", label: "Hard to build", icon: "laptop-code",
-    question: "What is the single hardest thing here to replicate?" },
+    question: "Is this hard to replicate?" },
   { key: "outlook", label: "Future outlook", icon: "bank",
-    question: "Where does this sit in three years?" },
+    /* Yes/no, because the answer displayed beside it is one of five words. The
+       page asked "Where does this sit in three years?" and printed "kinda"
+       underneath — an open question with a yes/no answer. The mirror in
+       panel.ts had already been rewritten; this copy had not. */
+    question: "Will this still matter in three years?" },
 ] as const;
 
 export type QuestionKey = (typeof QUESTIONS)[number]["key"];
@@ -440,18 +452,18 @@ export interface Ranks {
 }
 
 /**
- * Score bands drive the icon on each row.
+ * Score bands drive the icon and the verdict word on each row.
  *
- * Thresholds are out of 30, not 100. `hockey-mask` at the bottom is the tonal
- * load-bearer: the tool is a bit, and a low score has to read as a joke the
- * company is in on rather than a verdict delivered straight.
+ * The scale itself lives in functions/_lib/bands.ts and is imported by the OG
+ * card and the leaderboard legend too. It used to be four thresholds written
+ * out here, four more in the OG renderer, a hand-typed legend on the board and
+ * a parallel ladder for the share line — and they had already drifted apart.
+ *
+ * `hockey-mask` at the bottom is the tonal load-bearer: the tool is a bit, and
+ * a low score has to read as a joke the company is in on rather than a verdict
+ * delivered straight.
  */
-export function scoreBand(total: number): { icon: string; label: string; solid: boolean } {
-  if (total >= 24) return { icon: "fire-solid", label: "On fire", solid: true };
-  if (total >= 19) return { icon: "star", label: "Genuinely interesting", solid: false };
-  if (total >= 12) return { icon: "face-thinking", label: "The panel is thinking", solid: false };
-  return { icon: "hockey-mask", label: "Brutal", solid: false };
-}
+export const scoreBand = bandFor;
 
 // ── D1 over REST ────────────────────────────────────────────────────────────
 

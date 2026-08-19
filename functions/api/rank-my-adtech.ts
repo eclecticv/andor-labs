@@ -566,19 +566,35 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
   }
 
   // ── Persist ───────────────────────────────────────────────────────────────
-  let slug = slugify(identity.name) || slugify(domain);
-  if (RESERVED_SLUGS.has(slug)) slug = `${slug}-${slugify(domain).slice(0, 12)}`;
-  const clash = await env.RANKINGS.prepare("SELECT 1 FROM company WHERE slug = ?").bind(slug).first();
-  if (clash) slug = `${slug}-${slugify(domain).slice(0, 12)}`;
 
-  const logo = (await resolveLogo(site.html, site.finalUrl))?.url ?? null;
+  /* Clear this domain's rankless rows FIRST.
 
-  // Clear any rankless row for this domain so the UNIQUE constraint does not
-  // reject an insert that the dedup above deliberately allowed through.
+     This ran after the clash check, which made a company collide with its own
+     abandoned attempt. Any run that inserts a company row and then fails before
+     writing a ranking leaves that row behind; the next run for the same domain
+     saw it, called it a clash, and disambiguated a name that had nothing to
+     disambiguate from — and only then deleted the row it had been avoiding.
+     The Media Trust shipped as `the-media-trust-mediatrust-c` this way, with no
+     second Media Trust anywhere in the table.
+
+     Sequence matters, not the check: delete the ghosts, then ask what is
+     actually taken. */
   await env.RANKINGS.prepare(
     `DELETE FROM company WHERE domain = ?
        AND id NOT IN (SELECT company_id FROM ranking)`,
   ).bind(domain).run();
+
+  /* The disambiguator is the domain's own label — `mediatrust`, not
+     `mediatrust-c`. Slicing the slugified domain to 12 characters cut mid-word
+     on anything longer, so a collision produced a slug that reads as a
+     truncation bug and stays in the URL forever. */
+  const domainTag = slugify(domain.split(".")[0]);
+  let slug = slugify(identity.name) || slugify(domain);
+  if (RESERVED_SLUGS.has(slug)) slug = `${slug}-${domainTag}`;
+  const clash = await env.RANKINGS.prepare("SELECT 1 FROM company WHERE slug = ?").bind(slug).first();
+  if (clash) slug = `${slug}-${domainTag}`;
+
+  const logo = (await resolveLogo(site.html, site.finalUrl))?.url ?? null;
 
   const companyRow = await env.RANKINGS.prepare(
     `INSERT INTO company (domain, name, slug, logo_url, one_liner,

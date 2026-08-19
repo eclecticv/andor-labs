@@ -283,6 +283,8 @@ ${rows}
 // ── What the press has said ─────────────────────────────────────────────────
 
 export interface PressItem {
+  /** Which question this evidence speaks to. Printed, so a juror knows why. */
+  angle: "engineering" | "origin";
   title: string;
   url: string;
   excerpt: string;
@@ -311,47 +313,77 @@ export interface PressItem {
  * confidence and entirely invented. Highlights are spans lifted out of real
  * articles, so there is nothing for a model to construct.
  */
-export async function lookupPress(
-  env: FactsEnv,
+/**
+ * Two aimed searches, not one grab bag.
+ *
+ * ── Why the first version failed ──
+ * It asked for "awards, recognition, funding, acquisitions, notable engineers
+ * and leadership, partnerships" and got back exactly what press-release genres
+ * produce: a Deloitte growth award, an acquisition, 11th fastest-growing company
+ * in Canada, two partnership announcements. Every item commercial, not one
+ * describing how anything works. The jurors read it and correctly declined to
+ * treat a growth award as evidence that something is hard to build — so
+ * Blockthrough kept scoring "no" on difficulty while its filtering engine was
+ * built by a co-creator of Prebid.js.
+ *
+ * ── Why two and not one merged query ──
+ * Measured. A merged query returned founder interviews and category history for
+ * Blockthrough and lost the engineering hit entirely; asked on its own, the
+ * engineering query surfaced both the detection flow and "Blockthrough Names
+ * Prebid.js Co-Creator Matt Kendall". Specificity is what finds these, and a
+ * query covering two things is specific about neither.
+ *
+ * Three results each, so the prompt grows by roughly what the single call cost.
+ * Prompt length on this tool is a latency budget, not a preference.
+ */
+const EVIDENCE_ANGLES: { angle: PressItem["angle"]; ask: string }[] = [
+  {
+    angle: "engineering",
+    ask: "how the technology works, its architecture, and the engineers who built it",
+  },
+  {
+    angle: "origin",
+    ask: "when it launched, what it was first to do, and how the category looked before it",
+  },
+];
+
+async function searchAngle(
+  key: string,
   domain: string,
   name: string,
+  angle: PressItem["angle"],
+  ask: string,
 ): Promise<PressItem[]> {
-  if (!env.EXA_API_KEY) return [];
-
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
     const res = await fetch(ENDPOINT, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${env.EXA_API_KEY}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       signal: controller.signal,
       body: JSON.stringify({
-        query: `${name} — awards, recognition, funding, acquisitions, notable engineers and leadership, partnerships`,
+        query: `${name} — ${ask}`,
         type: "auto",
-        category: "news",
-        numResults: 6,
+        numResults: 5,
         contents: { highlights: true },
-        /* The company's own newsroom is a press release desk. Excluding it is
-           the whole point: this call exists to find what OTHER people published. */
+        /* The company's own site is already the panel's main input. This call
+           exists to find what everyone else published. */
         excludeDomains: [domain],
       }),
     });
     if (!res.ok) return [];
-
     const body = (await res.json()) as any;
     return (body?.results ?? [])
       .map((r: any) => ({
+        angle,
         title: str(r?.title),
         url: str(r?.url),
         excerpt: (Array.isArray(r?.highlights) ? r.highlights.join(" ") : "")
-          .replace(/\s+/g, " ").trim().slice(0, 220),
+          .replace(/\s+/g, " ").trim().slice(0, 200),
         publishedAt: str(r?.publishedDate).slice(0, 10),
       }))
       .filter((p: PressItem) => p.title && p.excerpt)
-      .slice(0, 5);
+      .slice(0, 3);
   } catch {
     return [];
   } finally {
@@ -359,26 +391,52 @@ export async function lookupPress(
   }
 }
 
+export async function lookupPress(
+  env: FactsEnv,
+  domain: string,
+  name: string,
+): Promise<PressItem[]> {
+  if (!env.EXA_API_KEY) return [];
+  const groups = await Promise.all(
+    EVIDENCE_ANGLES.map((a) => searchAngle(env.EXA_API_KEY!, domain, name, a.angle, a.ask)),
+  );
+  return groups.flat();
+}
+
+const ANGLE_HEADING: Record<PressItem["angle"], string> = {
+  engineering: "HOW IT WORKS, AND WHO BUILT IT",
+  origin: "WHERE IT CAME FROM",
+};
+
 /**
- * The press block, appended to the facts block.
- *
- * Sources are printed because a juror citing one should be checkable, and
- * because an excerpt with no origin is indistinguishable from something we made
- * up — which is the failure this whole layer is built to avoid.
+ * Grouped by angle, because an excerpt is only evidence for a particular
+ * question and a juror should not have to guess which.
  */
 export function pressBlock(press: PressItem[]): string {
   if (!press.length) return "";
-  const rows = press
-    .map((p) => `  · ${p.title}${p.publishedAt ? ` (${p.publishedAt})` : ""}\n    "${p.excerpt}"\n    ${p.url}`)
-    .join("\n");
+
+  const sections = (Object.keys(ANGLE_HEADING) as PressItem["angle"][])
+    .map((angle) => {
+      const items = press.filter((p) => p.angle === angle);
+      if (!items.length) return "";
+      const rows = items
+        .map((p) => `  · ${p.title}${p.publishedAt ? ` (${p.publishedAt})` : ""}\n    "${p.excerpt}"\n    ${p.url}`)
+        .join("\n");
+      return `── ${ANGLE_HEADING[angle]} ──\n${rows}`;
+    })
+    .filter(Boolean)
+    .join("\n\n");
+
   return `
 ═══ WHAT OTHERS HAVE PUBLISHED ═══
 Third-party coverage, excerpted verbatim. Not the company's own newsroom.
 
-Use it as evidence the website does not carry — awards, acquisitions, named
-people, partnerships. It is not a verdict and it is not the company talking.
-A press release is still someone's marketing; weigh it accordingly.
+This is evidence the website does not carry. A site that never explains its
+engineering is not the same as a company that has none, and a category's history
+is not on the homepage of anyone currently selling into it.
 
-${rows}
+It is still someone's writing, and a press release is still marketing. Weigh it.
+
+${sections}
 `;
 }

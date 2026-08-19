@@ -24,10 +24,10 @@ import SiteHeader from "../../../components/sections/SiteHeader.astro";
 import SiteFooter from "../../../components/sections/SiteFooter.astro";
 import SiteMotion from "../../../components/SiteMotion.astro";
 import PixelIcon from "../../../components/ds/PixelIcon.astro";
-import DitherLine from "../../../components/ds/DitherLine.astro";
 import RankBoard from "../../../components/ds/RankBoard.astro";
 import PanelStrip from "../../../components/ds/PanelStrip.astro";
-import { getEntries, getBoard, COHORTS } from "../../../lib/rankings";
+import SpecGrid from "../../../components/ds/SpecGrid.astro";
+import { getEntries, getBoard, COHORTS, bandLegend, DIVISION_LABELS, ageOf, fmt, panelLabs } from "../../../lib/rankings";
 
 const all = await getEntries();
 const board = await getBoard();
@@ -42,6 +42,34 @@ const countIn = (key: string) => board[key]?.length ?? 0;
 // about itself while the board is still filling up.
 const opening = [...COHORTS].sort((a, b) => countIn(b.key) - countIn(a.key))[0]?.key ?? COHORTS[0].key;
 
+/**
+ * The board's own shape, as a datasheet.
+ *
+ * The hero was one column of prose against 600px of empty page — the only
+ * top-level hero on the site with nothing on its right. It gets the same
+ * treatment as the tool's landing hero: argument left, the thing itself right.
+ * These are the board's real numbers rather than decoration, and they are the
+ * two axes the board is meant to be read by (weight class and age) stated
+ * before the reader meets a table sorted by neither.
+ */
+const divisionCounts = all.reduce<Record<string, number>>((acc, e) => {
+  if (e.division) acc[e.division] = (acc[e.division] ?? 0) + 1;
+  return acc;
+}, {});
+const divisionSummary = (["heavyweight", "middleweight", "lightweight"] as const)
+  .filter((d) => divisionCounts[d])
+  .map((d) => `${divisionCounts[d]} ${DIVISION_LABELS[d].toLowerCase()}`)
+  .join(" · ");
+const ages = all.map((e) => ageOf(e.founded_year)).filter((n) => n > 0);
+const totals = all.map((e) => e.total);
+const boardSpecs = [
+  { label: "Ranked", value: `${all.length} ${all.length === 1 ? "company" : "companies"}` },
+  divisionSummary ? { label: "Weight", value: divisionSummary } : null,
+  ages.length ? { label: "Age", value: `${Math.min(...ages)}–${Math.max(...ages)} years` } : null,
+  totals.length ? { label: "Scores", value: `${fmt(Math.min(...totals))}–${fmt(Math.max(...totals))} of 30` } : null,
+  { label: "Panel", value: panelLabs() },
+].filter((r): r is { label: string; value: string } => r !== null);
+
 const title = "The Rank My AdTech leaderboard — private adtech startups, ranked";
 const description = `${all.length} private adtech companies judged by three language models from three different labs, split by which side of the supply chain they sit on.`;
 ---
@@ -52,19 +80,26 @@ const description = `${all.length} private adtech companies judged by three lang
   <SiteHeader />
   <main>
     <section class="aol-rma__hero">
-      <div class="aol-rma__inner">
-        <p class="aol-eyebrow aol-rma__eyebrow">
-          <PixelIcon name="trophy-solid" size={12} /> The board · {all.length} ranked
-        </p>
-        <h1 class="aol-rma__h1">The leaderboard.</h1>
-        <p class="aol-rma__lede">
-          Private adtech companies, judged by three models from three different labs.
-          Split by which side of the supply chain they sit on, because an SSP and a
-          measurement vendor are not doing the same job and should not share a table.
-        </p>
-        <p class="aol-rma__crosslink">
-          <a href="/tools/rank-my-adtech/">Rank your own company →</a>
-        </p>
+      <div class="aol-rma__inner aol-rma__split">
+        <div class="aol-rma__copy">
+          <p class="aol-eyebrow aol-rma__eyebrow">
+            <PixelIcon name="trophy-solid" size={12} /> The board · {all.length} ranked
+          </p>
+          <h1 class="aol-rma__h1">The leaderboard.</h1>
+          <p class="aol-rma__lede">
+            Private adtech companies, judged by three models from three different labs.
+            Split by which side of the supply chain they sit on, because an SSP and a
+            measurement vendor are not doing the same job and should not share a table.
+          </p>
+          <p class="aol-rma__crosslink">
+            <a href="/tools/rank-my-adtech/">Rank your own company →</a>
+          </p>
+        </div>
+
+        <div class="aol-rma__boardcard">
+          <p class="aol-eyebrow">What is on it</p>
+          <SpecGrid specs={boardSpecs} />
+        </div>
       </div>
     </section>
 
@@ -104,11 +139,15 @@ const description = `${all.length} private adtech companies judged by three lang
         {/* The figure's key — the row's marks, decoded once instead of hidden
             in title= attributes nobody on a phone can reach. */}
         <p class="aol-rt__legend">
-          On fire 24+ · Interesting 19+ · Thinking 12+ · Brutal &lt;12 ·
-          Ticks — each panelist's own total; scattered ticks are a split panel
+          {/* Built from the scale rather than typed beside it — this line had
+              already drifted from the labels it was explaining. */}
+          {bandLegend()} · Ticks — each panelist's own total; scattered ticks
+          are a split panel
         </p>
 
-        <DitherLine />
+        {/* The dithered rule that sat here read as a rendering artifact at
+            desktop width rather than as a separator. The legend above and the
+            band's own hairline below already divide this. */}
         <p class="aol-rma__disclosure">
           <PixelIcon name="question-circle" size={12} /> Judged by three language models
           reading public pages, and written up by a fourth. An opinion, not research. Want a row gone?

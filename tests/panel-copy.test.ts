@@ -15,7 +15,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { PANELISTS, WRITER, QUESTIONS, panelLabs, panelLoadingMessages } from "../src/lib/rankings";
 import { buildIdentifyPrompt, CATEGORIES, CATEGORY_NOT } from "../functions/_lib/classify";
-import { buildPanelPrompt } from "../functions/_lib/panel";
+import { buildPanelPrompt, QUESTIONS as PANEL_QUESTIONS } from "../functions/_lib/panel";
 import { buildWriterPrompt } from "../functions/_lib/writer";
 
 /**
@@ -131,6 +131,21 @@ describe("panel copy does not drift from the panel", () => {
       }
     }
     expect(offences, offences.join("\n")).toEqual([]);
+  });
+
+  it("asks the same question in both copies of the rubric", () => {
+    /* QUESTIONS is duplicated across the Functions/Astro boundary on purpose.
+       The label check below caught a renamed key; it did not catch the page
+       asking "Where does this sit in three years?" while the panel asked "Will
+       this still matter in three years?" — an open question rendered above a
+       yes/no answer. Both copies must pose the same question. */
+    for (const q of QUESTIONS) {
+      const inPanel = PANEL_QUESTIONS.find((p) => p.key === q.key);
+      expect(inPanel, `panel has no question keyed ${q.key}`).toBeTruthy();
+      const shared = q.question.replace(/[?.]$/, "").toLowerCase();
+      expect(inPanel!.ask.toLowerCase(), `page asks "${q.question}" but panel does not`)
+        .toContain(shared);
+    }
   });
 
   it("derives the lab sentence from the panel", () => {

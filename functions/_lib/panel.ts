@@ -289,12 +289,35 @@ export const QUESTIONS: Question[] = [
   {
     key: "innovation",
     label: "Innovation",
-    ask: "Was this first, or only? Name what the category did not have before them, and what on the pages shows it.",
-    anchors: `extremely — a mechanism the category did not have before this company
+    /**
+     * The framing was already precedence — "was this first" — and the anchors
+     * still scored the present tense, which quietly undid it.
+     *
+     * "A competent take on an idea the category already had" has no date on it,
+     * so a juror reading a 2026 homepage reads "the category" as the category
+     * NOW. Every mechanism a mature company established has since been copied,
+     * which means the more successfully a company innovated, the more ordinary
+     * its own pages look. Measured on the board: a company that demonstrably
+     * created its category still landed mid-scale on all three seats, because
+     * all three were answering "is this novel today" — a question about the
+     * market, not about the company.
+     *
+     * Same failure mode as investability, and the same fix that worked there:
+     * name the confound as a scoring rule rather than trusting the phrasing to
+     * carry it. The founding year is already in ESTABLISHED FACTS and the
+     * origin-angle coverage is already in the evidence block; both were being
+     * handed over and neither was being asked for.
+     */
+    ask: "Was this first, or only? Judge against what the category had in the year they launched, not against what is standard now. Name what did not exist before them, and what on the pages or in the coverage shows it.",
+    anchors: `Later ubiquity is EVIDENCE, not a deduction: a mechanism that is standard today
+BECAUSE this company established it scores HIGH. Never mark a company down for
+having been copied.
+
+extremely — the category did not have this until them
 yes        — a real insight, conventionally executed
-kinda      — a competent take on an idea the category already had
+kinda      — a competent take on an idea the category already had at the time
 no         — a familiar idea, restated
-hard no    — nothing here is new`,
+hard no    — nothing here was new even then`,
   },
   {
     key: "difficulty",

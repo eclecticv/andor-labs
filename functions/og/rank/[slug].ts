@@ -20,6 +20,7 @@
  */
 import { ImageResponse } from "workers-og";
 import { categoryLabel, SIDE_LABELS, type Side } from "../../_lib/classify";
+import { bandFor } from "../../_lib/bands";
 
 interface Env {
   RANKINGS: D1Database;
@@ -55,9 +56,8 @@ async function loadFont(origin: string): Promise<ArrayBuffer | null> {
   }
 }
 
-/** Thresholds are out of 30 — see scoreBand in src/lib/rankings.ts. */
-const BAND = (total: number) =>
-  total >= 24 ? "ON FIRE" : total >= 19 ? "GENUINELY INTERESTING" : total >= 12 ? "THE PANEL IS THINKING" : "BRUTAL";
+/** The shared scale, not a fourth copy of the thresholds. */
+const BAND = (total: number) => bandFor(total).label.toUpperCase();
 
 /** 20.1 renders as "20.1", 20 as "20". Never "20.0". */
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));

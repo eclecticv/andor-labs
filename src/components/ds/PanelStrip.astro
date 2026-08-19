@@ -94,11 +94,13 @@ const { questions = true } = Astro.props;
           </li>
         ))}
       </ul>
-      <p class="aol-rma__note">
-        Every panelist answers all three, so a company carries nine answers.
-        Each is one of five words — <em>hard no, no, kinda, yes, extremely</em> —
-        and nobody picks a number. The words become the score, the score becomes
-        the average, and the total is out of thirty.
+      {/* Was forty words restating the whole mechanism, set flush against the
+          list above so it read as a fourth question. What only this line says
+          is the arithmetic — the scale is already printed beside every label —
+          so that is what is left of it. */}
+      <p class="aol-rma__note aol-rma__note--after-list">
+        Nine answers in all, averaged into three scores out of ten. The total is
+        out of thirty.
       </p>
     </>
   ) : null}

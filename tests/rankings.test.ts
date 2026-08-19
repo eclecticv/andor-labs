@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import {
   MODEL_IDENTITY, identityFor, PANELISTS, WRITER, BOARD_AXIS, COHORTS,
   cohortKeyOf, ranksFor, bandBadgeFor, ordinal, fmt, adjectivesFor, scoreBand,
+  SCORE_BANDS, bandLegend,
   CATEGORY_LABELS, rankingIsStale, type Take, type Entry,
 } from "../src/lib/rankings";
 import { CATEGORIES, CATEGORY_NOT, sideFor } from "../functions/_lib/classify";
@@ -227,10 +228,37 @@ describe("presentation", () => {
   });
 
   it("bands the score out of thirty, not a hundred", () => {
-    // The thresholds moved with the scale; a /100 threshold here would put
+    // Asserted against the scale rather than against four re-typed strings:
+    // typing the labels here would make this test a fifth copy of the thing
+    // the shared module exists to stop copying. What must not drift is that a
+    // total lands in the band its threshold claims — a /100 threshold would put
     // every company on the board in the bottom band.
-    expect(scoreBand(25).label).toBe("On fire");
-    expect(scoreBand(20).label).toBe("Genuinely interesting");
-    expect(scoreBand(5).label).toBe("Brutal");
+    for (const b of SCORE_BANDS) {
+      expect(scoreBand(b.min).label).toBe(b.label);
+      expect(scoreBand(29).min).toBeGreaterThanOrEqual(SCORE_BANDS[0].min);
+    }
+    expect(scoreBand(0).label).toBe(SCORE_BANDS[SCORE_BANDS.length - 1].label);
+  });
+
+  it("gives every band a verdict and a share line", () => {
+    // The 12-18 band read "The panel is thinking", which described the jury
+    // rather than the company on a page where the jury has finished. A band is
+    // a position someone could disagree with, so each one needs its own words
+    // and its own share line — the share ladder used to be a separate copy of
+    // these thresholds and had already drifted out of step with them.
+    const labels = SCORE_BANDS.map((b) => b.label);
+    const brags = SCORE_BANDS.map((b) => b.brag);
+    expect(new Set(labels).size).toBe(SCORE_BANDS.length);
+    expect(new Set(brags).size).toBe(SCORE_BANDS.length);
+    for (const b of SCORE_BANDS) expect(b.brag.length).toBeGreaterThan(10);
+    // Exactly one band spends the accent.
+    expect(SCORE_BANDS.filter((b) => b.solid)).toHaveLength(1);
+  });
+
+  it("builds the legend from the scale it explains", () => {
+    // The leaderboard's legend was hand-typed beside the bands and had drifted
+    // from the labels it was decoding.
+    const legend = bandLegend();
+    for (const b of SCORE_BANDS) expect(legend).toContain(b.label);
   });
 });

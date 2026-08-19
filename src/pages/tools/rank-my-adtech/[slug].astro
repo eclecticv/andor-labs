@@ -28,11 +28,11 @@ import SiteHeader from "../../../components/sections/SiteHeader.astro";
 import SiteFooter from "../../../components/sections/SiteFooter.astro";
 import SiteMotion from "../../../components/SiteMotion.astro";
 import PixelIcon from "../../../components/ds/PixelIcon.astro";
-import DitherLine from "../../../components/ds/DitherLine.astro";
+import GridFrame from "../../../components/ds/GridFrame.astro";
 import SpecGrid from "../../../components/ds/SpecGrid.astro";
 import {
   getEntries, ranksFor, ordinal, scoreBand, categoryLabel,
-  fmt, bandBadgeFor, identityFor, rankingIsStale, QUESTIONS, WRITER, SIDE_LABELS,
+  fmt, identityFor, rankingIsStale, QUESTIONS, WRITER, SIDE_LABELS,
   DIVISION_LABELS, ageOf, factsFor,
 } from "../../../lib/rankings";
 
@@ -69,7 +69,6 @@ const factRows = [
 ].filter((r): r is { label: string; value: string } => r !== null);
 const ranks = ranksFor(entry, all);
 
-const bandBadge = bandBadgeFor(entry);
 
 /* Who actually answered, per seat. Seats are pinned now, so for anything
    ranked since the pin this is always the declared juror; `who.stale` marks
@@ -90,14 +89,10 @@ const title = `${entry.name} — Rank My AdTech — And/or Labs`;
 const description = `${entry.name} scores ${fmt(entry.total)}/30 on Rank My AdTech: ${ordinal(ranks.cohortRank)} of ${ranks.cohortSize} in ${ranks.cohortLabel}, judged by three language models from three different labs.`;
 
 const pageUrl = new URL(`/tools/rank-my-adtech/${entry.slug}/`, Astro.site).href;
-const shareBrag =
-  entry.total >= 24
-    ? "Top of the class. Go and gloat."
-    : entry.total >= 19
-      ? "Good number. Post it before we change our mind."
-      : entry.total >= 12
-        ? "Respectable. We have been meaner."
-        : "Brutal. Posting it anyway is the power move.";
+/* The share line comes off the band rather than repeating its thresholds. This
+   was a fourth 24/19/12 ladder, and it had drifted: "Respectable. We have been
+   meaner." sat under a band the page called "the panel is thinking". */
+const shareBrag = band.brag;
 
 const shareText = `${entry.name} scored ${fmt(entry.total)}/30 on Rank My AdTech — ${ordinal(ranks.cohortRank)} in ${ranks.cohortLabel}.`;
 const xHref = `https://x.com/intent/post?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(pageUrl)}`;
@@ -114,7 +109,18 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
 >
   <SiteHeader />
   <main>
-    <section class="aol-rmc">
+    {/* ── Band 1 · Identity ─────────────────────────────────────────────────
+        The page used to be ONE section with `background:var(--paper)` running
+        the whole 3820px, and that is most of why it read as a plain text
+        document beside the rest of the site. Every other page here alternates
+        paper↔grid down the column with a hairline between bands, which is what
+        turns a stack of paragraphs into a composition: the alternation belongs
+        to the POSITION, not to the section's subject.
+
+        Five bands, in the order the reader needs them: who this is, what is
+        established about them, what the panel decided, how each seat voted,
+        and who the seats were. */}
+    <section class="aol-rmc aol-rmc--identity">
       <div class="aol-rma__inner">
         <p class="aol-rmc__back"><a href="/tools/rank-my-adtech/leaderboard/">← The board</a></p>
 
@@ -154,83 +160,102 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
               ) : null}
             </p>
           </div>
+          {/* The score, and the verdict word STAMPED rather than captioned.
+              This was a grey mono line reading "THE PANEL IS THINKING" under
+              the number — a label that describes the jury's state of mind
+              rather than the company, on a page where the jury has finished.
+              The words are verdicts now (see functions/_lib/bands.ts) and the
+              chip carries the site's own elevation, `--shadow-hard`, which
+              appears nowhere else on this page. Blue is spent here and only
+              here, on the top band. */}
           <div class="aol-rmc__score">
-            <span class:list={["aol-rmc__band", band.solid && "aol-rb__band--solid"]}>
-              <PixelIcon name={band.icon as any} size={36} />
-            </span>
-            <span class="aol-rmc__total">{fmt(entry.total)}</span>
-            <span class="aol-rmc__out">/30</span>
-            {/* The band said out loud — "BRUTAL" under a 64px 9.3 is the caption
-                the glyph always needed, and the joke lands in text. */}
-            <span class:list={["aol-rmc__band-word", band.solid && "aol-rmc__band-word--solid"]}>
-              {band.label}
-            </span>
+            <p class="aol-rmc__total-line">
+              <span class="aol-rmc__total">{fmt(entry.total)}</span>
+              <span class="aol-rmc__out">/30</span>
+            </p>
+            <p class:list={["aol-rmc__stamp", band.solid && "aol-rmc__stamp--solid"]}>
+              <PixelIcon name={band.icon as any} size={16} />
+              <span>{band.label}</span>
+            </p>
           </div>
         </header>
 
-        {/* ── The looked-up profile ─────────────────────────────────────
-            A datasheet, not a card grid: these are facts with a label and a
-            value, which is what SpecGrid draws. Everything here came from a
-            third-party search rather than from the company's own pages, and
-            that provenance is the reason it sits ABOVE the panel's opinion —
-            the reader should know what is established before reading what is
-            argued. */}
-        {factRows.length ? (
-          <>
-            <DitherLine />
-            <p class="aol-eyebrow aol-rmc__kicker">Established · third-party search</p>
-            {facts.whatTheyDo ? <p class="aol-rmc__does">{facts.whatTheyDo}</p> : null}
-            <SpecGrid specs={factRows} class="aol-rmc__facts" />
-          </>
+        {/* ── 1. The ranks ───────────────────────────────────────────────
+            Each rendered only when the cohort has someone else in it. "1st of 1
+            in Adblock Revenue Recovery" is not a rank, it is a category with
+            one member wearing a rosette, and printing it made the strongest
+            claim on the page the least believable one. */}
+        {ranks.cohortSize > 1 || ranks.categorySize > 1 ? (
+          <ul class="aol-rmc__ranks">
+            {ranks.cohortSize > 1 ? (
+              <li class="aol-rmc__rank">
+                <span class="aol-rmc__rank-n">{ordinal(ranks.cohortRank)}</span>
+                <span class="aol-rmc__rank-of">
+                  of {ranks.cohortSize} in {ranks.cohortLabel}
+                </span>
+              </li>
+            ) : null}
+            {ranks.categorySize > 1 ? (
+              <li class="aol-rmc__rank">
+                <span class="aol-rmc__rank-n">{ordinal(ranks.categoryRank)}</span>
+                <span class="aol-rmc__rank-of">
+                  of {ranks.categorySize} in {ranks.categoryLabel}
+                </span>
+              </li>
+            ) : null}
+          </ul>
         ) : null}
 
-        <DitherLine />
+        {/* The stage badge is gone from this page.
 
-        {/* ── 1. The two ranks ───────────────────────────────────────────── */}
-        <ul class="aol-rmc__ranks">
-          <li class="aol-rmc__rank">
-            <span class="aol-rmc__rank-n">{ordinal(ranks.cohortRank)}</span>
-            <span class="aol-rmc__rank-of">
-              of {ranks.cohortSize} in {ranks.cohortLabel}
-            </span>
-          </li>
-          <li class="aol-rmc__rank">
-            <span class="aol-rmc__rank-n">{ordinal(ranks.categoryRank)}</span>
-            <span class="aol-rmc__rank-of">
-              of {ranks.categorySize} in {ranks.categoryLabel}
-            </span>
-          </li>
-        </ul>
+            It printed "Emerging stage. NVIDIA and Zhipu AI independently recall
+            a seed in 2018." — a funding fact sourced from what two language
+            models remembered, sitting 200px under a datasheet that states the
+            same fact from a third-party search with a citation behind it. Model
+            recall presented as a finding is precisely what the Exa lookup
+            replaced; keeping it meant the page carried two provenances for one
+            claim and gave the weaker one the louder placement. */}
+      </div>
+    </section>
 
-        {/* Shown only when evidenced — see bandBadgeFor. An inferred band
-            printed the same way as a real one would be the page overstating
-            what it knows, and stage is stated on well under a fifth of adtech
-            sites, so that would be the common case rather than the edge. */}
-        {bandBadge ? (
-          <p class="aol-rmc__band-note">
-            <PixelIcon name="flag" size={12} />
-            <span>{bandBadge.label} stage. {bandBadge.evidence}</span>
-          </p>
-        ) : null}
+    {/* ── Band 2 · What is established ───────────────────────────────────── */}
+    {factRows.length ? (
+      <section class="aol-rmc aol-rmc--facts aol-grid-blue">
+        <div class="aol-rma__inner">
+          {/* This provenance is load-bearing rather than decorative: it is the
+              reason the datasheet sits above the panel's opinion. The reader
+              should know what is established before reading what is argued. */}
+          <p class="aol-eyebrow aol-rmc__kicker">On the record · third-party search</p>
+          {facts.whatTheyDo ? <p class="aol-rmc__does">{facts.whatTheyDo}</p> : null}
+          <SpecGrid specs={factRows} class="aol-rmc__facts" />
+        </div>
+      </section>
+    ) : null}
 
-        <DitherLine />
+    {/* ── Band 3 · The verdict ────────────────────────────────────────────
+        The one framed element on the page. This is the payload — the thing the
+        reader came for — and until now it was set as an unremarkable paragraph
+        indistinguishable from the four around it. GridFrame is the site's
+        existing device for "this block is the exhibit"; it was defined here and
+        used nowhere. */}
+    <section class="aol-rmc aol-rmc--verdict">
+      <div class="aol-rma__inner">
+        <GridFrame class="aol-rmc__frame" label="The verdict" dim={`${fmt(entry.total)}/30`} registration>
+          <p class="aol-rmc__verdict">{entry.summary}</p>
+          {/* The split is a footnote TO the verdict — printed before it, the
+              reader got the disclaimer before the claim it qualifies. */}
+          {splitQuestion ? (
+            <p class="aol-rmc__split">
+              <PixelIcon name="vote-yeah" size={12} />
+              <span>
+                The panel split on <strong>{splitQuestion.label}</strong> — {entry.split_spread} points
+                between the highest and lowest score.
+              </span>
+            </p>
+          ) : null}
+        </GridFrame>
 
-        {/* ── 2. What the panel came to ──────────────────────────────────── */}
-        <h2 class="aol-rmc__h2">The verdict.</h2>
-        <p class="aol-rmc__verdict">{entry.summary}</p>
-        {/* The split is a footnote TO the verdict — printed before it, the
-            reader got the disclaimer before the claim it qualifies. */}
-        {splitQuestion ? (
-          <p class="aol-rmc__split">
-            <PixelIcon name="vote-yeah" size={12} />
-            <span>
-              The panel split on <strong>{splitQuestion.label}</strong> — {entry.split_spread} points
-              between the highest and lowest score.
-            </span>
-          </p>
-        ) : null}
-
-        {/* ── 3. Share, at peak reaction ─────────────────────────────────── */}
+        {/* ── Share, at peak reaction ─────────────────────────────────────── */}
         <div class="aol-rmc__share">
           <p class:list={["aol-rmc__share-label", band.solid && "aol-rmc__share-label--solid"]}>
             {/* The band's own glyph — a blue trophy over "Brutal." was gloating. */}
@@ -243,23 +268,20 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
             <button class="aol-rmc__share-btn" type="button" data-copy={pageUrl} aria-live="polite">Copy link</button>
           </p>
         </div>
+      </div>
+    </section>
 
-        <DitherLine />
-
-        {/* ── 4. The nine ratings ────────────────────────────────────────── */}
+    {/* ── Band 4 · The nine ratings ───────────────────────────────────────── */}
+    <section class="aol-rmc aol-rmc--ratings aol-grid-blue">
+      <div class="aol-rma__inner">
         <h2 class="aol-rmc__h2">Nine ratings.</h2>
-        {/* The old version of this line promised "two runs land in roughly the
-            same place". Measured on a re-run of the same company with the same
-            panel at temperature 0, one total moved 13.3 to 10.3 — so the claim
-            was not true, and a page whose whole argument is that you can check
-            it cannot afford a reassurance the data contradicts. Anchors do make
-            scoring a classification rather than a vibe; they do not make it
-            repeatable to a decimal, and saying so costs nothing. */}
+        {/* Was four lines restating the whole mechanism — the scale, that
+            nobody picks a number, and a caveat about re-runs. All three are
+            said on the landing page, and the last one is said again in the
+            disclosure at the foot of this page. One line is enough here; the
+            scale is legible from the nine words printed directly below it. */}
         <p class="aol-rmc__note">
-          Three panelists, three questions, and five words to answer in: hard no,
-          no, kinda, yes, extremely. Nobody picks a number — the words become the
-          score. Run the same company twice and the totals still move; treat this
-          as a reading, not a measurement.
+          Three panelists answered in words, not numbers. The words became the score.
         </p>
 
         <div class="aol-rmc__questions">
@@ -310,10 +332,14 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
             );
           })}
         </div>
+      </div>
+    </section>
 
-        <DitherLine />
-
-        {/* ── 5. Who judged, and what they are ───────────────────────────── */}
+    {/* ── Band 5 · Provenance ─────────────────────────────────────────────
+        Who judged matters, but it is the footnote to the judgement rather than
+        the headline — so it closes the page, on paper, under the disclosure. */}
+    <section class="aol-rmc aol-rmc--panel">
+      <div class="aol-rma__inner">
         <h2 class="aol-rmc__h2">Who judged this.</h2>
         {/* Said once, about the ranking, because that is what it is about. It
             used to hang off each seat, which on a stale row printed the same
@@ -363,7 +389,6 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
           </span>
         </p>
 
-        <DitherLine />
         <p class="aol-rma__disclosure">
           <PixelIcon name="question-circle" size={12} /> Judged by three language models
           reading public pages, and written up by a fourth. An opinion, not research. Want this page gone?

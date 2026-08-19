@@ -541,12 +541,20 @@
   background-image:radial-gradient(var(--ink-300) 0.9px, transparent 1.1px);
   background-size:6px 3px; background-position:left center; background-repeat:repeat-x;
 }
-/* Shrinkable, not fixed. `flex:none` was safe while every value here was a
-   short one — "Next.js", "Cloudflare Pages" — and overflowed the row the moment
-   a longer one arrived ("publishers, adtech platforms, mobile app developers").
-   `min-width:0` is the half that actually allows a flex child to wrap. */
+/* Shrinkable, not fixed, and NOT growable. `flex:none` was safe while every
+   value here was short — "Next.js", "Cloudflare Pages" — and overflowed the row
+   the moment a longer one arrived ("publishers, adtech platforms, mobile app
+   developers"). `min-width:0` is the half that actually allows a flex child to
+   wrap, and it is the half that was needed.
+
+   The `flex-grow:1` that came with it was not, and it broke the leader: value
+   and leader both growing made them equal claimants on the free space, so a
+   two-word value was handed half the row and right-aligned inside it while the
+   dots stopped dead at the midpoint. Every row on the company page showed the
+   gap. Grow 0 gives the value its content width and lets the leader run all the
+   way to it, which is the entire point of a leader. */
 .aol-specsheet__val{
-  flex:1 1 auto; min-width:0; margin:0;
+  flex:0 1 auto; min-width:0; margin:0;
   font-family:var(--font-serif); font-weight:600;
   font-size:16px; color:var(--ink-900); text-align:right;
   overflow-wrap:anywhere;
@@ -1092,11 +1100,28 @@
   .aol-rma__card-logo{ width:40px; height:40px; }
 }
 
-/* ---- One company's ranking (.aol-rmc) ---- */
-/* One rhythm, the site's. This carried 48/80 where every other top-level band
-   on the site uses --section-pad-y, which is close enough to look deliberate and
-   far enough to break the alignment. */
-.aol-rmc{ background:var(--paper); padding:var(--section-pad-y) 0; }
+/* ---- One company's ranking (.aol-rmc) ----
+   COMPOSITION, not a stack.
+
+   This was one section with `background:var(--paper)` around the entire page —
+   3820px of unbroken white with dithered rules standing in for structure. Every
+   other page on this site alternates paper↔grid down the column with a hairline
+   between bands (see Capabilities.astro, which documents the alternation as
+   belonging to the POSITION rather than to the section's subject), and that
+   alternation is most of the difference between "a designed page" and "a text
+   document with headings".
+
+   Five bands now: identity, what is established, the verdict, the nine ratings,
+   who judged. Odd bands are paper, even bands carry the grid texture on the
+   warm surface — the same 1-2-1 cadence the homepage runs. */
+.aol-rmc{ padding:var(--section-pad-y) 0; border-bottom:1px solid var(--ink-200); }
+.aol-rmc--identity,
+.aol-rmc--verdict,
+.aol-rmc--panel{ background:var(--paper); }
+.aol-rmc--facts,
+.aol-rmc--ratings{ --color-bg:var(--surface-card); }
+/* The page's own last band closes on the footer's rule, not a second one. */
+.aol-rmc--panel{ border-bottom:0; }
 .aol-rmc__back{ margin:0 0 var(--space-6); font-size:var(--text-sm); }
 .aol-rmc__head{
   display:grid; grid-template-columns:56px minmax(0,1fr) auto;
@@ -1113,10 +1138,12 @@
   font-size:var(--text-3xl); line-height:var(--leading-tight);
   margin:0; color:var(--text-strong);
 }
+/* Bounded by measure rather than clamped to two lines. A line-clamp on a
+   company's own description silently deletes the end of a sentence, and a
+   52ch column already makes an over-long one wrap rather than sprawl. */
 .aol-rmc__one-liner{
   margin:4px 0 0; font-size:var(--text-base); color:var(--text-body);
   max-width:52ch;
-  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
 }
 .aol-rmc__meta{
   display:flex; flex-wrap:wrap; align-items:center; gap:8px;
@@ -1124,8 +1151,37 @@
   font-size:var(--text-2xs); text-transform:uppercase; letter-spacing:.04em;
   color:var(--text-muted);
 }
-.aol-rmc__score{ display:grid; grid-template-columns:auto auto auto; align-items:baseline; gap:0 4px; justify-items:end; }
-.aol-rmc__band{ color:var(--ink-600); align-self:center; }
+.aol-rmc__score{ display:grid; justify-items:end; gap:var(--space-3); }
+.aol-rmc__total-line{ margin:0; display:flex; align-items:baseline; gap:3px; }
+
+/* ---- The verdict stamp ---------------------------------------------------
+   The band, as a mark rather than a caption.
+
+   This was a grey mono line under the number reading "THE PANEL IS THINKING" —
+   which described the jury's state of mind on a page where the jury had
+   finished, and looked like a status message rather than a result. The words
+   are verdicts now (functions/_lib/bands.ts); this gives them the weight of
+   one.
+
+   The device is the site's own: 1px ink border and `--shadow-hard`, the same
+   elevation the founder note, the terminal and the segmented tabs use. It
+   appeared nowhere on this page before. Blue is spent on the top band only,
+   which keeps the accent at roughly the 10% the palette budgets for it — a
+   stamp that is blue at every score is not a signal, it is a decoration. */
+.aol-rmc__stamp{
+  display:inline-flex; align-items:center; gap:7px; margin:0;
+  padding:7px 12px;
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  text-transform:uppercase; letter-spacing:var(--tracking-label);
+  color:var(--ink-900); background:var(--paper);
+  border:1px solid var(--ink-900);
+  box-shadow:var(--shadow-hard);
+}
+.aol-rmc__stamp svg{ color:var(--ink-700); flex:none; }
+.aol-rmc__stamp--solid{ color:var(--signal); border-color:var(--signal);
+  box-shadow:var(--shadow-hard-blue); }
+.aol-rmc__stamp--solid svg{ color:var(--signal); }
+
 .aol-rmc__total{
   /* The display face, not the bitmap mono — Departure Mono's grid reads as
      coarse past ~28px, and this is the largest number on the page. The mono
@@ -1134,25 +1190,43 @@
   color:var(--text-strong);
 }
 .aol-rmc__out{ font-family:var(--font-mono); font-size:var(--text-sm); color:var(--text-muted); }
-/* The band, said out loud. scoreBand() always computed this label; only the
-   glyph shipped. "BRUTAL" under a 64px 9.3 is the caption the icon needed. */
-.aol-rmc__band-word{
-  grid-column:1 / -1;
-  font-family:var(--font-mono); font-size:var(--text-2xs);
-  text-transform:uppercase; letter-spacing:.06em; color:var(--ink-500);
-  margin-top:6px;
-}
-.aol-rmc__band-word--solid{ color:var(--signal); }
 
+/* First heading in a band needs no top margin — the band's own padding is the
+   space. This carried --space-10 on top of --section-pad-y and opened a gap
+   twice the size of every other section head on the site. */
 .aol-rmc__h2{ font-family:var(--font-display); font-weight:var(--weight-regular);
-  font-size:var(--text-xl); margin:var(--space-10) 0 var(--space-3);
+  font-size:var(--text-xl); margin:0 0 var(--space-3);
   color:var(--text-strong);
 }
+
+/* ---- The verdict, framed ------------------------------------------------
+   The payload, and until now set as an unremarkable paragraph indistinguishable
+   from the four around it. GridFrame is the site's existing "this block is the
+   exhibit" device — defined in the DS and used on no page. The frame does the
+   work a heading was being asked to do. */
+/* The scale is 4/8/12/16/20/24/32 — there is no --space-7, and referencing one
+   made this whole shorthand invalid at computed-value time, which resets
+   padding to 0 rather than falling back to .aol-gridframe's own 30/32. The
+   frame rendered with its text sitting on the border. */
+.aol-rmc__frame{
+  padding:var(--space-8) var(--space-10);
+  background:var(--paper);
+  box-shadow:var(--shadow-hard);
+  /* Wider than the text it holds, so the rotated dimension mark on the right
+     edge has an edge to sit on rather than a line of prose. */
+  max-width:78ch;
+}
+.aol-rmc__frame .aol-rmc__verdict{ max-width:62ch; }
 .aol-rmc__verdict{
   /* This is the one true reading paragraph on the page — it gets the serif
-     reading leading, not the UI 1.4. */
-  margin:0; font-size:var(--text-md); line-height:var(--leading-relaxed);
-  color:var(--text-body); max-width:var(--measure);
+     reading leading, not the UI 1.4. And it is a step larger than body text,
+     because between the 48px total and the 15px seat summaries there was
+     nothing at all in the middle. */
+  margin:0; font-size:var(--text-lg); line-height:var(--leading-relaxed);
+  color:var(--text-strong); max-width:var(--measure);
+}
+@media (max-width:640px){
+  .aol-rmc__frame{ padding:var(--space-6) var(--space-5); }
 }
 /* ---- The looked-up profile ----------------------------------------------
    A kicker, one neutral sentence, and a leader-dot datasheet. The DS already
@@ -1348,13 +1422,12 @@
 }
 .aol-rma__how-body{ font-size:var(--text-sm); color:var(--text-muted); line-height:var(--leading-normal); }
 
-/* Axes as four cells rather than four stacked rows — same information, a third
-   of the height. */
-.aol-rma__axis-row{
-  list-style:none; margin:0; padding:0;
-  display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:var(--space-6);
-}
-.aol-rma__axis-cell{ display:grid; gap:5px; align-content:start; }
+/* Reset only. The grid itself is declared once, below, under "Axes:
+   question-led" — this rule used to declare a competing four-column template
+   that the later one silently overrode, so the file carried two answers to the
+   same question and neither comment mentioned the other. */
+.aol-rma__axis-row{ list-style:none; margin:0; padding:0; display:grid; }
+.aol-rma__axis-cell{ display:grid; align-content:start; }
 
 .aol-rma__board-head{
   display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-6);
@@ -1399,32 +1472,41 @@
 @media (max-width:900px){
   .aol-rma__split{ grid-template-columns:minmax(0,1fr); gap:var(--space-10); }
   .aol-rma__how{ grid-template-columns:repeat(2, minmax(0,1fr)); }
-  .aol-rma__axis-row{ grid-template-columns:repeat(2, minmax(0,1fr)); }
 }
 @media (max-width:560px){
   .aol-rma__how{ grid-template-columns:minmax(0,1fr); gap:var(--space-5); }
-  .aol-rma__axis-row{ grid-template-columns:minmax(0,1fr); gap:var(--space-5); }
 }
 
-/* ---- Axes: question-led, two up ----
-   The how-it-works row above this is already four cells across. Repeating that
-   grid for the axes made the page read as a template — two identical rows of
-   four, stacked. These are four QUESTIONS, and the question is the interesting
-   part, so it leads at reading size while the label and its point value drop to
-   a mono eyebrow. Different rhythm, more contrast, half the width. */
-.aol-rma__axis-row{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:var(--space-8) var(--space-12); }
-.aol-rma__axis-cell{ gap:8px; }
-/* Capped to the same measure as the question beneath it. Without this the label
-   row spans the full column while the question wraps at 34ch, and margin-left
-   flings the point value hundreds of pixels away from the label it belongs to. */
-.aol-rma__axis-label{
-  display:flex; align-items:center; gap:7px; max-width:34ch;
-  font-family:var(--font-mono); font-size:var(--text-2xs);
-  letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted);
+/* ---- Axes: question-led, one column per question ----
+   The how-it-works row above this is four cells across. Repeating that grid
+   here made the page read as a template — two identical rows of four, stacked.
+   These are QUESTIONS, and the question is the interesting part, so it leads at
+   reading size while the label and its scale drop to a mono eyebrow.
+
+   The column count was hard-coded to `repeat(2, …)` when there were four
+   questions. There are three now, and a three-item list in a two-column grid
+   leaves one cell orphaned on its own row directly under a heading that
+   promises three — which is exactly how it shipped. `auto-fit` derives the
+   count from the content instead, so the next change to the question set cannot
+   reintroduce this. */
+.aol-rma__axis-row{
+  grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));
+  gap:var(--space-8) var(--space-10);
 }
-.aol-rma__axis-label svg{ color:var(--ink-400); flex:none; }
-/* The point value is the only number here, so it carries the accent alone. */
-.aol-rma__axis-label em{ font-style:normal; color:var(--signal); margin-left:auto; }
+.aol-rma__axis-cell{ gap:8px; }
+/* NOT capped to the question's measure. At 34ch the label and its scale — two
+   mono strings that belong on one line — wrapped into a four-line stack
+   ("HARD TO / BUILD" beside "HARD NO → / EXTREMELY"), and `margin-left:auto`
+   then pushed the scale to the far edge of whichever line it landed on. The
+   cell is the constraint; the label just fills it. */
+.aol-rma__axis-label{
+  display:flex; align-items:baseline; gap:7px; flex-wrap:wrap;
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  letter-spacing:var(--tracking-label); text-transform:uppercase; color:var(--text-muted);
+}
+.aol-rma__axis-label svg{ color:var(--ink-400); flex:none; align-self:center; }
+/* The scale is the only blue in this row, so it carries the accent alone. */
+.aol-rma__axis-label em{ font-style:normal; color:var(--signal); }
 .aol-rma__axis-q{
   font-size:var(--text-md); line-height:var(--leading-snug); color:var(--text-strong);
   max-width:34ch;
@@ -1763,3 +1845,36 @@
   position:absolute; width:1px; height:1px; padding:0; margin:-1px;
   overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
 }
+
+/* ---- Landing: sub-sections inside the methodology band -------------------
+   Three blocks share one band — how it works, the questions, the panel — and
+   they used to be separated by DitherLine, a dithered texture strip that reads
+   as a rendering artifact rather than a rule at desktop width. The site
+   separates a top-level band with a hairline and separates blocks INSIDE one
+   with space; this is the second case. */
+.aol-rma__h2--stacked{ margin-top:var(--space-16); }
+
+/* The five words, said once above the three questions instead of repeated
+   beside each of them. */
+.aol-rma__scale{
+  margin:0 0 var(--space-8); font-size:var(--text-base);
+  color:var(--text-muted); max-width:var(--measure);
+}
+.aol-rma__scale em{
+  font-style:normal; font-family:var(--font-mono);
+  font-size:var(--text-xs); color:var(--signal);
+}
+
+/* The board's datasheet, in the leaderboard hero's right column. Warm surface
+   and a hairline, matching the tool's form card in the same position on the
+   landing page — same slot, same weight, different payload. */
+.aol-rma__boardcard{
+  background:var(--surface-card); border:1px solid var(--border-hairline);
+  border-radius:var(--radius-md); padding:var(--space-6);
+}
+.aol-rma__boardcard .aol-eyebrow{ margin:0 0 var(--space-4); }
+
+/* A note that follows a list needs to look like a note, not a fourth item.
+   Without this the methodology paragraph under the three questions sat flush
+   against the last one at the same indent. */
+.aol-rma__note--after-list{ margin-top:var(--space-6); }
