@@ -438,7 +438,19 @@ const description =
         }
         render(data);
       } catch {
-        say("The panel is unreachable. Try again shortly.");
+        /* This branch is NOT "a model was down" — it is reached when the
+           response could not be parsed at all, and the two ways that happens
+           are both about the edge rather than the panel: a genuine network
+           drop, or a Cloudflare error page where JSON was expected. The most
+           common cause is the second one, when a long run passes the edge's
+           request ceiling and the connection is cut while the panel is still
+           deliberating.
+
+           It said "The panel is unreachable" and that reading cost real time —
+           a cake shop with an empty homepage and a company whose panel ran
+           twenty seconds long both reported a model outage. Say what is
+           actually known, which is that nothing was published. */
+        say("That run did not come back in time. Nothing was published — try again shortly.");
       } finally {
         stopSteps();
         running = false;

@@ -162,6 +162,20 @@ async function hashIp(ip: string): Promise<string> {
  * worse than an outage, because its numbers would not be comparable to any
  * other row on the board — so the failure has to read as part of the bit rather
  * than as a red box. Each stage names which part fell over.
+ *
+ * EVERY ONE OF THESE SHIPS AS HTTP 200. That is not sloppiness about status
+ * codes, it is the only way this copy reaches a reader: Cloudflare intercepts
+ * any 5xx from a Pages Function and replaces the body with its own plain-text
+ * error page. Returning `json(failure("read"), 502)` therefore sent the browser
+ * the six bytes `error code: 502`, `res.json()` threw, and the client's catch
+ * reported "The panel is unreachable" — for a cake shop whose site returned
+ * zero characters and never reached a model at all.
+ *
+ * So the whole designed-failure system was dead on arrival for three years'
+ * worth of careful copy, and every distinct failure looked like one model
+ * outage. These are OUTCOMES, not server errors: the request was understood and
+ * answered. 200 with `status: "failed"` is also the honest encoding, and the
+ * client already branches on that field before it looks at `res.ok`.
  */
 export function failure(stage: "read" | "identify" | "panel" | "write") {
   const copy = {
@@ -406,7 +420,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
   // .pages, not .html — a context.dev rescue can return prose with no raw
   // markup (stack detection just finds nothing, which is already how the page
   // describes a warehouse-native setup).
-  if (!site.pages) return json(failure("read"), 502);
+  if (!site.pages) return json(failure("read"), 200);
 
   /**
    * Hard floor, not a flag. `thin` used to publish anyway (as "provisional"),
@@ -443,7 +457,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
       console.error(`[rank] identify: ${provider} exhausted:`, err);
     }
   }
-  if (!identity) return json(failure("identify"), 502);
+  if (!identity) return json(failure("identify"), 200);
 
   if (!identity.eligible) {
     return json({
@@ -500,7 +514,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
     });
   } catch (err) {
     console.error(`[rank] ${domain}: ${err instanceof Error ? err.message : err}`);
-    return json(failure("panel"), 502);
+    return json(failure("panel"), 200);
   }
 
   /**
@@ -562,7 +576,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
     summary = value;
   } catch (err) {
     console.error(`[rank] writer failed:`, err);
-    return json(failure("write"), 502);
+    return json(failure("write"), 200);
   }
 
   // ── Persist ───────────────────────────────────────────────────────────────
