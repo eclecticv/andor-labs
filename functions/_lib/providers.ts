@@ -198,20 +198,52 @@ const DEFAULT_TEMPERATURE = 0;
 const CALL_TIMEOUT_MS = 120_000;
 
 /**
+ * The deadline, per provider, because the seats are not equally fast.
+ *
+ * One global 120s cap treated every seat identically, and the seats are
+ * measurably not identical. Over one evening's real runs: Blockthrough's whole
+ * panel finished in 63s, AdPushup's in 121s, and The Media Trust's GLM seat
+ * timed out at 120s three times in a row and failed the entire ranking — then
+ * succeeded on a retry that took the panel to 262s. A user submission for
+ * useadmesh.com died the same way, with a crawl that was fine (6,053 chars,
+ * well over the corpus floor) and one seat that would not come back in time.
+ *
+ * OpenCode Zen is the slow rung and GLM is the slow model on it. A cap tuned to
+ * the fast seats turns that into an outage for the whole panel, because a
+ * pinned seat that cannot answer fails the ranking by design — which is the
+ * right rule for comparability and the wrong reason to invoke it.
+ *
+ * 180s for OpenCode is headroom sized to the observed overruns rather than to a
+ * round number, and it is still bounded: the seats run concurrently, so this is
+ * the panel's worst-case wall clock, not a sum. Waiting on fetch is not CPU
+ * time, which is what Cloudflare meters.
+ */
+export const PROVIDER_TIMEOUT_MS: Record<Provider, number> = {
+  gemini: CALL_TIMEOUT_MS,
+  nvidia: CALL_TIMEOUT_MS,
+  opencode: 180_000,
+};
+
+/**
  * Fetch with a deadline, reporting a timeout as a timeout.
  *
  * The distinction matters in the ladder's failure log: "timed out" tells you a
  * provider is degraded, where a bare "network error" reads as a blip and gets
  * ignored.
  */
-async function fetchWithDeadline(url: string, init: RequestInit, label: string): Promise<Response> {
+async function fetchWithDeadline(
+  url: string,
+  init: RequestInit,
+  label: string,
+  timeoutMs: number = CALL_TIMEOUT_MS,
+): Promise<Response> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), CALL_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(url, { ...init, signal: controller.signal });
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
-      throw new Error(`${label} timed out after ${CALL_TIMEOUT_MS / 1000}s`);
+      throw new Error(`${label} timed out after ${timeoutMs / 1000}s`);
     }
     throw err;
   } finally {
@@ -226,6 +258,7 @@ export async function callGemini(
   temperature = DEFAULT_TEMPERATURE,
   system?: string,
   schema?: unknown,
+  timeoutMs?: number,
 ): Promise<string> {
   const res = await fetchWithDeadline(`${geminiEndpoint(model)}?key=${key}`, {
     method: "POST",
@@ -255,7 +288,7 @@ export async function callGemini(
         ...(schema ? { responseSchema: schema } : {}),
       },
     }),
-  }, model);
+  }, model, timeoutMs);
   if (!res.ok) throw new Error(`gemini ${res.status}`);
   const body = (await res.json()) as {
     candidates?: { content?: { parts?: { text?: string }[] } }[];
@@ -273,6 +306,7 @@ export async function callOpenAICompatible(
   prompt: string,
   temperature = DEFAULT_TEMPERATURE,
   system?: string,
+  timeoutMs?: number,
 ): Promise<string> {
   const res = await fetchWithDeadline(`${base}/chat/completions`, {
     method: "POST",
@@ -309,7 +343,7 @@ export async function callOpenAICompatible(
         { role: "user", content: prompt },
       ],
     }),
-  }, model);
+  }, model, timeoutMs);
   if (!res.ok) {
     // Zen reports an exhausted balance as a 401, which is indistinguishable
     // from a bad key at the status line. Carry the body so the log says which.
@@ -366,7 +400,13 @@ export async function askOnce(
   system?: string,
   schema?: unknown,
 ) {
-  if (provider === "gemini") return callGemini(key, model, prompt, temperature, system, schema);
+  // The deadline belongs to the provider, not to the call site — see
+  // PROVIDER_TIMEOUT_MS. OpenCode is the slow rung and a cap sized to the fast
+  // ones was failing whole rankings on a seat that would have answered.
+  const timeoutMs = PROVIDER_TIMEOUT_MS[provider];
+  if (provider === "gemini") {
+    return callGemini(key, model, prompt, temperature, system, schema, timeoutMs);
+  }
   return callOpenAICompatible(
     OPENAI_COMPATIBLE_BASE[provider],
     key,
@@ -374,6 +414,7 @@ export async function askOnce(
     prompt,
     temperature,
     system,
+    timeoutMs,
   );
 }
 

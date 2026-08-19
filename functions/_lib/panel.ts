@@ -308,10 +308,17 @@ export const QUESTIONS: Question[] = [
      * origin-angle coverage is already in the evidence block; both were being
      * handed over and neither was being asked for.
      */
-    ask: "Was this first, or only? Judge against what the category had in the year they launched, not against what is standard now. Name what did not exist before them, and what on the pages or in the coverage shows it.",
-    anchors: `Later ubiquity is EVIDENCE, not a deduction: a mechanism that is standard today
-BECAUSE this company established it scores HIGH. Never mark a company down for
-having been copied.
+    /**
+     * Kept SHORT, like the outlook question and for the same measured reason.
+     *
+     * The first draft of this fix spelled both mechanisms out across three
+     * extra sentences, and the largest corpus on the board then timed out a
+     * pinned seat three times at the 120s cap. Prompt length is the latency
+     * budget: the rules survive, the essay does not.
+     */
+    ask: "Was this first, or only? Judge against the category in their founding year, not today. Name what did not exist before them, and what shows it.",
+    anchors: `Ubiquity is EVIDENCE: standard today BECAUSE they established it scores HIGH.
+Never mark a company down for having been copied.
 
 extremely — the category did not have this until them
 yes        — a real insight, conventionally executed

@@ -11,6 +11,7 @@ import {
   PANELISTS, WRITER, QUESTIONS, aggregate, normalizeTake, assertTakeUsable,
   buildPanelPrompt, buildPanelSystem, resolveRecall, type PanelistTake,
 } from "../functions/_lib/panel";
+import { PROVIDER_TIMEOUT_MS } from "../functions/_lib/providers";
 import { CATEGORIES } from "../functions/_lib/classify";
 
 /**
@@ -282,5 +283,22 @@ describe("the prompt", () => {
   it("warns when the site barely rendered", () => {
     const thin = buildPanelPrompt({ domain: "x.com", pages: "", thin: true, categories: CATEGORIES });
     expect(thin).toMatch(/BARELY RENDERED/);
+  });
+});
+
+describe("provider deadlines", () => {
+  it("gives the slow rung more room than the fast ones", () => {
+    // One global 120s cap failed whole rankings on a seat that would have
+    // answered: measured over one evening, OpenCode's GLM seat timed out three
+    // times in a row on one company and then succeeded on a retry that took the
+    // panel to 262s, while another company's entire panel finished in 63s. A
+    // pinned seat failing the ranking is the right rule for comparability and
+    // the wrong reason to invoke it. If these ever equalise again, that
+    // regression is back.
+    expect(PROVIDER_TIMEOUT_MS.opencode).toBeGreaterThan(PROVIDER_TIMEOUT_MS.gemini);
+    expect(PROVIDER_TIMEOUT_MS.opencode).toBeGreaterThan(PROVIDER_TIMEOUT_MS.nvidia);
+    // Bounded: the seats run concurrently, so this is the panel's worst-case
+    // wall clock and the page promises "one to three minutes".
+    expect(PROVIDER_TIMEOUT_MS.opencode).toBeLessThanOrEqual(180_000);
   });
 });

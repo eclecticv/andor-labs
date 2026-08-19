@@ -122,7 +122,7 @@ const description =
             <div class="aol-rma__step" id="rank-step" data-state="idle"
               data-steps={JSON.stringify(STEPS)} role="status" aria-live="polite">
               <span class="aol-rma__step-n" id="rank-step-n">00/07</span>
-              <span class="aol-rma__step-text" id="rank-step-text">Takes about a minute. The panel is thorough.</span>
+              <span class="aol-rma__step-text" id="rank-step-text">One to three minutes. The panel is thorough.</span>
             </div>
 
             <p class="aol-rma__notice">
@@ -282,7 +282,7 @@ const description =
 
   if (form && statusEl && resultEl && stepEl && stepText && stepN && cardTpl && failTpl) {
     const STEPS: string[] = JSON.parse(stepEl.dataset.steps ?? "[]");
-    const IDLE = "Takes about a minute. The panel is thorough.";
+    const IDLE = "One to three minutes. The panel is thorough.";
     const input = document.getElementById("rank-url") as HTMLInputElement | null;
     // Cheap shape gate — "asdf" would otherwise cost the visitor 90 seconds
     // and cost us three model calls before the server says the same thing.
