@@ -31,6 +31,7 @@
  */
 
 import { askLadder, extractJson, type Provider, type ProviderEnv } from "./providers";
+import { factsBlock, type CompanyFacts } from "./facts";
 
 // ── The panelists ───────────────────────────────────────────────────────────
 
@@ -382,6 +383,11 @@ export interface PanelInput {
   domain: string;
   /** Page text, each section headed. */
   pages: string;
+  /**
+   * Third-party facts, when a lookup found them. Null means the panel is asked
+   * to recall funding the old way — see the funding block in the prompt.
+   */
+  facts?: CompanyFacts | null;
   /** True when the site rendered to almost nothing. */
   thin: boolean;
   /** The closed subcategory set, passed in so _lib/panel owns no taxonomy. */
@@ -543,7 +549,9 @@ category: EXACTLY ONE of these keys — where the company sits in the ad supply
 chain and who pays it, not the technology underneath:
 ${categories}
 
-funding: what you actually KNOW about this company's most recent round from
+${input.facts ? `funding: already established above. Return {"round":"","year":0,"investor":""}
+and do not attempt to recall it — a fact we can look up is not worth your guess.
+` : `funding: what you actually KNOW about this company's most recent round from
 public reporting. Not a guess from how the site looks — a site is written to
 sound established and reading stage off it is wrong more often than right.
 
@@ -557,7 +565,7 @@ sound established and reading stage off it is wrong more often than right.
   are reconstructing from plausibility is worse than no answer, because two
   other models are being asked this same question and the three of you are
   being checked against each other.
-
+`}
 Return JSON only, with the keys in this order. "case_against" comes first
 because you must write it first:
 {"case_against":[str,str,str],
@@ -569,7 +577,7 @@ because you must write it first:
  "funding":{"round":str,"year":int,"investor":str}}
 
 COMPANY: ${input.domain}
-
+${factsBlock(input.facts ?? null)}
 PAGES:
 ${input.pages.slice(0, 30_000)}`;
 }

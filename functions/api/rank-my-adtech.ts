@@ -45,6 +45,7 @@
 
 import { readSite } from "../_lib/crawl";
 import { detectStack, byCategory } from "../_lib/stack";
+import { lookupCompany, fundingBand } from "../_lib/facts";
 import { resolveLogo } from "../_lib/logo";
 
 import {
@@ -58,6 +59,8 @@ import { askLadder, extractJson, keyFor, type Provider } from "../_lib/providers
 
 interface Env {
   RANKINGS: D1Database;
+  /** Optional. Absent, the panel is asked to recall funding as it used to. */
+  INDEXED_API_KEY?: string;
   GEMINI_API_KEY?: string;
   NVIDIA_API_KEY?: string;
   OPENCODE_API_KEY?: string;
@@ -417,6 +420,19 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
 
   const detected = detectStack(site.html);
 
+  /**
+   * Look the company up BEFORE the panel sits, so the facts are in the prompt.
+   *
+   * Deliberately not awaited alongside the panel: the seats need this in their
+   * input, so it is on the critical path by definition. It is bounded at 8s and
+   * fails soft to null, which costs a ranking nothing — a null just means the
+   * jurors are asked to recall funding the way they always were.
+   */
+  const facts = await lookupCompany(env, domain);
+  if (facts) {
+    console.log(`[rank] ${domain} — facts: ${fundingBand(facts.totalFundingRaised)} · ${facts.employeeCountRange || "headcount unknown"}`);
+  }
+
   // ── Identify ──────────────────────────────────────────────────────────────
   // Any provider will do here; this is a factual question, not a judgement, so
   // it takes the first ladder that answers rather than a named seat.
@@ -470,7 +486,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
   let panel: Awaited<ReturnType<typeof runPanel>>;
   try {
     panel = await runPanel(env, {
-      domain, pages: site.pages, thin: site.thin, categories: CATEGORIES, categoryNotes: CATEGORY_NOT,
+      domain, pages: site.pages, thin: site.thin, facts,
+      categories: CATEGORIES, categoryNotes: CATEGORY_NOT,
     });
   } catch (err) {
     console.error(`[rank] ${domain}: ${err instanceof Error ? err.message : err}`);
@@ -490,7 +507,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
   // A human correction beats the panel — see CATEGORY_OVERRIDES.
   const category = categoryFor(domain, recall.category, identity.category);
 
-  const placement = place(site.html, site.pages, identity.stage, recall);
+  const placement = place(site.html, site.pages, identity.stage, recall, facts);
   if (!placement.eligible) {
     return json({ status: "not-eligible", domain, name: identity.name, verdict: placement.reason }, 200);
   }

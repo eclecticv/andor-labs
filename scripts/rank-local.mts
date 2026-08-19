@@ -22,6 +22,7 @@
  */
 import { readSite } from "../functions/_lib/crawl";
 import { detectStack, byCategory } from "../functions/_lib/stack";
+import { lookupCompany, fundingBand } from "../functions/_lib/facts";
 import { resolveLogo } from "../functions/_lib/logo";
 
 import {
@@ -78,13 +79,17 @@ async function rank(domain: string) {
   const markup = placeFromMarkup(site.html, site.pages);
   if (markup.isPublic) return { refused: `Public company — ${markup.isPublic}.`, domain };
 
+  const facts = await lookupCompany(env as any, domain);
+  if (facts) console.error(`  facts: ${fundingBand(facts.totalFundingRaised)} · ${facts.employeeCountRange || "headcount unknown"} (${facts.source})`);
+
   const panel = await runPanel(env, {
-    domain, pages: site.pages, thin: site.thin, categories: CATEGORIES, categoryNotes: CATEGORY_NOT,
+    domain, pages: site.pages, thin: site.thin, facts,
+    categories: CATEGORIES, categoryNotes: CATEGORY_NOT,
   });
 
   const recall = resolveRecall(panel.takes);
   const category = categoryFor(domain, recall.category, identity.category);
-  const placement = place(site.html, site.pages, identity.stage, recall);
+  const placement = place(site.html, site.pages, identity.stage, recall, facts);
   if (!placement.eligible) return { refused: placement.reason, domain };
   const side = sideFor(category);
   const cohort = cohortLabel(placement.band, side);
