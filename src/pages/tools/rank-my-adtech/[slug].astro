@@ -30,7 +30,7 @@ import SiteMotion from "../../../components/SiteMotion.astro";
 import PixelIcon from "../../../components/ds/PixelIcon.astro";
 import DitherLine from "../../../components/ds/DitherLine.astro";
 import {
-  getEntries, ranksFor, ordinal, scoreBand, stackFor, categoryLabel,
+  getEntries, ranksFor, ordinal, scoreBand, categoryLabel,
   fmt, bandBadgeFor, identityFor, rankingIsStale, QUESTIONS, WRITER, SIDE_LABELS,
 } from "../../../lib/rankings";
 
@@ -45,8 +45,6 @@ export async function getStaticPaths() {
 const { entry, all } = Astro.props;
 const band = scoreBand(entry.total);
 const ranks = ranksFor(entry, all);
-const stack = stackFor(entry);
-const stackCount = Object.values(stack).reduce((n, tools) => n + tools.length, 0);
 
 const bandBadge = bandBadgeFor(entry);
 
@@ -304,29 +302,6 @@ const liHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIC
             nothing. {WRITER.spec}
           </span>
         </p>
-
-        {/* ── 6. What we could see ───────────────────────────────────────── */}
-        {stackCount ? (
-          <>
-            <DitherLine />
-            <h2 class="aol-rmc__h2">The stack we could see.</h2>
-            <p class="aol-rmc__note">
-              Read from the markup, so browser-side tools only. A warehouse-native setup
-              looks empty here and may still be excellent. The panel was not shown this —
-              it is here as context, not as evidence.
-            </p>
-            <ul class="aol-rmc__stack">
-              {Object.entries(stack).map(([category, tools]) => (
-                <li class="aol-rmc__stack-row">
-                  <span class="aol-rmc__stack-cat">{category.replace(/-/g, " ")}</span>
-                  <span class="aol-rmc__stack-tools">
-                    {tools.map((t) => <span class="aol-rb__keyword">{t}</span>)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </>
-        ) : null}
 
         <DitherLine />
         <p class="aol-rma__disclosure">

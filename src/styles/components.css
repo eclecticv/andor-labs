@@ -1364,21 +1364,6 @@
 }
 .aol-rmc__dim-score em{ font-style:normal; color:var(--text-faint); font-size:var(--text-2xs); }
 
-/* ---- Detected stack ---- */
-.aol-rmc__stack{ list-style:none; margin:0; padding:0; display:grid; gap:var(--space-3); }
-.aol-rmc__stack-row{
-  display:grid; grid-template-columns:190px minmax(0,1fr); gap:0 16px; align-items:baseline;
-}
-.aol-rmc__stack-cat{
-  font-family:var(--font-mono); font-size:var(--text-2xs);
-  text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted);
-}
-.aol-rmc__stack-tools{ display:flex; flex-wrap:wrap; gap:8px; }
-
-@media (max-width:640px){
-  .aol-rmc__stack-row{ grid-template-columns:minmax(0,1fr); gap:4px; }
-}
-
 /* The category leads the row's keyword strip: it is the fact, the four words
    after it are the reading. */
 .aol-rb__keyword--cat{ color:var(--signal); background:var(--signal-tint); border-color:var(--blue-100); }

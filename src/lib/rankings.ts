@@ -381,7 +381,6 @@ export interface Entry {
   split_spread: number;
 
   summary: string;
-  stack_json: string;
   created_at: string;
 
   /** Three rows, nine ratings. Attached by getEntries. */
@@ -480,7 +479,7 @@ const ENTRY_SELECT = `
   SELECT c.slug, c.name, c.domain, c.logo_url, c.one_liner, c.provisional,
          c.category, c.band, c.side, c.band_evidence, c.band_inferred,
          r.id AS ranking_id, r.total, r.innovation, r.difficulty, r.investability,
-         r.split_question, r.split_spread, r.summary, r.stack_json, r.created_at
+         r.split_question, r.split_spread, r.summary, r.created_at
   FROM company c
   JOIN ranking r ON r.company_id = c.id
   WHERE c.status = 'published'`;
@@ -600,15 +599,6 @@ export function ordinal(n: number): string {
   const mod100 = n % 100;
   if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
   return `${n}${({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[n % 10] ?? "th"}`;
-}
-
-/** The GTM stack we detected, as category -> tool names. */
-export function stackFor(entry: Entry): Record<string, string[]> {
-  try {
-    return JSON.parse(entry.stack_json || "{}");
-  } catch {
-    return {};
-  }
 }
 
 /**

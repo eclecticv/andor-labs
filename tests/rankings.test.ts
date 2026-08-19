@@ -18,7 +18,7 @@ const entry = (over: Partial<Entry> = {}): Entry => ({
   provisional: 0, category: "ssp", band: "growth", side: "sell",
   band_evidence: null, band_inferred: 1,
   total: 20, innovation: 7, difficulty: 7, investability: 6,
-  split_question: null, split_spread: 0, summary: "", stack_json: "{}",
+  split_question: null, split_spread: 0, summary: "",
   created_at: "", takes: [], ...over,
 });
 
