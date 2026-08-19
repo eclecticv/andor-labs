@@ -127,6 +127,41 @@ export const DIVISION_LABELS: Record<string, string> =
   Object.fromEntries(DIVISIONS.map((d) => [d.key, d.label]));
 
 /** Years since founding, or 0 when unknown. The board's second filter axis. */
+/**
+ * The board's two filter axes, as closed sets.
+ *
+ * Weight class comes straight from headcount; age is bucketed, because a filter
+ * with one bucket per year is a filter nobody uses. The boundaries are drawn
+ * where adtech actually changes character: under ten years is post-header-
+ * bidding, ten to twenty spans the programmatic build-out, and over twenty
+ * predates it entirely.
+ *
+ * `key` goes in the DOM as a data attribute and into the CSS selector that
+ * hides non-matching rows, so it must stay lowercase and hyphen-free.
+ */
+export const AGE_BUCKETS = [
+  { key: "young", label: "Under 10", min: 0, max: 9 },
+  { key: "mid", label: "10 to 20", min: 10, max: 20 },
+  { key: "old", label: "Over 20", min: 21, max: Infinity },
+] as const;
+
+export type AgeBucket = (typeof AGE_BUCKETS)[number]["key"];
+
+/**
+ * Which bucket a company falls in, or null when its founding year is unknown.
+ *
+ * Null rather than a default bucket: the board shows a weight class or an age
+ * only where third-party search established one, and a company quietly sorted
+ * into "under 10" because nothing was found would be the page asserting a fact
+ * it does not have. Such a row is simply absent from an age-filtered view, and
+ * the filter says so.
+ */
+export function ageBucketOf(foundedYear: number | null): AgeBucket | null {
+  const age = ageOf(foundedYear);
+  if (!age) return null;
+  return AGE_BUCKETS.find((b) => age >= b.min && age <= b.max)?.key ?? null;
+}
+
 export function ageOf(foundedYear: number | null, now = new Date().getUTCFullYear()): number {
   if (!foundedYear || foundedYear < 1800 || foundedYear > now) return 0;
   return now - foundedYear;

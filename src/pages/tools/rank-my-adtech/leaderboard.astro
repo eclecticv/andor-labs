@@ -27,7 +27,7 @@ import PixelIcon from "../../../components/ds/PixelIcon.astro";
 import RankBoard from "../../../components/ds/RankBoard.astro";
 import PanelStrip from "../../../components/ds/PanelStrip.astro";
 import SpecGrid from "../../../components/ds/SpecGrid.astro";
-import { getEntries, getBoard, COHORTS, bandLegend, DIVISION_LABELS, ageOf, fmt, panelLabs } from "../../../lib/rankings";
+import { getEntries, getBoard, COHORTS, bandLegend, DIVISION_LABELS, DIVISIONS, AGE_BUCKETS, ageOf, fmt, panelLabs } from "../../../lib/rankings";
 
 const all = await getEntries();
 const board = await getBoard();
@@ -116,6 +116,33 @@ const description = `${all.length} private adtech companies judged by three lang
               aria-label={`${cohort.label} — ${countIn(cohort.key)} companies`} />
           ))}
 
+          {/* ── Filter inputs ────────────────────────────────────────────
+              Same device as the cohort tabs above: hidden radios followed by
+              labels, and a sibling selector that hides non-matching rows. No
+              script, so this works with JavaScript off and needs no hydration —
+              which matters on a static page whose whole content is already in
+              the HTML.
+
+              Two INDEPENDENT groups rather than one combined set. A combined
+              set would need one option per weight×age pair, which is nine
+              controls for two questions; independent groups compose in CSS by
+              simply stacking their hide rules. */}
+          {DIVISIONS.map((d) => (
+            <input class="aol-rt__filter aol-rt__filter--weight" type="radio" name="weight"
+              id={`weight-${d.key}`} data-value={d.key}
+              aria-label={`${d.label} only — ${d.blurb}`} />
+          ))}
+          <input class="aol-rt__filter aol-rt__filter--weight" type="radio" name="weight"
+            id="weight-any" checked aria-label="Any weight class" />
+
+          {AGE_BUCKETS.map((b) => (
+            <input class="aol-rt__filter aol-rt__filter--age" type="radio" name="age"
+              id={`age-${b.key}`} data-value={b.key}
+              aria-label={`${b.label} years old only`} />
+          ))}
+          <input class="aol-rt__filter aol-rt__filter--age" type="radio" name="age"
+            id="age-any" checked aria-label="Any age" />
+
           <div class="aol-rt__tabs" role="group" aria-labelledby="board">
             {COHORTS.map((cohort) => (
               <label class="aol-rt__tab" for={`cohort-${cohort.key}`}>
@@ -124,6 +151,27 @@ const description = `${all.length} private adtech companies judged by three lang
                 <span class="aol-rt__tab-count">{countIn(cohort.key)}</span>
               </label>
             ))}
+          </div>
+
+          {/* The two axes the board is meant to be read by. Both come from
+              third-party search rather than from a company's own pages, which
+              is why a company with neither established simply drops out of a
+              filtered view rather than defaulting into a bucket. */}
+          <div class="aol-rt__filters">
+            <fieldset class="aol-rt__filterset">
+              <legend class="aol-eyebrow">Weight</legend>
+              <label class="aol-rt__chip" for="weight-any">Any</label>
+              {DIVISIONS.map((d) => (
+                <label class="aol-rt__chip" for={`weight-${d.key}`} title={d.blurb}>{d.label}</label>
+              ))}
+            </fieldset>
+            <fieldset class="aol-rt__filterset">
+              <legend class="aol-eyebrow">Age</legend>
+              <label class="aol-rt__chip" for="age-any">Any</label>
+              {AGE_BUCKETS.map((b) => (
+                <label class="aol-rt__chip" for={`age-${b.key}`}>{b.label}</label>
+              ))}
+            </fieldset>
           </div>
 
           <div class="aol-rt__panels">

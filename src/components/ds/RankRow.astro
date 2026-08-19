@@ -4,7 +4,7 @@
 // rest" are all literally the same markup — three near-copies of a row is how
 // a board starts drifting between the places it appears.
 import PixelIcon from "./PixelIcon.astro";
-import { scoreBand, categoryLabel, adjectivesFor, fmt, DIVISION_LABELS, type Entry } from "../../lib/rankings";
+import { scoreBand, categoryLabel, adjectivesFor, fmt, DIVISION_LABELS, ageBucketOf, type Entry } from "../../lib/rankings";
 
 interface Props {
   entry: Entry;
@@ -30,9 +30,18 @@ const takeTotals = (entry.takes ?? []).map(
   (t) => (t.innovation ?? 0) + (t.difficulty ?? 0) + (t.outlook ?? 0),
 );
 const isSplit = entry.split_spread >= 3;
+
+/* The board's two filter axes, carried on the row itself.
+   The leaderboard filters are CSS-only — radio inputs and a sibling selector,
+   same device as the cohort tabs — so the value a rule matches on has to be in
+   the DOM rather than in a script. Absent when third-party search established
+   nothing, which is what makes such a row drop out of a filtered view instead
+   of being silently sorted into a bucket nobody verified. */
+const division = entry.division ?? undefined;
+const ageBucket = ageBucketOf(entry.founded_year) ?? undefined;
 ---
 
-<li class="aol-rb__row">
+<li class="aol-rb__row" data-division={division} data-age={ageBucket}>
   <a class="aol-rb__link" href={`/tools/rank-my-adtech/${entry.slug}/`}>
     <span class="aol-rb__rank" data-tied={tied || undefined}>{rank}</span>
 

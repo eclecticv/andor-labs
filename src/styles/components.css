@@ -1878,3 +1878,115 @@
    Without this the methodology paragraph under the three questions sat flush
    against the last one at the same indent. */
 .aol-rma__note--after-list{ margin-top:var(--space-6); }
+
+/* ---- Leaderboard filters: weight class and company age ------------------
+   The two axes the board stores, indexed and — until now — offered no way to
+   read by. CSS-only, matching the cohort tabs directly above them: hidden
+   radios, visible labels, and a general sibling combinator that hides the rows
+   that do not match. No script, so this survives JavaScript being off, which on
+   a fully static page whose content is already in the HTML is the correct bar.
+
+   Two independent groups rather than one combined control. Combined would need
+   an option per weight×age pair — nine controls to ask two questions — and
+   every new bucket would multiply it. Independent groups compose by stacking
+   hide rules, so adding a bucket adds one rule. */
+.aol-rt__filter{
+  position:absolute; width:1px; height:1px;
+  opacity:0; pointer-events:none;
+}
+
+.aol-rt__filters{
+  display:flex; flex-wrap:wrap; gap:var(--space-6) var(--space-10);
+  margin:var(--space-5) 0 var(--space-6);
+}
+.aol-rt__filterset{
+  border:0; margin:0; padding:0;
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+}
+.aol-rt__filterset .aol-eyebrow{
+  margin:0 var(--space-2) 0 0; color:var(--text-faint);
+}
+.aol-rt__chip{
+  font-family:var(--font-mono); font-size:var(--text-2xs);
+  text-transform:uppercase; letter-spacing:var(--tracking-label);
+  color:var(--ink-700); background:var(--paper);
+  border:1px solid var(--ink-200); padding:7px 11px;
+  cursor:pointer; user-select:none;
+  transition:border-color 120ms var(--ease-out), color 120ms var(--ease-out),
+             box-shadow 120ms var(--ease-out);
+}
+@media (hover:hover) and (pointer:fine){
+  .aol-rt__chip:hover{ border-color:var(--ink-400); color:var(--ink-900); }
+}
+
+/* Selected and focused state, matched by ID rather than by position.
+
+   This was written with :nth-of-type() and silently did nothing:
+   :nth-of-type counts by element TYPE, so the class in the compound selector
+   narrows the match without changing the count, and all eleven sibling inputs
+   (three cohorts plus four per filter group) share one sequence. "The first
+   weight input" is not a thing that selector can express. The hide rules below
+   always worked because they key off ids — so the board filtered correctly
+   while showing no sign of which filter was active, which is the worst of both.
+
+   `label[for=...]` is explicit, reads as what it does, and cannot drift when a
+   bucket is added or reordered. */
+#weight-any:checked          ~ .aol-rt__filters label[for="weight-any"],
+#weight-lightweight:checked  ~ .aol-rt__filters label[for="weight-lightweight"],
+#weight-middleweight:checked ~ .aol-rt__filters label[for="weight-middleweight"],
+#weight-heavyweight:checked  ~ .aol-rt__filters label[for="weight-heavyweight"],
+#age-any:checked             ~ .aol-rt__filters label[for="age-any"],
+#age-young:checked           ~ .aol-rt__filters label[for="age-young"],
+#age-mid:checked             ~ .aol-rt__filters label[for="age-mid"],
+#age-old:checked             ~ .aol-rt__filters label[for="age-old"]{
+  border-color:var(--signal); color:var(--signal);
+  box-shadow:2px 2px 0 0 var(--blue-500);
+}
+/* Keyboard users move through an invisible group, so focus has to land visibly
+   on the label — the same rule the cohort tabs needed. */
+#weight-any:focus-visible          ~ .aol-rt__filters label[for="weight-any"],
+#weight-lightweight:focus-visible  ~ .aol-rt__filters label[for="weight-lightweight"],
+#weight-middleweight:focus-visible ~ .aol-rt__filters label[for="weight-middleweight"],
+#weight-heavyweight:focus-visible  ~ .aol-rt__filters label[for="weight-heavyweight"],
+#age-any:focus-visible             ~ .aol-rt__filters label[for="age-any"],
+#age-young:focus-visible           ~ .aol-rt__filters label[for="age-young"],
+#age-mid:focus-visible             ~ .aol-rt__filters label[for="age-mid"],
+#age-old:focus-visible             ~ .aol-rt__filters label[for="age-old"]{
+  outline:2px solid var(--signal); outline-offset:2px;
+}
+
+/* ---- The hide rules ----
+   One per bucket, and they STACK: picking a weight and an age applies both, so
+   the visible set is the intersection without either rule knowing about the
+   other. A row missing the attribute entirely drops out of any non-"Any" view,
+   which is correct — the board never guesses a size or an age, and a filtered
+   view is a claim about what matched. */
+#weight-lightweight:checked   ~ .aol-rt__panels .aol-rb__row:not([data-division="lightweight"]),
+#weight-middleweight:checked  ~ .aol-rt__panels .aol-rb__row:not([data-division="middleweight"]),
+#weight-heavyweight:checked   ~ .aol-rt__panels .aol-rb__row:not([data-division="heavyweight"]),
+#age-young:checked            ~ .aol-rt__panels .aol-rb__row:not([data-age="young"]),
+#age-mid:checked              ~ .aol-rt__panels .aol-rb__row:not([data-age="mid"]),
+#age-old:checked              ~ .aol-rt__panels .aol-rb__row:not([data-age="old"]){
+  display:none;
+}
+
+/* Nothing matched. `:has()` asks the list whether a row survived rather than
+   counting in script — without this a filter with no matches renders as an
+   empty box, which reads as a broken page rather than as an answer. */
+.aol-rt__none{ display:none; }
+#weight-lightweight:checked  ~ .aol-rt__panels .aol-rb:not(:has([data-division="lightweight"])) .aol-rt__none,
+#weight-middleweight:checked ~ .aol-rt__panels .aol-rb:not(:has([data-division="middleweight"])) .aol-rt__none,
+#weight-heavyweight:checked  ~ .aol-rt__panels .aol-rb:not(:has([data-division="heavyweight"])) .aol-rt__none,
+#age-young:checked           ~ .aol-rt__panels .aol-rb:not(:has([data-age="young"])) .aol-rt__none,
+#age-mid:checked             ~ .aol-rt__panels .aol-rb:not(:has([data-age="mid"])) .aol-rt__none,
+#age-old:checked             ~ .aol-rt__panels .aol-rb:not(:has([data-age="old"])) .aol-rt__none{
+  display:block;
+}
+.aol-rt__none{
+  margin:var(--space-6) 0 0; font-size:var(--text-base); color:var(--text-muted);
+}
+
+@media (max-width:640px){
+  .aol-rt__filters{ gap:var(--space-5); }
+  .aol-rt__filterset{ width:100%; }
+}

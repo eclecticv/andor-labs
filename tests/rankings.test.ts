@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import {
   MODEL_IDENTITY, identityFor, PANELISTS, WRITER, BOARD_AXIS, COHORTS,
   cohortKeyOf, ranksFor, bandBadgeFor, ordinal, fmt, adjectivesFor, scoreBand,
-  SCORE_BANDS, bandLegend,
+  SCORE_BANDS, bandLegend, AGE_BUCKETS, ageBucketOf,
   CATEGORY_LABELS, rankingIsStale, type Take, type Entry,
 } from "../src/lib/rankings";
 import { CATEGORIES, CATEGORY_NOT, sideFor } from "../functions/_lib/classify";
@@ -260,5 +260,39 @@ describe("presentation", () => {
     // from the labels it was decoding.
     const legend = bandLegend();
     for (const b of SCORE_BANDS) expect(legend).toContain(b.label);
+  });
+});
+
+describe("the board's filter axes", () => {
+  it("buckets an age into exactly one band", () => {
+    // Boundaries are the thing worth pinning: an off-by-one here silently drops
+    // a company out of every filtered view rather than throwing.
+    const year = (age: number) => new Date().getUTCFullYear() - age;
+    expect(ageBucketOf(year(1))).toBe("young");
+    expect(ageBucketOf(year(9))).toBe("young");
+    expect(ageBucketOf(year(10))).toBe("mid");
+    expect(ageBucketOf(year(20))).toBe("mid");
+    expect(ageBucketOf(year(21))).toBe("old");
+    expect(ageBucketOf(year(60))).toBe("old");
+  });
+
+  it("refuses to bucket a company whose founding year is unknown", () => {
+    // Null, not a default band. The board shows an age only where third-party
+    // search established one; sorting an unknown into "under 10" would make the
+    // page assert a fact it does not have, and the row would then appear in a
+    // filtered view that is supposed to be a claim about what matched.
+    expect(ageBucketOf(null)).toBeNull();
+    expect(ageBucketOf(0)).toBeNull();
+  });
+
+  it("covers every bucket with a label and leaves no gap between them", () => {
+    for (let i = 1; i < AGE_BUCKETS.length; i++) {
+      expect(AGE_BUCKETS[i].min).toBe(AGE_BUCKETS[i - 1].max + 1);
+    }
+    for (const b of AGE_BUCKETS) {
+      expect(b.label).toBeTruthy();
+      // The key goes into a data attribute and a CSS selector.
+      expect(b.key).toMatch(/^[a-z]+$/);
+    }
   });
 });

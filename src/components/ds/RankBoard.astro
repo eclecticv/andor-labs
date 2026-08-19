@@ -43,6 +43,14 @@ const tiedWithPrev = (i: number, list: Entry[], prev?: Entry) =>
         ))}
       </ol>
 
+      {/* Shown by the filter CSS when the active weight or age matches nothing
+          in this cohort. An empty box reads as a broken page; a sentence reads
+          as an answer. Which filter emptied it is deliberately not named — the
+          two groups compose, so any one of them naming itself would be a guess. */}
+      <p class="aol-rt__none">
+        Nothing on this side matches that filter yet.
+      </p>
+
       {/* <details> rather than a JS toggle: the hidden rows stay in the HTML,
           so they remain crawlable and work with scripting off. */}
       {rest.length ? (
