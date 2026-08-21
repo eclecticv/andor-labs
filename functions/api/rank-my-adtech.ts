@@ -538,8 +538,73 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
   const jobId = crypto.randomUUID().replace(/-/g, "");
   await env.RANKINGS.prepare("INSERT INTO rank_job (id, domain) VALUES (?, ?)")
     .bind(jobId, domain).run();
-  await runJob(env, waitUntil, domain, jobId);
-  return json({ status: "queued", job: jobId, domain }, 200);
+
+  /**
+   * Stream the response, so the edge never sees an idle connection.
+   *
+   * Running in the request buys unlimited wall time only in principle. In
+   * practice Cloudflare's edge cuts a connection that has produced no bytes for
+   * roughly 100 seconds, which is the 524 that started all of this — and the
+   * panel now needs longer than that, because GLM 5.3 is a reasoning model and
+   * spends most of its budget thinking before it writes a character. Measured
+   * on Zen: 1,666 reasoning tokens and 35s against a 369-token prompt, 91s
+   * against a slightly larger one, and the real panel prompt carries a whole
+   * site corpus.
+   *
+   * The platform states the remedy plainly: "a Worker that is still streaming a
+   * response body remains active", with no wall-time limit while the client
+   * stays connected. So the body opens immediately and a newline goes down it
+   * every fifteen seconds until the pipeline is done. Bytes are flowing, the
+   * edge stays out of it, and the seats get to finish thinking.
+   *
+   * Deliberately NOT waitUntil() — that is the 30s trap this just came out of.
+   * The invocation is held open by the open stream itself.
+   *
+   * The client needs no change for this. Those heartbeats are leading
+   * whitespace, which is legal in front of any JSON value, so the `res.json()`
+   * that has always parsed this response still parses it.
+   */
+  const { readable, writable } = new TransformStream();
+  const writer = writable.getWriter();
+  const enc = new TextEncoder();
+  let finished = false;
+
+  const heartbeat = async () => {
+    while (!finished) {
+      await new Promise((r) => setTimeout(r, 15_000));
+      if (finished) break;
+      try {
+        await writer.write(enc.encode("\n"));
+      } catch {
+        break; // Client hung up. runJob still records the outcome in rank_job.
+      }
+    }
+  };
+
+  const pump = async () => {
+    try {
+      await runJob(env, waitUntil, domain, jobId);
+    } finally {
+      finished = true;
+      try {
+        await writer.write(enc.encode(JSON.stringify({ status: "queued", job: jobId, domain })));
+      } catch { /* nothing left to write to */ }
+      await writer.close().catch(() => {});
+    }
+  };
+
+  heartbeat();
+  pump();
+
+  return new Response(readable, {
+    status: 200,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      // Buffering anywhere in front of this would defeat the entire point.
+      "cache-control": "no-store",
+      "x-accel-buffering": "no",
+    },
+  });
 };
 
 /**
