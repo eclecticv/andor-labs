@@ -334,8 +334,17 @@ export async function callOpenAICompatible(
        * Qwen was answering in its place — the declared panel was not the panel
        * that turned up. Each of those cost two dead calls before the ladder
        * found someone, so the headroom buys throughput as well as correctness.
+       *
+       * And again to 16000 on 2026-08-21, after the seats were given personas.
+       * Measured directly against Zen: glm-5.3 spends 1,666 reasoning tokens on
+       * a 369-TOKEN prompt and 4,481 on one barely larger, all of it before a
+       * character of JSON. A real panel prompt carries a whole site corpus, so
+       * 8000 was being spent on thinking and the seat returned empty — the
+       * "truncated before answering" observed on scope3.com. This is a ceiling
+       * and not a target: it costs nothing on a call that does not need it, and
+       * a seat that answers is worth more than the tokens it did not spend.
        */
-      max_tokens: 8000,
+      max_tokens: 16000,
       response_format: { type: "json_object" },
       messages: [
         // Persona as a standing instruction, rubric as the turn. See callGemini.
