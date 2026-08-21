@@ -16,14 +16,19 @@ const NAV: [string, string][] = [
   // with the two off-homepage destinations last, since they leave the page
   // rather than scrolling within it.
   //
-  // Tools earns its billing under the same rule that keeps Work out: an index
-  // is worth a nav slot once it lands on more than one thing. It now holds two
-  // tools and the discovery leaderboard.
+  // Tools earned its billing under the same rule that keeps Work out: an index
+  // is worth a nav slot once it lands on more than one thing.
+  //
+  // As of 2026-08-21 it lands on nothing — Subreddit Scout was retired and Rank
+  // My AdTech went back to WIP — so the same rule takes the slot away again.
+  // /tools/ still resolves for anyone holding the link; it is just not
+  // advertised, and it is out of the sitemap. Restore this line, the footer's,
+  // and the sitemap filter together when something ships there.
+  // See docs/WIP-rank-my-adtech.md.
   ["About", "/#founder"],
   ["Pricing", "/#how-we-work"],
   ["Why us", "/#compare"],
   ["FAQ", "/#faq"],
-  ["Tools", "/tools/"],
   ["Blog", "/blog/"],
 ];
 ---

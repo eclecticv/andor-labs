@@ -85,10 +85,16 @@ const BOOT_LINES: { text: string; status?: string; prompt?: boolean }[] = [
         directly under it as the lighter option for someone not ready to talk to
         a human yet. Stacked rather than side-by-side so it reads as a fallback
         instead of an equal choice — this used to hang off the header button,
-        where it competed with the nav instead of following the promise. */}
+        where it competed with the nav instead of following the promise.
+
+        The second ask is withdrawn as of 2026-08-21: Rank My AdTech is back to
+        WIP and its routes are gone, so this was the homepage pointing at a 404.
+        Commented rather than deleted, like the founder line above — the
+        `aol-hero__alt` rule stays in site.css so uncommenting is the only step.
+        See docs/WIP-rank-my-adtech.md. */}
     <div class="aol-hero__cta" data-r style="--r:4">
       <Button size="lg" variant="primary" arrow href={BOOKING_URL} target="_blank" rel="noopener">Book a call</Button>
-      <a class="aol-hero__alt" href="/tools/rank-my-adtech/">Get your company ranked by three AI labs <span aria-hidden="true">&rarr;</span></a>
+      {/* <a class="aol-hero__alt" href="/tools/rank-my-adtech/">Get your company ranked by three AI labs <span aria-hidden="true">&rarr;</span></a> */}
     </div>
   </div>
   <div class="aol-grid-blue" data-r style="border-top:1px solid var(--ink-200);--r:5">

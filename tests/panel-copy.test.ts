@@ -89,9 +89,11 @@ describe("panel copy does not drift from the panel", () => {
 
   it("never describes a question the panel no longer asks", () => {
     const offences: string[] = [];
-    // The OG card is a Function, so it is outside the src/ walk that catches
-    // everything else — and it is exactly where the label survived.
-    const surfaces = [...files, "functions/og/rank/[slug].ts", "functions/_lib/panel.ts",
+    // The OG card used to be listed here explicitly: it is a Function, so it
+    // sits outside the src/ walk, and it was exactly where a retired label
+    // survived once. It was deleted with the rest of the public surface on
+    // 2026-08-21 — restore this path when the route comes back.
+    const surfaces = [...files, "functions/_lib/panel.ts",
                       "src/lib/rankings.ts", "src/pages/llms.txt.ts"];
     for (const file of surfaces) {
       const src = stripComments(readFileSync(file, "utf8"));
@@ -103,9 +105,11 @@ describe("panel copy does not drift from the panel", () => {
     expect(offences, offences.join("\n")).toEqual([]);
   });
 
-  it("renders every question's label somewhere a reader can see it", () => {
-    // The counterpart check: a question that exists in the rubric but appears
-    // on no surface is a scored axis the board never explains.
+  // SKIPPED 2026-08-21. The counterpart check — a question in the rubric that
+  // appears on no surface is a scored axis the board never explains — has no
+  // surfaces to check while Rank My AdTech is WIP and its routes are deleted.
+  // Un-skip together with the pages; see docs/WIP-rank-my-adtech.md.
+  it.skip("renders every question's label somewhere a reader can see it", () => {
     const rendered = files.map((f) => readFileSync(f, "utf8")).join("\n")
       + readFileSync("functions/og/rank/[slug].ts", "utf8");
     for (const q of QUESTIONS) {
@@ -222,9 +226,11 @@ describe("panel copy does not drift from the panel", () => {
     }
   });
 
-  it("gives every character somewhere to be rendered", () => {
-    // Both surfaces render the same shape. If one of them stops naming the
-    // character, the panel is back to being two different things.
+  // SKIPPED 2026-08-21. This compares the TWO surfaces that render a panelist,
+  // and one of them — the company profile page — was deleted with the rest of
+  // the public surface. Checking PanelStrip alone would not be the same test:
+  // the point is that the two cannot disagree. Un-skip with the pages.
+  it.skip("gives every character somewhere to be rendered", () => {
     const strip = readFileSync("src/components/ds/PanelStrip.astro", "utf8");
     const profile = readFileSync("src/pages/tools/rank-my-adtech/[slug].astro", "utf8");
     for (const src of [strip, profile]) {

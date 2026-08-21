@@ -7,9 +7,16 @@
  * discovery leaderboard clears that bar, and without an index the newer tool
  * would only be reachable from a link somebody already knows about.
  *
- * The homepage hero points at a specific tool rather than here. That link is
- * tuned to follow the promise the hero just made, and swapping a specific offer
- * for a generic index would weaken it.
+ * ── Empty as of 2026-08-21 ──
+ * Subreddit Scout was retired in August and Rank My AdTech went back to WIP, so
+ * the list is now zero and the header rule points the other way: /tools/ is out
+ * of the nav and out of the sitemap until something ships here again.
+ *
+ * The page still resolves, because people have the link. An empty `<ul>` under
+ * "things you can use" would read as a broken page rather than an empty shelf,
+ * so there is a stated empty state instead. Put an entry back in TOOLS and the
+ * list renders exactly as before; restoring the nav is a separate one-line
+ * change in SiteHeader and SiteFooter.
  */
 import Base from "../../layouts/Base.astro";
 import SiteHeader from "../../components/sections/SiteHeader.astro";
@@ -17,9 +24,6 @@ import SiteFooter from "../../components/sections/SiteFooter.astro";
 import SiteMotion from "../../components/SiteMotion.astro";
 import PixelIcon from "../../components/ds/PixelIcon.astro";
 import DitherLine from "../../components/ds/DitherLine.astro";
-import { getEntries } from "../../lib/rankings";
-
-const ranked = (await getEntries()).length;
 
 const TOOLS: {
   name: string;
@@ -27,20 +31,10 @@ const TOOLS: {
   icon: string;
   blurb: string;
   meta: string;
-}[] = [
-  {
-    name: "Rank My AdTech",
-    href: "/tools/rank-my-adtech/",
-    icon: "trophy-solid",
-    blurb:
-      "Three models from three different labs read a company's site and answer the same three questions about it — how innovative it is, how hard it would be to rebuild, where it sits in three years. A fourth reads all nine answers and writes the verdict.",
-    meta: ranked > 0 ? `${ranked} companies ranked` : "Free · a few minutes",
-  },
-];
+}[] = [];
 
 const title = "Free tools — And/or Labs";
-const description =
-  "Free GTM tools from And/or Labs: rank your adtech company on innovation, and see how vendors rank on organic and AI discovery.";
+const description = "Free GTM tools from And/or Labs.";
 ---
 
 <Base title={title} description={description}>
@@ -56,6 +50,10 @@ const description =
         </p>
 
         <DitherLine />
+
+        {TOOLS.length === 0 ? (
+          <p class="aol-rma__lede">Nothing here at the moment — the last one went back on the workbench. Check again soon.</p>
+        ) : null}
 
         <ul class="aol-tools__list">
           {

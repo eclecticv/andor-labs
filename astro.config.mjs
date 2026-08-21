@@ -3,6 +3,28 @@ import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import sanity from '@sanity/astro';
 import sitemap from '@astrojs/sitemap';
+import { loadEnv } from 'vite';
+
+/**
+ * Dev-only draft preview.
+ *
+ * The site is a static build, so `getStaticPaths` is the only thing that ever
+ * queries Sanity — and a token-less client can only see published documents.
+ * Handing the client a Viewer token plus `perspective: 'drafts'` is what makes
+ * an unpublished post render at its real URL during `npm run dev`.
+ *
+ * The gate is not cosmetic. `sanity:client` is a module the Studio bundle also
+ * imports, and the integration inlines this config verbatim into it — so a
+ * token present during `astro build` would be baked into browser JavaScript and
+ * shipped. `build` is matched on argv rather than NODE_ENV alone because argv
+ * is set by the command the operator actually typed.
+ *
+ * Token lives in `.env` (gitignored). Absent, dev behaves exactly as before.
+ */
+const isBuild = process.argv.includes('build') || process.env.NODE_ENV === 'production';
+const previewToken = isBuild
+  ? undefined
+  : loadEnv(process.env.NODE_ENV ?? 'development', process.cwd(), '').SANITY_PREVIEW_TOKEN;
 
 // https://astro.build/config
 export default defineConfig({
@@ -45,6 +67,8 @@ export default defineConfig({
       projectId: '2b9cfqwh',
       dataset: 'production',
       useCdn: false, // static build — always fresh content
+      // Dev only — see `previewToken` above. Never present in a production build.
+      ...(previewToken ? { token: previewToken, perspective: 'drafts' } : {}),
       studioBasePath: '/admin',
       studioRouterHistory: 'hash',
     }),
@@ -53,6 +77,14 @@ export default defineConfig({
     // /lab/* are dev-only design comparison pages. In production they build to
     // a redirect stub, so listing them in the sitemap submits redirects to
     // Google. Excluded alongside /admin.
-    sitemap({ filter: (page) => !page.includes('/admin') && !page.includes('/lab/') }),
+    //
+    // /tools/ joined them on 2026-08-21. It still resolves for anyone holding
+    // the link, but it lists nothing while Rank My AdTech is WIP, and
+    // submitting an empty index to Google is asking to be judged on it. Drop
+    // this clause when a tool ships there again — docs/WIP-rank-my-adtech.md.
+    sitemap({
+      filter: (page) =>
+        !page.includes('/admin') && !page.includes('/lab/') && !page.includes('/tools/'),
+    }),
   ],
 });

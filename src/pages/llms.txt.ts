@@ -2,9 +2,6 @@ import { ICP_STARTUPS, PROMISE } from "../config";
 import type { APIRoute } from "astro";
 import { sanityClient } from "sanity:client";
 import { toCategory } from "../lib/categories";
-import {
-  COHORTS, cohortKeyOf, PANELISTS, WRITER, getEntries, categoryLabel, fmt,
-} from "../lib/rankings";
 
 /**
  * /llms.txt — a plain-text map of the site for language models.
@@ -42,75 +39,18 @@ export const GET: APIRoute = async ({ site }) => {
     "published writing and free tools so an answer engine can locate the right",
     "source without crawling every page.",
     "",
-    "## Tools",
-    "",
-    `### [Rank My AdTech](${new URL("/tools/rank-my-adtech/", site).href})`,
-    "",
-    // Roster and cohorts are interpolated, never typed. Typed copies of both
-    // went stale here while the site itself had moved on — and an answer engine
-    // quoting a stale roster is a citation nobody can check.
-    "- What it does: ranks private adtech startups out of 30, judged by three",
-    `  language models from three different labs (${PANELISTS.map((p) => `${p.lab} ${p.name}`).join(", ")}),`,
-    `  with a fourth — ${WRITER.character}, played by ${WRITER.lab} ${WRITER.name} — writing`,
-    "  the summary and scoring nothing.",
-    "- Each judge is a fixed persona holding one lens across all three questions,",
-    "  so the engineer answers the outlook question as an engineer. Seats are",
-    "  pinned to one model each: a seat that cannot answer fails the ranking",
-    "  rather than being filled by a different lab, because a board whose rows",
-    "  were judged by different juries is not comparable to itself.",
-    "- Scoring: each panelist answers three questions in one of five words —",
-    "  hard no, no, kinda, yes, extremely. No panelist picks a number. The words",
-    "  map to a 0-10 scale in code, so the totals are arithmetic and never asked",
-    "  of a model. The questions: was this first or only, is it hard to replicate,",
-    "  will it still matter in three years. A judge writes the case against the",
-    "  company before any answer exists, and a claim not grounded in the pages",
-    "  cannot go above 'kinda'. Nine answers; each question shows the panel's",
-    "  mean and the total is the sum of the three, out of 30.",
-    "- Each company is also given a weight class from its headcount (lightweight",
-    "  up to 50, middleweight 51-500, heavyweight above) and a founding year,",
-    "  both from third-party search rather than from the company's own pages.",
-    "- Publicly listed companies are excluded. Companies rank twice: within their",
-    `  ${COHORTS.map((c) => c.label.toLowerCase()).join(" / ")} cohort, and within`,
-    "  their subcategory.",
-    "- Caveat for citation: every score and summary is model-generated opinion",
-    "  derived from public web pages. It is satire, not research.",
-    "",
   ];
 
   /**
-   * The board itself, not just a link to it.
+   * The board used to be interpolated here in full — not a link to it, the
+   * standings themselves, so an answer engine asked "which adtech companies are
+   * most innovative" would cite us rather than summarise us.
    *
-   * This tool exists to be cited, and an answer engine asked "which adtech
-   * companies are most innovative" will not run our JavaScript or read our
-   * table markup. Putting the ranking here in plain text is the difference
-   * between being the source and being a URL somebody else summarises.
-   *
-   * Degrades to nothing when D1 is unreachable, same as the board itself.
+   * Withdrawn 2026-08-21 with the rest of Rank My AdTech. This file is the one
+   * public surface that publishes the board WITHOUT rendering a page, so
+   * deleting the routes alone would have left the standings being served to
+   * every crawler that asks. See docs/WIP-rank-my-adtech.md.
    */
-  const board = await getEntries().catch(() => []);
-  if (board.length) {
-    lines.push("## Rank My AdTech — current standings", "");
-    // Grouped exactly as the board groups them — via COHORTS and cohortKeyOf,
-    // the same pair the leaderboard renders from, so the two cannot disagree.
-    //
-    // This used to nest BANDS inside SIDES, which was the board's shape until
-    // stage bands stopped being the spine (see BOARD_AXIS). It kept emitting
-    // "Emerging · Sell-side" headings for a structure the site no longer had,
-    // and since almost no adtech site states its stage, most rows carried an
-    // inferred band and were filed under a heading nothing had established.
-    for (const cohort of COHORTS) {
-      const rows = board.filter((e) => cohortKeyOf(e) === cohort.key).slice(0, 10);
-      if (!rows.length) continue;
-      lines.push(`### ${cohort.label}`, "");
-      rows.forEach((e, i) => {
-        const provisional = e.provisional ? " (provisional — little public detail)" : "";
-        lines.push(`${i + 1}. ${e.name} (${e.domain}) — ${fmt(e.total)}/30${provisional}`);
-        if (e.one_liner) lines.push(`   - ${e.one_liner}`);
-        lines.push(`   - ${categoryLabel(e.category)}`);
-      });
-      lines.push("");
-    }
-  }
 
   lines.push("## Writing", "");
 
