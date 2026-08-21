@@ -203,6 +203,31 @@ export function failure(stage: "read" | "identify" | "panel" | "write") {
   return { status: "failed" as const, stage, ...copy };
 }
 
+/**
+ * The failure for whichever stage was last checkpointed.
+ *
+ * `runJob` marks each stage into `rank_job.stage` as it starts, so a stalled or
+ * crashed run already records where it died. Two callers used to throw that
+ * away and report `failure("panel")` unconditionally: the staleness sweeper and
+ * the catch-all in `runJob`. The cost was not cosmetic — it collapsed four
+ * distinct faults into one sentence, so a crawl that hung, an identify call
+ * that never returned and an actual juror outage were indistinguishable from
+ * the outside, and the panel took the blame for all of them.
+ *
+ * `persist` maps to `write` because that is the stage's reader-facing name, and
+ * an unmarked job (dead before `read`) is a read failure — nothing else can
+ * have run yet.
+ */
+export function failureForStage(stage: string | null | undefined) {
+  switch (stage) {
+    case "identify": return failure("identify");
+    case "panel": return failure("panel");
+    case "persist":
+    case "write": return failure("write");
+    default: return failure("read");
+  }
+}
+
 // ── The rebuild trigger ─────────────────────────────────────────────────────
 
 const BUILD_THROTTLE_MINUTES = 5;
@@ -368,10 +393,16 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, waitUntil
 
     if (row.status === "running") {
       if (row.age > JOB_STALE_SECONDS) {
+        // Report the stage that actually stalled, not a guess. This used to
+        // hardcode failure("panel") — so a run that froze in `identify` and
+        // never reached a juror still told the reader the panel would not sit.
+        // Every distinct stall read as one panel outage, which is precisely
+        // what made the real fault invisible for so long. The row knows.
+        const stalled = failureForStage(row.stage);
         await env.RANKINGS.prepare(
           "UPDATE rank_job SET status = 'failed', payload = ?, finished_at = CURRENT_TIMESTAMP WHERE id = ?",
-        ).bind(JSON.stringify(failure("panel")), job).run();
-        return json(failure("panel"), 200);
+        ).bind(JSON.stringify(stalled), job).run();
+        return json(stalled, 200);
       }
       return json({ status: "running", age: row.age, stage: row.stage, stageAt: row.stageAt }, 200);
     }
@@ -483,15 +514,31 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
    * was a coin flip on every slow company, and it landed in the worst possible
    * place — after three labs had been paid for and before anything was saved.
    *
-   * waitUntil() keeps the pipeline alive after the response is on the wire, and
-   * rank_job is where it reports back. The client gets an id straight away and
-   * polls for the verdict, which also means the browser is no longer holding an
-   * open connection for two minutes to find out.
+   * That reasoning was right about the 524 and wrong about the remedy.
+   *
+   * waitUntil() does NOT keep the pipeline alive for minutes. Cloudflare caps
+   * it at THIRTY SECONDS after the response is on the wire, and cancels
+   * whatever is still running:
+   *
+   *   "waitUntil() extends execution for up to 30 seconds after the response
+   *    or disconnect. If tasks exceed this limit, they are canceled."
+   *
+   * So backgrounding the pipeline traded a ~100s ceiling for a 30s one and
+   * every ranking began dying mid-`identify` — measured here, a run checkpointed
+   * `identify` at t+2s, never advanced, and was swept up as a failure 240s
+   * later. A HEALTHY run is 60-140s. Nothing could ever finish.
+   *
+   * An incoming HTTP request, by contrast, has NO wall-time limit while the
+   * client stays connected. So the pipeline runs in the request again, which is
+   * what it did back when this board was filling up. rank_job, the stage
+   * checkpoints and the designed failures all stay — they are how this was
+   * finally diagnosed — and the response shape is unchanged, so the client's
+   * first poll simply finds the verdict already written.
    */
   const jobId = crypto.randomUUID().replace(/-/g, "");
   await env.RANKINGS.prepare("INSERT INTO rank_job (id, domain) VALUES (?, ?)")
     .bind(jobId, domain).run();
-  waitUntil(runJob(env, waitUntil, domain, jobId));
+  await runJob(env, waitUntil, domain, jobId);
   return json({ status: "queued", job: jobId, domain }, 200);
 };
 
@@ -518,7 +565,12 @@ async function runJob(
    * no company row and no error, and there was no way to tell whether the
    * platform had evicted it or the panel was still thinking.
    */
+  // Held in the isolate as well as in D1, so the catch-all below can name the
+  // stage without a read — and can still name it when the checkpoint write is
+  // the thing that failed.
+  let lastStage: string | null = null;
   const mark = (stage: string) => {
+    lastStage = stage;
     waitUntil(
       env.RANKINGS.prepare(
         "UPDATE rank_job SET stage = ?, stage_at = CURRENT_TIMESTAMP WHERE id = ?",
@@ -535,8 +587,11 @@ async function runJob(
       : payload.status === "not-eligible" ? "refused"
       : "ranked";
   } catch (err) {
-    console.error(`[rank] ${domain} job ${jobId} threw:`, err);
-    payload = failure("panel");
+    // Name the stage that threw. Reporting every unexpected error as a panel
+    // failure meant a D1 outage, a crawl that blew up and a genuine juror
+    // timeout all published the same sentence.
+    console.error(`[rank] ${domain} job ${jobId} threw in ${lastStage ?? "read"}:`, err);
+    payload = failureForStage(lastStage);
     status = "failed";
   }
   try {
