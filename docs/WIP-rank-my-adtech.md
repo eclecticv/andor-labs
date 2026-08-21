@@ -66,6 +66,41 @@ stack, bands), `src/lib/rankings.ts`, `src/components/ds/Rank*.astro` and
 **D1 is untouched.** Every company, ranking and panel take is still in
 `andor-rankings`. Nothing was dropped.
 
+## ⚠ One manual step outstanding — purge the edge cache
+
+The origin is correct: every removed URL returns 404 when requested with a
+cache-busting query. But Cloudflare's edge is still serving the old pages to
+anyone hitting them plainly — measured on `/tools/rank-my-adtech/confiant/`
+right after deploy: `age: 150809` (~42h) against `cache-control: public,
+s-maxage=604800`. **That is a seven-day window in which a deleted page still
+answers 200 with its full content.**
+
+Neither credential to hand can clear it: `CLOUDFLARE_D1_TOKEN` is D1-scoped, and
+the wrangler OAuth session has no cache-purge scope (and there is no
+`wrangler cache purge` for Pages regardless).
+
+**VJ:** Cloudflare dashboard → the `andorlabs.ca` zone → Caching → Configuration
+→ *Purge Everything*, or purge these by URL:
+
+```
+https://andorlabs.ca/tools/rank-my-adtech/
+https://andorlabs.ca/tools/rank-my-adtech/leaderboard/
+https://andorlabs.ca/tools/rank-my-adtech/admesh/
+https://andorlabs.ca/tools/rank-my-adtech/adpushup/
+https://andorlabs.ca/tools/rank-my-adtech/blockthrough/
+https://andorlabs.ca/tools/rank-my-adtech/confiant/
+https://andorlabs.ca/tools/rank-my-adtech/ezoic/
+https://andorlabs.ca/tools/rank-my-adtech/scope3/
+https://andorlabs.ca/tools/rank-my-adtech/the-media-trust/
+https://andorlabs.ca/og-rank-my-adtech.png
+https://andorlabs.ca/rank/panel/glm.png
+https://andorlabs.ca/rank/panel/gemini.png
+https://andorlabs.ca/rank/panel/nemotron.png
+```
+
+Until that happens the pages are gone from the sitemap, `llms.txt`, the nav and
+the homepage — but a previously-visited URL still renders from cache.
+
 ## Open faults, worst first
 
 **1. A pinned seat misses and the ranking dies.** The panel gives one attempt in
