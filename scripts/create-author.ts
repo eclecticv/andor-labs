@@ -22,8 +22,8 @@
  *                   startups that sold for >$100M, I now help {ICP} teams
  *                   set themselves up to win."
  *   bio ¶1       src/config.ts:22,33  ICP + PROMISE
- *                  "AI, adtech, and deeptech" / "clear positioning, deep
- *                   market intelligence, and autonomous growth systems"
+ *                  "adtech" / "find product-market fit, accelerate revenue
+ *                   growth, and win their category"
  *   credential 1 src/components/sections/FAQ.astro:10
  *                  "...ran product marketing and sales operations through
  *                   two exits above $100M."
@@ -31,7 +31,7 @@
  *                  "The founder, directly. No account layers and no handoff
  *                   once the pitch is over."
  *   credential 3 src/components/sections/SiteFooter.astro:21
- *                  "Full-stack GTM for visionary builders & operators"
+ *                  "Don't just go-to-market. Win it."
  *   sameAs[0]    src/layouts/Base.astro:75  twitter:creator @eclecticV
  *   sameAs[1]    src/components/sections/SiteFooter.astro:11
  *
@@ -89,14 +89,14 @@ async function main() {
         "bio-0",
       ),
       block(
-        "The work is clear positioning, deep market intelligence, and autonomous growth systems.",
+        "The work is finding product-market fit, accelerating revenue growth, and winning the category.",
         "bio-1",
       ),
     ],
     credentials: [
       "Ran product marketing and sales operations through two exits above $100M",
       "Works with clients directly — no account layers, no handoff once the pitch is over",
-      "Full-stack GTM for visionary builders and operators",
+      "Don't just go-to-market. Win it.",
     ],
     // Feeds Person.sameAs. Both URLs already exist in the repo; nothing is
     // guessed or reconstructed from a name.

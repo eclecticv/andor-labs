@@ -15,11 +15,12 @@ export const BOOKING_URL = "https://cal.com/jatain/book";
  * The first screen ended up giving three different answers to "is this for me?".
  * Change it here; every surface follows.
  *
- * The three named categories share a buyer, not a vertical: technically complex
- * products sold to skeptical technical people. That is what makes the operator
- * track record transferable across all three.
+ * Narrowed back to adtech on 2026-08-21, deliberately. The hero promise now
+ * names advertising technology and nothing else, and an ICP left broad would
+ * have reopened the exact split this constant exists to close: a subhead
+ * selling to one category with three sections under it selling to three.
  */
-export const ICP = "AI, adtech, and deeptech";
+export const ICP = "adtech";
 
 /** The ICP as a noun phrase, e.g. "We help {ICP_STARTUPS} lead their category". */
 export const ICP_STARTUPS = `${ICP} startups`;
@@ -29,5 +30,9 @@ export const ICP_STARTUPS = `${ICP} startups`;
  *
  * These were two separately-typed sentences making two different claims, so the
  * search snippet promised something the page didn't. Same phrase, one source.
+ *
+ * Spelled out as "advertising technology" rather than interpolating ICP: this is
+ * the first sentence a stranger reads and "adtech" is house shorthand. It is the
+ * one surface that does not derive from ICP, so the two must be moved together.
  */
-export const PROMISE = `We help ${ICP_STARTUPS} win their category through clear positioning, deep market intelligence, and autonomous growth systems.`;
+export const PROMISE = "We're a boutique consultancy helping advertising technology startups find product-market fit, accelerate revenue growth, and win their category.";
